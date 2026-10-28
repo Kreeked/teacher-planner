@@ -1,6 +1,6 @@
 import { Plus, X } from 'lucide-react'
 import { useState } from 'react'
-import { createDoc, removeDoc } from '../../data/db'
+import { createDoc, deleteRefs, ref, refsWhere } from '../../data/db'
 import type { AcademicYear, ClassGroup } from '../../data/types'
 import { classDisplayName, gradeColor, parseLetters } from '../../data/year'
 
@@ -26,9 +26,10 @@ export function ClassesSection({ year, classes }: { year: AcademicYear; classes:
     setLetters('')
   }
 
-  function remove(c: ClassGroup) {
+  async function remove(c: ClassGroup) {
     if (!confirm(`Видалити клас ${c.display_name}?`)) return
-    removeDoc('class_groups', c.id)
+    // Разом із класом зникає і його прив'язка до КТП.
+    deleteRefs([ref('class_groups', c.id), ...(await refsWhere('course_classes', 'class_group_id', c.id))])
   }
 
   const byGrade = new Map<number, ClassGroup[]>()

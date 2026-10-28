@@ -1,7 +1,8 @@
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { useAuth } from './auth/context'
 import { AppLayout } from './layout/AppLayout'
-import { KtpPage } from './pages/KtpPage'
+import { CoursePage } from './pages/ktp/CoursePage'
+import { KtpPage } from './pages/ktp/KtpPage'
 import { LoginPage } from './pages/LoginPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { SoonPage } from './pages/SoonPage'
@@ -22,6 +23,7 @@ export default function App() {
           <Route index element={<TodayPage />} />
           <Route path="ktp" element={<KtpPage />} />
           <Route path="ktp/year" element={<YearPage />} />
+          <Route path="ktp/:courseId" element={<CoursePage />} />
           <Route
             path="schedule"
             element={<SoonPage title="Розклад" color="peri" text="Дзвінки й тижневий розклад з'являться після модуля КТП." />}

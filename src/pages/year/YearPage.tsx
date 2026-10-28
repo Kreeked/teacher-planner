@@ -2,7 +2,7 @@ import { ArrowLeft, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { RangeRow } from '../../components/RangeRow'
-import { commit, newBatch, ref, updateFields, useCollection } from '../../data/db'
+import { commit, deleteRefs, newBatch, ref, refsWhere, updateFields, useCollection } from '../../data/db'
 import type { AcademicYear } from '../../data/types'
 import { pickCurrentYear, validateYear } from '../../data/year'
 import { ClassesSection } from './ClassesSection'
@@ -27,13 +27,19 @@ export function YearPage() {
     commit(batch)
   }
 
-  function removeYear(y: AcademicYear) {
-    if (!confirm(`Видалити навчальний рік ${y.title} разом із семестрами, чвертями й класами?`)) return
-    const batch = newBatch()
-    batch.delete(ref('academic_years', y.id))
-    for (const p of periods) batch.delete(ref('periods', p.id))
-    for (const c of classes) batch.delete(ref('class_groups', c.id))
-    commit(batch)
+  async function removeYear(y: AcademicYear) {
+    if (!confirm(`Видалити навчальний рік ${y.title} разом із семестрами, класами і всіма КТП цього року?`)) return
+    const refs = [
+      ref('academic_years', y.id),
+      ...periods.map((p) => ref('periods', p.id)),
+      ...classes.map((c) => ref('class_groups', c.id)),
+    ]
+    for (const course of await refsWhere('courses', 'academic_year_id', y.id)) {
+      refs.push(course)
+      for (const name of ['course_classes', 'topics', 'lessons'] as const)
+        refs.push(...(await refsWhere(name, 'course_id', course.id)))
+    }
+    deleteRefs(refs)
     setSelectedId(null)
   }
 

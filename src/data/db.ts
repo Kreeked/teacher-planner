@@ -2,6 +2,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDocs,
   onSnapshot,
   query,
   serverTimestamp,
@@ -61,6 +62,21 @@ export function updateFields<N extends CollectionName>(
 
 export function removeDoc(name: CollectionName, id: string) {
   deleteDoc(ref(name, id)).catch(report)
+}
+
+/** Посилання на всі документи колекції з полем field == value (з кешу, якщо немає мережі). */
+export async function refsWhere(name: CollectionName, field: string, value: string) {
+  const snap = await getDocs(query(col(name), where(field, '==', value)))
+  return snap.docs.map((d) => d.ref)
+}
+
+/** Видаляє документи пачками (у батчі Firestore не більше 500 операцій). */
+export function deleteRefs(refs: DocumentReference[]) {
+  for (let i = 0; i < refs.length; i += 450) {
+    const batch = writeBatch(db)
+    for (const r of refs.slice(i, i + 450)) batch.delete(r)
+    commit(batch)
+  }
 }
 
 export function newBatch() {
