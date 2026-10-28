@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../auth/context'
+import { useOfflineAutoSync } from '../lib/useOfflinePlan'
 import { useOnline } from '../lib/useOnline'
 import { NAV } from './nav'
 
@@ -8,6 +9,7 @@ const SETTINGS = NAV[NAV.length - 1]
 export function AppLayout() {
   const { user } = useAuth()
   const online = useOnline()
+  useOfflineAutoSync()
 
   return (
     <div className="shell">

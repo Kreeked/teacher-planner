@@ -9,7 +9,9 @@ import {
   Image,
   Link2,
   Paperclip,
+  Pin,
   Presentation,
+  Smartphone,
   Trash2,
   Upload,
   X,
@@ -28,14 +30,9 @@ import {
   type MaterialType,
 } from '../../data/materials'
 import type { AcademicYear, Course, Lesson, LessonMaterial, Topic } from '../../data/types'
-import {
-  DriveError,
-  driveConfigured,
-  pickFiles,
-  preloadDrive,
-  uploadFile,
-  type DriveFile,
-} from '../../lib/drive'
+import { DriveError, driveConfigured, pickFiles, preloadDrive, uploadFile, type DriveFile } from '../../lib/drive'
+import { openSaved, useOfflineFiles } from '../../lib/offlineFiles'
+import { useOnline } from '../../lib/useOnline'
 
 const ICONS: Record<MaterialType, LucideIcon> = {
   slides: Presentation,
@@ -48,14 +45,28 @@ const ICONS: Record<MaterialType, LucideIcon> = {
   file: File,
 }
 
-/** Матеріал одним рядком-посиланням: іконка, назва, розмір. */
+/** Матеріал одним рядком-посиланням: іконка, назва, розмір. Без інтернету відкриває копію з пристрою. */
 export function MaterialLink({ m }: { m: LessonMaterial }) {
   const Icon = ICONS[materialType(m)]
+  const online = useOnline()
+  const saved = useOfflineFiles().saved.get(m.drive_file_id ?? '')
   return (
-    <a className="material" href={materialUrl(m)} target="_blank" rel="noreferrer" title={m.title}>
+    <a
+      className="material"
+      href={materialUrl(m)}
+      target="_blank"
+      rel="noreferrer"
+      title={saved ? `${m.title} (є на пристрої)` : m.title}
+      onClick={(e) => {
+        if (online || !saved) return
+        e.preventDefault()
+        openSaved(saved)
+      }}
+    >
       <Icon size={14} />
       <span className="grow">{m.title}</span>
       {m.size_bytes ? <small>{formatSize(m.size_bytes)}</small> : null}
+      {saved && <Smartphone size={12} className="saved-mark" aria-label="Є на пристрої" />}
     </a>
   )
 }
@@ -228,6 +239,21 @@ export function MaterialsDialog({ course, year, lesson, topic, materials, onClos
           {own.map((m, i) => (
             <div key={m.id} className="material-row">
               <MaterialLink m={m} />
+              {m.kind === 'file' && (
+                <button
+                  className={m.keep_offline ? 'icon-btn pin on' : 'icon-btn pin'}
+                  aria-pressed={m.keep_offline}
+                  onClick={() => updateFields('lesson_materials', m.id, { keep_offline: !m.keep_offline })}
+                  aria-label="Завжди мати на пристрої"
+                  title={
+                    m.keep_offline
+                      ? 'Завжди на пристрої. Натисни, щоб тримати лише перед уроком'
+                      : 'Завжди мати на пристрої, не лише в тиждень уроку'
+                  }
+                >
+                  <Pin size={14} />
+                </button>
+              )}
               <button className="icon-btn" disabled={i === 0} onClick={() => move(m, -1)} aria-label="Вище">
                 <ChevronUp size={15} />
               </button>

@@ -1,4 +1,4 @@
-import { ArrowUpRight, Check, ChevronLeft, ChevronRight, Paperclip } from 'lucide-react'
+import { ArrowUpRight, Check, ChevronLeft, ChevronRight, CloudDownload, Paperclip } from 'lucide-react'
 import { useEffect, useState, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/context'
@@ -11,6 +11,10 @@ import type { AcademicYear, ISODate, LessonMaterial, Topic } from '../data/types
 import { MaterialLink, MaterialsDialog } from './ktp/Materials'
 import { gradeColor, shortDate } from '../data/year'
 import { MonthCalendar } from '../layout/MonthCalendar'
+import { driveConfigured } from '../lib/drive'
+import { syncOffline } from '../lib/offlineFiles'
+import { useOfflinePlan } from '../lib/useOfflinePlan'
+import { useOnline } from '../lib/useOnline'
 import { firstName, formatDayMonth, formatWeekday, greeting } from '../lib/dates'
 
 type View = 'day' | 'week'
@@ -136,6 +140,8 @@ export function TodayPage() {
           </div>
         </div>
 
+        <OfflineNotice />
+
         {!loading && !courses.length && (
           <section className="empty" style={{ background: 'var(--mint)' }}>
             <div>
@@ -183,6 +189,38 @@ export function TodayPage() {
         <MonthCalendar today={today} selected={day} onSelect={setDay} marked={marked} />
       </aside>
     </div>
+  )
+}
+
+/** Нагадування, що частина файлів до уроків тижня ще не збережена на пристрої. */
+function OfflineNotice() {
+  const { plan, files, missing, loading } = useOfflinePlan()
+  const online = useOnline()
+  if (files.running)
+    return (
+      <p className="offline-note">
+        <CloudDownload size={14} /> Зберігаю файли до уроків на пристрій: {files.done} з {files.total}…
+      </p>
+    )
+  if (loading || !online || !driveConfigured || !missing.length) return null
+  return (
+    <p className="offline-note">
+      <CloudDownload size={14} />
+      <span className="grow">
+        Файлів до уроків тижня, яких ще немає на пристрої: {missing.length}. <Link to="/settings">Докладніше</Link>
+      </span>
+      <button
+        className="chip plain"
+        onClick={() =>
+          syncOffline(
+            plan.keep.map((x) => x.material),
+            true,
+          )
+        }
+      >
+        Зберегти
+      </button>
+    </p>
   )
 }
 

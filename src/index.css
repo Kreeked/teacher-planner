@@ -1799,3 +1799,90 @@ a.chip {
   min-height: 30px;
   padding: 0 12px;
 }
+
+/* Офлайн-копії файлів. */
+.material .saved-mark {
+  flex: none;
+  color: var(--ink-2);
+}
+
+.icon-btn.pin {
+  color: var(--ink-2);
+}
+
+.icon-btn.pin.on {
+  color: var(--ink);
+  background: var(--line);
+}
+
+.offline-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--surface);
+  font-size: 13px;
+}
+
+.offline-note .chip {
+  flex: none;
+}
+
+.meter {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.meter i {
+  display: block;
+  height: 100%;
+  background: var(--ink);
+}
+
+.offline-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.offline-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 13px;
+}
+
+.offline-list .grow {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.offline-list small {
+  flex: none;
+  color: var(--ink-2);
+}
+
+.offline-list .ok {
+  color: var(--ink);
+}
+
+.offline-list li:not(:has(.ok)),
+.offline-list li.over {
+  color: var(--ink-2);
+}
+
+.offline-note a {
+  color: inherit;
+}
