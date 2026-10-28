@@ -76,6 +76,14 @@ export type Lesson = Meta & {
   lesson_type: LessonType
   homework: string
   notes: string
+  // Очікувані результати навчання уроку, у порядку показу (id з learning_outcomes).
+  outcome_ids?: string[]
+}
+
+export type LearningOutcome = Meta & {
+  course_id: string
+  text: string
+  position: number
 }
 
 export type Collections = {
@@ -86,6 +94,7 @@ export type Collections = {
   course_classes: CourseClass
   topics: Topic
   lessons: Lesson
+  learning_outcomes: LearningOutcome
 }
 
 export type CollectionName = keyof Collections
@@ -99,6 +108,7 @@ export const COLLECTION_NAMES: CollectionName[] = [
   'course_classes',
   'topics',
   'lessons',
+  'learning_outcomes',
 ]
 
 export type NewDoc<T extends Meta> = Omit<T, keyof Meta>
