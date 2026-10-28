@@ -1,27 +1,46 @@
 import { ArrowUpRight, Check, ChevronLeft, ChevronRight } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/context'
+import { currentAndNext, lessonsOfDay, mondayOf, type DayData, type DayLesson } from '../data/day'
 import { updateFields, useCollection } from '../data/db'
 import { LESSON_TYPES } from '../data/ktp'
-import { addDays, toISO } from '../data/schedule'
-import { slotsOn, timetableOn } from '../data/timetable'
-import type { ISODate } from '../data/types'
+import { addDays, toISO, WEEKDAYS } from '../data/schedule'
+import type { ISODate, Topic } from '../data/types'
 import { gradeColor, shortDate } from '../data/year'
 import { MonthCalendar } from '../layout/MonthCalendar'
 import { firstName, formatDayMonth, formatWeekday, greeting } from '../lib/dates'
+
+type View = 'day' | 'week'
+
+const VIEW_KEY = 'today-view'
 
 function asDate(d: ISODate) {
   const [y, m, day] = d.split('-').map(Number)
   return new Date(y, m - 1, day)
 }
 
+function savedView(): View {
+  try {
+    return localStorage.getItem(VIEW_KEY) === 'week' ? 'week' : 'day'
+  } catch {
+    return 'day'
+  }
+}
+
 export function TodayPage() {
   const { user } = useAuth()
-  const [now] = useState(() => new Date())
+  const [now, setNow] = useState(() => new Date())
   const today = toISO(now)
   const [day, setDay] = useState(today)
+  const [view, setView] = useState<View>(savedView)
   const name = firstName(user?.displayName)
+
+  // Поточний урок змінюється з часом — оновлюємо щохвилини.
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 60_000)
+    return () => clearInterval(t)
+  }, [])
 
   const { items: schedules, loading } = useCollection('lesson_schedules')
   const { items: lessons } = useCollection('lessons')
@@ -31,43 +50,34 @@ export function TodayPage() {
   const { items: timetables } = useCollection('timetables')
   const { items: entries } = useCollection('timetable_entries')
   const { items: bells } = useCollection('bell_schedules')
+  const data: DayData = { schedules, lessons, courses, classes, timetables, entries, bells }
+
+  function switchView(v: View) {
+    setView(v)
+    try {
+      localStorage.setItem(VIEW_KEY, v)
+    } catch {
+      // Без сховища вигляд просто не запам'ятається.
+    }
+  }
+
+  function openDay(d: ISODate) {
+    setDay(d)
+    switchView('day')
+  }
 
   const marked = new Set(schedules.flatMap((s) => (s.planned_date ? [s.planned_date] : [])))
-  const items = schedules
-    .filter((s) => s.planned_date === day)
-    .map((s) => ({
-      s,
-      lesson: lessons.find((l) => l.id === s.lesson_id),
-      course: courses.find((c) => c.id === s.course_id),
-      cls: classes.find((c) => c.id === s.class_group_id),
-    }))
-    .filter((x) => x.lesson && x.course && x.cls)
-    .sort((a, b) => a.lesson!.number - b.lesson!.number)
-
-  // Номер уроку в дні — з тижневого розкладу; здвоєний урок отримує номери по черзі.
-  const slots = slotsOn(entries, timetableOn(timetables, day), day)
-  const taken = new Map<string, number>()
-  const timed = items
-    .map((x) => {
-      const key = `${x.s.class_group_id}_${x.s.course_id}`
-      const i = taken.get(key) ?? 0
-      taken.set(key, i + 1)
-      const slot = slots.get(key)?.[i] ?? null
-      const bell = bells
-        .find((b) => b.academic_year_id === x.course!.academic_year_id)
-        ?.slots.find((b) => b.number === slot)
-      return { ...x, slot, bell }
-    })
-    .sort(
-      (a, b) =>
-        (a.slot ?? 99) - (b.slot ?? 99) ||
-        a.cls!.grade - b.cls!.grade ||
-        a.cls!.letter.localeCompare(b.cls!.letter, 'uk') ||
-        a.course!.subject.localeCompare(b.course!.subject, 'uk'),
-    )
+  const list = lessonsOfDay(day, data)
   const next = [...marked].filter((d) => d > day).sort()[0]
   const date = asDate(day)
   const weekday = formatWeekday(date)
+  const monday = mondayOf(day)
+  const step = view === 'week' ? 7 : 1
+  const isCurrent = view === 'week' ? monday === mondayOf(today) : day === today
+
+  let title: string
+  if (view === 'week') title = `Тиждень ${asDate(monday).getDate()}–${formatDayMonth(asDate(addDays(monday, 4)))}`
+  else title = day === today ? `Сьогодні, ${weekday}` : weekday[0].toUpperCase() + weekday.slice(1)
 
   return (
     <div className="page with-rail">
@@ -79,20 +89,43 @@ export function TodayPage() {
           </p>
           <div className="day-head">
             <h1>
-              {day === today ? `Сьогодні, ${weekday}` : weekday[0].toUpperCase() + weekday.slice(1)}{' '}
-              <span className="cnt">{formatDayMonth(date)}</span>
+              {title} {view === 'day' && <span className="cnt">{formatDayMonth(date)}</span>}
             </h1>
             <span className="grow" />
             <div className="day-nav">
-              <button className="icon-btn" onClick={() => setDay(addDays(day, -1))} aria-label="Попередній день">
+              <div className="seg" role="group" aria-label="Вигляд">
+                <button
+                  className={view === 'day' ? 'on' : ''}
+                  aria-pressed={view === 'day'}
+                  onClick={() => switchView('day')}
+                >
+                  День
+                </button>
+                <button
+                  className={view === 'week' ? 'on' : ''}
+                  aria-pressed={view === 'week'}
+                  onClick={() => switchView('week')}
+                >
+                  Тиждень
+                </button>
+              </div>
+              <button
+                className="icon-btn"
+                onClick={() => setDay(addDays(day, -step))}
+                aria-label={view === 'week' ? 'Попередній тиждень' : 'Попередній день'}
+              >
                 <ChevronLeft size={18} />
               </button>
-              {day !== today && (
+              {!isCurrent && (
                 <button className="chip plain" onClick={() => setDay(today)}>
                   Сьогодні
                 </button>
               )}
-              <button className="icon-btn" onClick={() => setDay(addDays(day, 1))} aria-label="Наступний день">
+              <button
+                className="icon-btn"
+                onClick={() => setDay(addDays(day, step))}
+                aria-label={view === 'week' ? 'Наступний тиждень' : 'Наступний день'}
+              >
                 <ChevronRight size={18} />
               </button>
             </div>
@@ -111,7 +144,11 @@ export function TodayPage() {
           </section>
         )}
 
-        {!loading && courses.length > 0 && !timed.length && (
+        {view === 'week' && courses.length > 0 && (
+          <WeekView monday={monday} today={today} data={data} now={now} onOpen={openDay} />
+        )}
+
+        {view === 'day' && !loading && courses.length > 0 && !list.length && (
           <section className="empty" style={{ background: 'var(--surface)' }}>
             <div>
               <h2>Цього дня уроків немає</h2>
@@ -127,63 +164,121 @@ export function TodayPage() {
           </section>
         )}
 
-        <div className="day-list">
-          {timed.map(({ s, lesson, course, cls, slot, bell }) => {
-            const l = lesson!
-            const topic = topics.find((t) => t.id === l.topic_id)
-            const type = LESSON_TYPES.find((t) => t.value === l.lesson_type)
-            const done = s.status === 'done'
-            return (
-              <article
-                key={s.id}
-                className={done ? 'day-card done' : 'day-card'}
-                style={{ background: gradeColor(cls!.grade) }}
-              >
-                <div className="day-card-head">
-                  {slot && (
-                    <span className="day-time">
-                      <b>{slot} урок</b>
-                      {bell && ` ${bell.start}–${bell.end}`}
-                    </span>
-                  )}
-                  <span className="class-badge">{cls!.display_name}</span>
-                  <span className="day-subject">{course!.subject}</span>
-                  <span className="day-no">
-                    {l.extra ? 'Додатковий урок' : `Урок ${l.number}`}
-                    {type && l.lesson_type !== 'regular' && ` · ${type.label}`}
-                  </span>
-                  <span className="grow" />
-                  <Link to={`/ktp/${course!.id}`} className="arrow" aria-label="Відкрити КТП">
-                    <ArrowUpRight size={15} />
-                  </Link>
-                </div>
-                <h2 className="day-title">{l.title || 'Без теми'}</h2>
-                {topic && <p className="day-topic">{topic.title}</p>}
-                {l.homework && (
-                  <p className="day-hw">
-                    <b>ДЗ:</b> {l.homework}
-                  </p>
-                )}
-                <button
-                  className={done ? 'chip plain on' : 'chip plain'}
-                  aria-pressed={done}
-                  onClick={() =>
-                    updateFields('lesson_schedules', s.id, {
-                      status: done ? 'planned' : 'done',
-                    })
-                  }
-                >
-                  <Check size={14} /> {done ? 'Проведено' : 'Позначити проведеним'}
-                </button>
-              </article>
-            )
-          })}
-        </div>
+        {view === 'day' && (
+          <DayView list={list} topics={topics} live={day === today ? currentAndNext(list, now) : null} />
+        )}
       </main>
 
       <aside className="rail">
         <MonthCalendar today={today} selected={day} onSelect={setDay} marked={marked} />
       </aside>
+    </div>
+  )
+}
+
+type Live = { currentId: string | null; nextId: string | null } | null
+
+function DayView({ list, topics, live }: { list: DayLesson[]; topics: Topic[]; live: Live }) {
+  return (
+    <div className="day-list">
+      {list.map(({ s, lesson: l, course, cls, slot, bell }) => {
+        const topic = topics.find((t) => t.id === l.topic_id)
+        const type = LESSON_TYPES.find((t) => t.value === l.lesson_type)
+        const done = s.status === 'done'
+        const isNow = live?.currentId === s.id
+        const badge = isNow ? 'Зараз' : live?.nextId === s.id ? 'Далі' : null
+        return (
+          <article
+            key={s.id}
+            className={['day-card', done && 'done', isNow && 'now'].filter(Boolean).join(' ')}
+            style={{ background: gradeColor(cls.grade) }}
+          >
+            <div className="day-card-head">
+              {(slot || badge) && (
+                <span className="day-time">
+                  {badge && <span className={isNow ? 'live now' : 'live'}>{badge}</span>}
+                  {slot && <b>{slot} урок</b>}
+                  {bell && ` ${bell.start}–${bell.end}`}
+                </span>
+              )}
+              <span className="class-badge">{cls.display_name}</span>
+              <span className="day-subject">{course.subject}</span>
+              <span className="day-no">
+                {l.extra ? 'Додатковий урок' : `Урок ${l.number}`}
+                {type && l.lesson_type !== 'regular' && ` · ${type.label}`}
+              </span>
+              <span className="grow" />
+              <Link to={`/ktp/${course.id}`} className="arrow" aria-label="Відкрити КТП">
+                <ArrowUpRight size={15} />
+              </Link>
+            </div>
+            <h2 className="day-title">{l.title || 'Без теми'}</h2>
+            {topic && <p className="day-topic">{topic.title}</p>}
+            {l.homework && (
+              <p className="day-hw">
+                <b>ДЗ:</b> {l.homework}
+              </p>
+            )}
+            <button
+              className={done ? 'chip plain on' : 'chip plain'}
+              aria-pressed={done}
+              onClick={() => updateFields('lesson_schedules', s.id, { status: done ? 'planned' : 'done' })}
+            >
+              <Check size={14} /> {done ? 'Проведено' : 'Позначити проведеним'}
+            </button>
+          </article>
+        )
+      })}
+    </div>
+  )
+}
+
+type WeekProps = { monday: ISODate; today: ISODate; data: DayData; now: Date; onOpen: (d: ISODate) => void }
+
+/** Тиждень: колонка на кожен день, уроки в порядку розкладу. Дотик відкриває день. */
+function WeekView({ monday, today, data, now, onOpen }: WeekProps) {
+  const days = WEEKDAYS.map((w, i) => ({
+    ...w,
+    date: addDays(monday, i),
+    list: lessonsOfDay(addDays(monday, i), data),
+  }))
+  // Субота — лише якщо в неї є уроки.
+  const shown = days.filter((d) => d.value < 6 || d.list.length)
+
+  return (
+    <div className="week" style={{ '--days': shown.length } as CSSProperties}>
+      {shown.map((d) => {
+        const live = d.date === today ? currentAndNext(d.list, now) : null
+        return (
+          <section key={d.date} className={d.date === today ? 'week-day today' : 'week-day'}>
+            <button className="week-day-head" onClick={() => onOpen(d.date)}>
+              <b>{d.label}</b> {shortDate(d.date)}
+            </button>
+            {!d.list.length && <p className="week-empty">—</p>}
+            {d.list.map(({ s, lesson: l, cls, slot, bell }) => (
+              <button
+                key={s.id}
+                className={['week-item', s.status === 'done' && 'done', live?.currentId === s.id && 'now']
+                  .filter(Boolean)
+                  .join(' ')}
+                style={{ background: gradeColor(cls.grade) }}
+                onClick={() => onOpen(d.date)}
+              >
+                <span className="week-item-head">
+                  {slot && <b>{slot}</b>}
+                  <span className="class-badge">{cls.display_name}</span>
+                  {bell && <small>{bell.start}</small>}
+                  {s.status === 'done' && <Check size={13} aria-label="Проведено" />}
+                </span>
+                <span className="week-item-title">
+                  {l.extra ? '* ' : `${l.number}. `}
+                  {l.title || 'Без теми'}
+                </span>
+              </button>
+            ))}
+          </section>
+        )
+      })}
     </div>
   )
 }

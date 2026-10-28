@@ -1533,3 +1533,143 @@ a.chip {
 .day-time b {
   color: var(--ink);
 }
+
+/* ---------- День / Тиждень ---------- */
+.seg {
+  display: inline-flex;
+  background: var(--surface);
+  border-radius: 999px;
+  padding: 3px;
+  margin-right: 4px;
+}
+
+.seg button {
+  height: 26px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--ink-2);
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.seg button.on {
+  background: var(--ink);
+  color: #fff;
+}
+
+.day-card.now {
+  box-shadow: 0 0 0 2px var(--ink);
+}
+
+.live {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.live.now {
+  background: var(--ink);
+  color: #fff;
+}
+
+.week {
+  display: grid;
+  grid-template-columns: repeat(var(--days, 5), minmax(0, 1fr));
+  gap: 8px;
+  align-items: start;
+}
+
+.week-day {
+  background: var(--surface);
+  border-radius: var(--r-lg);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.week-day.today {
+  box-shadow: inset 0 0 0 2px var(--ink);
+}
+
+.week-day-head {
+  border: 0;
+  background: none;
+  text-align: left;
+  padding: 2px 4px;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.week-day-head b {
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.week-empty {
+  margin: 0;
+  padding: 4px;
+  color: #b4b4bf;
+  font-size: 12px;
+}
+
+.week-item {
+  border: 0;
+  border-radius: 12px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+  color: var(--ink);
+  min-width: 0;
+}
+
+.week-item.done {
+  opacity: 0.6;
+}
+
+.week-item.now {
+  box-shadow: 0 0 0 2px var(--ink);
+}
+
+.week-item-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.week-item-head .class-badge {
+  font-size: 12px;
+  padding: 1px 8px;
+}
+
+.week-item-head small {
+  color: var(--ink-2);
+  font-size: 11px;
+}
+
+.week-item-title {
+  font-size: 12px;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* На вузькому екрані дні йдуть один під одним. */
+@media (max-width: 1100px) {
+  .week {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
