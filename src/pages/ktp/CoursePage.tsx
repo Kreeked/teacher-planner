@@ -1,4 +1,4 @@
-import { ArrowLeft, ChevronDown, ChevronUp, Plus, Settings2, Trash2, TriangleAlert } from 'lucide-react'
+import { ArrowLeft, ArrowUpRight, ChevronDown, ChevronUp, Plus, Settings2, Target, Trash2, TriangleAlert, X } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { InlineText } from '../../components/InlineText'
@@ -15,8 +15,10 @@ import {
   type TopicBlock,
 } from '../../data/ktp'
 import type { Lesson, LessonType, Topic } from '../../data/types'
+import { coverage, outcomeUsage, sortOutcomes } from '../../data/outcomes'
 import { gradeColor } from '../../data/year'
 import { CourseSettings } from './CourseSettings'
+import { OutcomePicker } from './OutcomePicker'
 import type { WriteBatch } from 'firebase/firestore'
 
 /** Записує новий порядок: позиції тем і номери/позиції уроків, що змінилися. */
@@ -34,7 +36,9 @@ export function CoursePage() {
   const { items: courses, loading } = useCollection('courses')
   const { items: topics } = useCollection('topics', byCourse)
   const { items: lessons } = useCollection('lessons', byCourse)
+  const { items: outcomes } = useCollection('learning_outcomes', byCourse)
   const [showSettings, setShowSettings] = useState(false)
+  const [pickerFor, setPickerFor] = useState<string | null>(null)
   // Щойно доданий урок отримує фокус на полі теми.
   const [newLessonId, setNewLessonId] = useState<string | null>(null)
 
@@ -56,6 +60,10 @@ export function CoursePage() {
   const warnings = hourWarnings(blocks, course.total_hours)
   const courseWarning = warnings.find((w) => !w.topicId)
   const color = gradeColor(course.grade)
+  const usage = outcomeUsage(lessons)
+  const stats = coverage(outcomes, lessons)
+  const outcomeById = new Map(sortOutcomes(outcomes).map((o, i) => [o.id, { ...o, n: i + 1 }]))
+  const pickerLesson = lessons.find((l) => l.id === pickerFor)
 
   function addTopic() {
     createDoc('topics', {
@@ -147,6 +155,9 @@ export function CoursePage() {
             {lessons.length} {lessonsWord(lessons.length)} з {course.total_hours} год
           </span>
           <span className="chip plain">{course.hours_per_week} год/тиж</span>
+          <Link to={`/ktp/${courseId}/outcomes`} className="chip plain">
+            <Target size={14} /> ОРН: покрито {stats.covered} з {stats.total} <ArrowUpRight size={13} />
+          </Link>
         </div>
 
         {showSettings && (
@@ -161,6 +172,16 @@ export function CoursePage() {
         {courseWarning && (
           <p className="warn">
             <TriangleAlert size={14} /> {courseWarning.text}
+          </p>
+        )}
+        {stats.total > 0 && stats.lessonsWithout > 0 && (
+          <p className="warn">
+            <TriangleAlert size={14} /> Без ОРН: {stats.lessonsWithout} {lessonsWord(stats.lessonsWithout)}
+          </p>
+        )}
+        {stats.total > stats.covered && (
+          <p className="warn">
+            <TriangleAlert size={14} /> Не прив'язано до уроків: {stats.total - stats.covered} ОРН
           </p>
         )}
 
@@ -220,15 +241,40 @@ export function CoursePage() {
                 {b.lessons.map((l) => (
                   <div key={l.id} className="lesson-row">
                     <span className="no num">{l.number}</span>
-                    <InlineText
-                      multiline
-                      autoFocus={l.id === newLessonId}
-                      className="l-title"
-                      label={`Тема уроку ${l.number}`}
-                      placeholder="Тема уроку"
-                      value={l.title}
-                      onSave={(title) => updateFields('lessons', l.id, { title })}
-                    />
+                    <div className="l-main">
+                      <InlineText
+                        multiline
+                        autoFocus={l.id === newLessonId}
+                        className="l-title"
+                        label={`Тема уроку ${l.number}`}
+                        placeholder="Тема уроку"
+                        value={l.title}
+                        onSave={(title) => updateFields('lessons', l.id, { title })}
+                      />
+                      <div className="l-outcomes">
+                        {(l.outcome_ids ?? []).map((id) => {
+                          const o = outcomeById.get(id)
+                          if (!o) return null
+                          return (
+                            <span key={id} className="orn" title={o.text}>
+                              <span className="grow">{o.text}</span>
+                              <button
+                                className="chip-x"
+                                aria-label="Прибрати ОРН"
+                                onClick={() =>
+                                  updateFields('lessons', l.id, { outcome_ids: l.outcome_ids!.filter((x) => x !== id) })
+                                }
+                              >
+                                <X size={11} />
+                              </button>
+                            </span>
+                          )
+                        })}
+                        <button className="link-btn" onClick={() => setPickerFor(l.id)}>
+                          <Plus size={12} /> ОРН
+                        </button>
+                      </div>
+                    </div>
                     <select
                       className="cell l-type"
                       aria-label="Тип уроку"
@@ -284,6 +330,10 @@ export function CoursePage() {
         <button className="btn ghost add-topic" onClick={addTopic}>
           <Plus size={16} /> Тема
         </button>
+
+        {pickerLesson && (
+          <OutcomePicker lesson={pickerLesson} outcomes={outcomes} usage={usage} onClose={() => setPickerFor(null)} />
+        )}
       </main>
     </div>
   )

@@ -1,5 +1,5 @@
 import { Trash2 } from 'lucide-react'
-import { commit, createDoc, newBatch, ref, removeDoc, updateFields, useCollection } from '../../data/db'
+import { createDoc, deleteRefs, ref, refsWhere, removeDoc, updateFields, useCollection } from '../../data/db'
 import type { Course, CourseStatus, Lesson, Topic } from '../../data/types'
 
 const STATUSES: { value: CourseStatus; label: string }[] = [
@@ -29,15 +29,16 @@ export function CourseSettings({ course, topics, lessons, onDeleted }: Props) {
     if (n > 0 && n !== course[field]) updateFields('courses', course.id, { [field]: field === 'total_hours' ? Math.round(n) : n })
   }
 
-  function remove() {
+  async function remove() {
     if (!confirm(`Видалити КТП «${course.subject}, ${course.grade} клас» з усіма темами й уроками (${lessons.length})?`))
       return
-    const batch = newBatch()
-    batch.delete(ref('courses', course.id))
-    for (const l of links) batch.delete(ref('course_classes', l.id))
-    for (const t of topics) batch.delete(ref('topics', t.id))
-    for (const l of lessons) batch.delete(ref('lessons', l.id))
-    commit(batch)
+    deleteRefs([
+      ref('courses', course.id),
+      ...links.map((l) => ref('course_classes', l.id)),
+      ...topics.map((t) => ref('topics', t.id)),
+      ...lessons.map((l) => ref('lessons', l.id)),
+      ...(await refsWhere('learning_outcomes', 'course_id', course.id)),
+    ])
     onDeleted()
   }
 

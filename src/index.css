@@ -978,8 +978,11 @@ select.cell {
     grid-area: no;
   }
 
-  .lesson-row .l-title {
+  .lesson-row .l-main {
     grid-area: title;
+  }
+
+  .lesson-row .l-title {
     font-weight: 600;
   }
 
@@ -995,4 +998,201 @@ select.cell {
   .lesson-row .row-tools {
     grid-area: tools;
   }
+}
+
+/* ---------- ОРН ---------- */
+.l-main {
+  min-width: 0;
+}
+
+.l-outcomes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0 4px 2px;
+}
+
+.l-outcomes .link-btn {
+  padding: 2px 4px;
+  font-size: 11px;
+}
+
+.orn {
+  max-width: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--bg);
+  border-radius: 8px;
+  padding: 2px 2px 2px 8px;
+  font-size: 11px;
+  color: var(--ink-2);
+}
+
+.orn .grow {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: rgba(31, 31, 36, 0.32);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+
+.dialog {
+  width: 100%;
+  max-width: 560px;
+  max-height: min(640px, calc(100dvh - 32px));
+  background: var(--surface);
+  border-radius: var(--r-xl);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 30px 60px rgba(31, 31, 36, 0.18);
+}
+
+.dialog-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.dialog-head .grow {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dialog-head span {
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.dialog .btn.ghost {
+  margin-top: 0;
+  justify-content: flex-start;
+  height: auto;
+  min-height: 38px;
+  padding: 8px 14px;
+  text-align: left;
+}
+
+.search-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  border-radius: 999px;
+  background: var(--bg);
+  padding: 0 14px;
+  color: var(--ink-2);
+}
+
+.search-field input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink);
+  outline: none;
+}
+
+.pick-list {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 0;
+}
+
+.pick {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  border: 0;
+  background: none;
+  text-align: left;
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--ink);
+  padding: 8px;
+  border-radius: 10px;
+}
+
+.pick:hover {
+  background: var(--bg);
+}
+
+.pick .box {
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+  border: 2px solid #cfcfd6;
+  display: grid;
+  place-items: center;
+  flex: none;
+  margin-top: 1px;
+}
+
+.pick.on .box {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+}
+
+.pick .used {
+  font-size: 11px;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.outcome-row {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto auto;
+  gap: 8px;
+  align-items: start;
+  padding: 4px 0;
+  border-top: 1px solid var(--line);
+}
+
+.outcome-row:first-child {
+  border-top: 0;
+}
+
+.outcome-row .no {
+  height: 30px;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+
+.outcome-row .badge {
+  margin-top: 4px;
+  background: var(--bg);
+}
+
+.panel.outcomes {
+  max-width: none;
+}
+
+.field.paste {
+  height: auto;
+  padding: 8px 10px;
+  line-height: 1.45;
+  resize: vertical;
+}
+
+a.chip {
+  text-decoration: none;
 }
