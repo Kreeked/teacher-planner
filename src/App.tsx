@@ -6,7 +6,6 @@ import { KtpPage } from './pages/ktp/KtpPage'
 import { LoginPage } from './pages/LoginPage'
 import { SchedulePage } from './pages/schedule/SchedulePage'
 import { SettingsPage } from './pages/SettingsPage'
-import { SoonPage } from './pages/SoonPage'
 import { TodayPage } from './pages/TodayPage'
 import { YearPage } from './pages/year/YearPage'
 
@@ -26,10 +25,6 @@ export default function App() {
           <Route path="ktp/year" element={<YearPage />} />
           <Route path="ktp/:courseId" element={<CoursePage />} />
           <Route path="schedule" element={<SchedulePage />} />
-          <Route
-            path="calendar"
-            element={<SoonPage title="Календар" color="butter" text="Канікули, свята й перенесення уроків — у модулі «Календар навчального року»." />}
-          />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
