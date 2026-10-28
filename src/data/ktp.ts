@@ -33,9 +33,9 @@ export function renumber(blocks: TopicBlock[]): LessonPatch[] {
   let n = 0
   for (const { topic, lessons } of blocks)
     lessons.forEach((l, i) => {
-      n++
-      if (l.number !== n || l.position !== i || l.topic_id !== topic.id)
-        patches.push({ id: l.id, topic_id: topic.id, position: i, number: n })
+      const number = l.extra ? 0 : ++n
+      if (l.number !== number || l.position !== i || l.topic_id !== topic.id)
+        patches.push({ id: l.id, topic_id: topic.id, position: i, number })
     })
   return patches
 }
@@ -86,12 +86,22 @@ export type Warning = { topicId?: string; text: string }
 /** М'які перевірки: кількість уроків теми й курсу проти запланованих годин. */
 export function hourWarnings(blocks: TopicBlock[], totalHours: number): Warning[] {
   const w: Warning[] = []
-  for (const { topic, lessons } of blocks)
-    if (topic.planned_hours > 0 && lessons.length !== topic.planned_hours)
-      w.push({ topicId: topic.id, text: `${lessons.length} ${lessonsWord(lessons.length)} із ${topic.planned_hours} год` })
-  const total = blocks.reduce((n, b) => n + b.lessons.length, 0)
+  // Додаткові уроки («*») не входять у години за планом.
+  const counted = (ls: Lesson[]) => ls.filter((l) => !l.extra).length
+  for (const { topic, lessons } of blocks) {
+    const n = counted(lessons)
+    // Порожня тема (наприклад, ІІ семестр ще не заповнено) — не помилка, її покриває загальне попередження.
+    if (topic.planned_hours > 0 && n > 0 && n !== topic.planned_hours)
+      w.push({ topicId: topic.id, text: `${n} ${lessonsWord(n)} із ${topic.planned_hours} год` })
+  }
+  const total = blocks.reduce((n, b) => n + counted(b.lessons), 0)
   if (totalHours > 0 && total !== totalHours) w.push({ text: `У КТП ${total} ${lessonsWord(total)}, а за планом ${totalHours} год` })
   return w
+}
+
+/** Уроки, що йдуть у години за планом (без додаткових «*»). */
+export function countedLessons(lessons: Lesson[]) {
+  return lessons.filter((l) => !l.extra).length
 }
 
 export function courseTitle(c: { subject: string; grade: number }) {
