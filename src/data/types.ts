@@ -125,6 +125,24 @@ export type TimetableEntry = Meta & {
   course_id: string
 }
 
+export type MaterialKind = 'file' | 'link'
+
+// Матеріал до уроку або до всієї теми (заповнене рівно одне з lesson_id / topic_id).
+// Спільний для всіх класів паралелі; сам файл лежить на Google Диску.
+export type LessonMaterial = Meta & {
+  course_id: string
+  lesson_id: string | null
+  topic_id: string | null
+  title: string
+  kind: MaterialKind
+  drive_file_id: string | null
+  url: string | null
+  mime_type: string | null
+  size_bytes: number | null
+  position: number
+  keep_offline: boolean
+}
+
 export type Collections = {
   academic_years: AcademicYear
   periods: Period
@@ -137,6 +155,7 @@ export type Collections = {
   bell_schedules: BellSchedule
   timetables: Timetable
   timetable_entries: TimetableEntry
+  lesson_materials: LessonMaterial
 }
 
 export type CollectionName = keyof Collections
@@ -154,6 +173,7 @@ export const COLLECTION_NAMES: CollectionName[] = [
   'bell_schedules',
   'timetables',
   'timetable_entries',
+  'lesson_materials',
 ]
 
 export type NewDoc<T extends Meta> = Omit<T, keyof Meta>

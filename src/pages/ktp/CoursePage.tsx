@@ -2,7 +2,18 @@ import { ArrowLeft, ChevronDown, ChevronUp, Plus, Settings2, Trash2, TriangleAle
 import { useState, type CSSProperties } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { InlineText } from '../../components/InlineText'
-import { commit, createDoc, deleteRefs, newBatch, putDoc, ref, refsWhere, removeDoc, updateFields, useCollection } from '../../data/db'
+import {
+  commit,
+  createDoc,
+  deleteRefs,
+  newBatch,
+  putDoc,
+  ref,
+  refsWhere,
+  removeDoc,
+  updateFields,
+  useCollection,
+} from '../../data/db'
 import {
   LESSON_TYPES,
   countedLessons,
@@ -18,6 +29,7 @@ import {
 import type { AcademicYear, ClassGroup, Lesson, LessonSchedule, LessonType, Topic } from '../../data/types'
 import { gradeColor, parseShortDate, shortDate } from '../../data/year'
 import { CourseSettings } from './CourseSettings'
+import { MaterialsButton, MaterialsDialog } from './Materials'
 import type { WriteBatch } from 'firebase/firestore'
 
 /** Записує новий порядок: позиції тем і номери/позиції уроків, що змінилися. */
@@ -43,7 +55,9 @@ export function CoursePage() {
     'class_groups',
     course ? { field: 'academic_year_id', value: course.academic_year_id } : null,
   )
+  const { items: materials } = useCollection('lesson_materials', byCourse)
   const [showSettings, setShowSettings] = useState(false)
+  const [materialsFor, setMaterialsFor] = useState<{ lessonId?: string; topicId?: string } | null>(null)
   // Щойно доданий урок отримує фокус на полі теми.
   const [newLessonId, setNewLessonId] = useState<string | null>(null)
 
@@ -118,7 +132,10 @@ export function CoursePage() {
       batch,
     )
     commit(batch)
-    deleteRefs(await refsWhere('lesson_schedules', 'lesson_id', l.id))
+    deleteRefs([
+      ...(await refsWhere('lesson_schedules', 'lesson_id', l.id)),
+      ...(await refsWhere('lesson_materials', 'lesson_id', l.id)),
+    ])
   }
 
   async function removeTopic(b: TopicBlock) {
@@ -134,7 +151,12 @@ export function CoursePage() {
       batch,
     )
     commit(batch)
-    for (const l of b.lessons) deleteRefs(await refsWhere('lesson_schedules', 'lesson_id', l.id))
+    deleteRefs(await refsWhere('lesson_materials', 'topic_id', b.topic.id))
+    for (const l of b.lessons)
+      deleteRefs([
+        ...(await refsWhere('lesson_schedules', 'lesson_id', l.id)),
+        ...(await refsWhere('lesson_materials', 'lesson_id', l.id)),
+      ])
   }
 
   function reorder(next: TopicBlock[]) {
@@ -169,12 +191,7 @@ export function CoursePage() {
         </div>
 
         {showSettings && (
-          <CourseSettings
-            course={course}
-            onDeleted={() => navigate('/ktp')}
-            topics={topics}
-            lessons={lessons}
-          />
+          <CourseSettings course={course} onDeleted={() => navigate('/ktp')} topics={topics} lessons={lessons} />
         )}
 
         {courseWarning && (
@@ -229,10 +246,25 @@ export function CoursePage() {
                   )}
                   <span className="grow" />
                   <span className="row-tools">
-                    <button className="icon-btn" disabled={bi === 0} onClick={() => reorder(moveTopic(blocks, b.topic.id, -1))} aria-label="Тему вище">
+                    <MaterialsButton
+                      count={materials.filter((m) => m.topic_id === b.topic.id && !m.lesson_id).length}
+                      label="Матеріали теми"
+                      onClick={() => setMaterialsFor({ topicId: b.topic.id })}
+                    />
+                    <button
+                      className="icon-btn"
+                      disabled={bi === 0}
+                      onClick={() => reorder(moveTopic(blocks, b.topic.id, -1))}
+                      aria-label="Тему вище"
+                    >
                       <ChevronUp size={15} />
                     </button>
-                    <button className="icon-btn" disabled={bi === blocks.length - 1} onClick={() => reorder(moveTopic(blocks, b.topic.id, 1))} aria-label="Тему нижче">
+                    <button
+                      className="icon-btn"
+                      disabled={bi === blocks.length - 1}
+                      onClick={() => reorder(moveTopic(blocks, b.topic.id, 1))}
+                      aria-label="Тему нижче"
+                    >
                       <ChevronDown size={15} />
                     </button>
                     <button className="icon-btn del" onClick={() => removeTopic(b)} aria-label="Видалити тему">
@@ -291,6 +323,11 @@ export function CoursePage() {
                       onSave={(homework) => updateFields('lessons', l.id, { homework })}
                     />
                     <span className="row-tools">
+                      <MaterialsButton
+                        count={materials.filter((m) => m.lesson_id === l.id).length}
+                        label={`Матеріали уроку ${l.extra ? '*' : l.number}`}
+                        onClick={() => setMaterialsFor({ lessonId: l.id })}
+                      />
                       <button
                         className="icon-btn"
                         disabled={flat[0]?.id === l.id}
@@ -325,6 +362,17 @@ export function CoursePage() {
         <button className="btn ghost add-topic" onClick={addTopic}>
           <Plus size={16} /> Тема
         </button>
+
+        {materialsFor && (
+          <MaterialsDialog
+            course={course}
+            year={year}
+            lesson={lessons.find((l) => l.id === materialsFor.lessonId)}
+            topic={topics.find((t) => t.id === materialsFor.topicId)}
+            materials={materials}
+            onClose={() => setMaterialsFor(null)}
+          />
+        )}
       </main>
     </div>
   )

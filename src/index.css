@@ -884,7 +884,7 @@ h2 {
 .ktp-head,
 .lesson-row {
   display: grid;
-  grid-template-columns: 32px minmax(0, 2fr) var(--date-cols,) 112px minmax(0, 1.3fr) 96px;
+  grid-template-columns: 32px minmax(0, 2fr) var(--date-cols,) 112px minmax(0, 1.3fr) 124px;
   gap: 8px;
   align-items: start;
 }
@@ -1672,4 +1672,130 @@ a.chip {
   .week {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+/* ---------- Матеріали ---------- */
+.icon-btn.clip {
+  position: relative;
+}
+
+.icon-btn.clip.on {
+  color: var(--ink);
+}
+
+.clip-count {
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  padding: 0 3px;
+}
+
+.material-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.material-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.material-row.uploading {
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: var(--bg);
+  font-size: 13px;
+}
+
+.material-row.uploading .field-error {
+  width: auto;
+  margin: 0;
+}
+
+.material {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 13px;
+}
+
+.material:hover {
+  background: var(--line);
+}
+
+.material .grow,
+.material-row .grow {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.material small,
+.material-row small {
+  color: var(--ink-2);
+  font-size: 11px;
+  flex: none;
+}
+
+.materials-dialog .row-actions {
+  margin-top: 0;
+}
+
+.link-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.link-form .field {
+  flex: 1 1 180px;
+}
+
+/* У картці уроку на «Сьогодні». */
+.day-materials {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  width: 100%;
+}
+
+.day-materials .material {
+  flex: 0 1 auto;
+  max-width: 100%;
+  background: rgba(255, 255, 255, 0.7);
+  padding: 4px 10px;
+}
+
+.day-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.materials-dialog .btn.small {
+  height: 30px;
+  min-height: 30px;
+  padding: 0 12px;
 }

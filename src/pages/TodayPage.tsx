@@ -1,4 +1,4 @@
-import { ArrowUpRight, Check, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ArrowUpRight, Check, ChevronLeft, ChevronRight, Paperclip } from 'lucide-react'
 import { useEffect, useState, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/context'
@@ -6,7 +6,9 @@ import { currentAndNext, lessonsOfDay, mondayOf, type DayData, type DayLesson } 
 import { updateFields, useCollection } from '../data/db'
 import { LESSON_TYPES } from '../data/ktp'
 import { addDays, toISO, WEEKDAYS } from '../data/schedule'
-import type { ISODate, Topic } from '../data/types'
+import { materialsOf } from '../data/materials'
+import type { AcademicYear, ISODate, LessonMaterial, Topic } from '../data/types'
+import { MaterialLink, MaterialsDialog } from './ktp/Materials'
 import { gradeColor, shortDate } from '../data/year'
 import { MonthCalendar } from '../layout/MonthCalendar'
 import { firstName, formatDayMonth, formatWeekday, greeting } from '../lib/dates'
@@ -50,6 +52,8 @@ export function TodayPage() {
   const { items: timetables } = useCollection('timetables')
   const { items: entries } = useCollection('timetable_entries')
   const { items: bells } = useCollection('bell_schedules')
+  const { items: materials } = useCollection('lesson_materials')
+  const { items: years } = useCollection('academic_years')
   const data: DayData = { schedules, lessons, courses, classes, timetables, entries, bells }
 
   function switchView(v: View) {
@@ -165,7 +169,13 @@ export function TodayPage() {
         )}
 
         {view === 'day' && (
-          <DayView list={list} topics={topics} live={day === today ? currentAndNext(list, now) : null} />
+          <DayView
+            list={list}
+            topics={topics}
+            materials={materials}
+            years={years}
+            live={day === today ? currentAndNext(list, now) : null}
+          />
         )}
       </main>
 
@@ -178,10 +188,29 @@ export function TodayPage() {
 
 type Live = { currentId: string | null; nextId: string | null } | null
 
-function DayView({ list, topics, live }: { list: DayLesson[]; topics: Topic[]; live: Live }) {
+type DayViewProps = {
+  list: DayLesson[]
+  topics: Topic[]
+  materials: LessonMaterial[]
+  years: AcademicYear[]
+  live: Live
+}
+
+function DayView({ list, topics, materials, years, live }: DayViewProps) {
+  const [open, setOpen] = useState<DayLesson | null>(null)
   return (
     <div className="day-list">
-      {list.map(({ s, lesson: l, course, cls, slot, bell }) => {
+      {open && (
+        <MaterialsDialog
+          course={open.course}
+          year={years.find((y) => y.id === open.course.academic_year_id)}
+          lesson={open.lesson}
+          materials={materials.filter((m) => m.course_id === open.course.id)}
+          onClose={() => setOpen(null)}
+        />
+      )}
+      {list.map((x) => {
+        const { s, lesson: l, course, cls, slot, bell } = x
         const topic = topics.find((t) => t.id === l.topic_id)
         const type = LESSON_TYPES.find((t) => t.value === l.lesson_type)
         const done = s.status === 'done'
@@ -219,16 +248,34 @@ function DayView({ list, topics, live }: { list: DayLesson[]; topics: Topic[]; l
                 <b>ДЗ:</b> {l.homework}
               </p>
             )}
-            <button
-              className={done ? 'chip plain on' : 'chip plain'}
-              aria-pressed={done}
-              onClick={() => updateFields('lesson_schedules', s.id, { status: done ? 'planned' : 'done' })}
-            >
-              <Check size={14} /> {done ? 'Проведено' : 'Позначити проведеним'}
-            </button>
+            <LessonMaterials list={materials} lesson={l} />
+            <div className="day-actions">
+              <button
+                className={done ? 'chip plain on' : 'chip plain'}
+                aria-pressed={done}
+                onClick={() => updateFields('lesson_schedules', s.id, { status: done ? 'planned' : 'done' })}
+              >
+                <Check size={14} /> {done ? 'Проведено' : 'Позначити проведеним'}
+              </button>
+              <button className="chip plain" onClick={() => setOpen(x)}>
+                <Paperclip size={14} /> Матеріали
+              </button>
+            </div>
           </article>
         )
       })}
+    </div>
+  )
+}
+
+function LessonMaterials({ list, lesson }: { list: LessonMaterial[]; lesson: DayLesson['lesson'] }) {
+  const { own, topic } = materialsOf(list, lesson)
+  if (!own.length && !topic.length) return null
+  return (
+    <div className="day-materials">
+      {[...own, ...topic].map((m) => (
+        <MaterialLink key={m.id} m={m} />
+      ))}
     </div>
   )
 }
