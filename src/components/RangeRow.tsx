@@ -59,7 +59,7 @@ export function RangeRow({ value, validate, onSave, onDelete, titleLabel, classN
         onChange={(e) => change({ end_date: e.target.value }, true)}
       />
       {onDelete && (
-        <button className="icon-btn" onClick={onDelete} aria-label="Видалити" title="Видалити">
+        <button className="icon-btn del" onClick={onDelete} aria-label="Видалити" title="Видалити">
           <Trash2 size={15} />
         </button>
       )}
