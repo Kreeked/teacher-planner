@@ -40,38 +40,6 @@ export function renumber(blocks: TopicBlock[]): LessonPatch[] {
   return patches
 }
 
-/**
- * Переміщує урок на одну позицію вгору/вниз. На межі теми урок переходить
- * у сусідню тему (в кінець попередньої або на початок наступної).
- */
-export function moveLesson(blocks: TopicBlock[], lessonId: string, dir: -1 | 1): TopicBlock[] {
-  const next = blocks.map((b) => ({ topic: b.topic, lessons: [...b.lessons] }))
-  const bi = next.findIndex((b) => b.lessons.some((l) => l.id === lessonId))
-  if (bi < 0) return blocks
-  const list = next[bi].lessons
-  const li = list.findIndex((l) => l.id === lessonId)
-  const target = li + dir
-  if (target >= 0 && target < list.length) {
-    ;[list[li], list[target]] = [list[target], list[li]]
-    return next
-  }
-  const nbi = bi + dir
-  if (nbi < 0 || nbi >= next.length) return blocks
-  const [lesson] = list.splice(li, 1)
-  if (dir < 0) next[nbi].lessons.push(lesson)
-  else next[nbi].lessons.unshift(lesson)
-  return next
-}
-
-export function moveTopic(blocks: TopicBlock[], topicId: string, dir: -1 | 1): TopicBlock[] {
-  const i = blocks.findIndex((b) => b.topic.id === topicId)
-  const j = i + dir
-  if (i < 0 || j < 0 || j >= blocks.length) return blocks
-  const next = [...blocks]
-  ;[next[i], next[j]] = [next[j], next[i]]
-  return next
-}
-
 /** 1 урок, 2 уроки, 5 уроків. */
 export function lessonsWord(n: number) {
   const d = n % 10
@@ -106,4 +74,35 @@ export function countedLessons(lessons: Lesson[]) {
 
 export function courseTitle(c: { subject: string; grade: number }) {
   return `${c.subject}, ${c.grade} клас`
+}
+
+/** Ставить урок у тему topicId на місце index (перетягування, зокрема між темами). */
+export function placeLesson(blocks: TopicBlock[], lessonId: string, topicId: string, index: number): TopicBlock[] {
+  const lesson = blocks.flatMap((b) => b.lessons).find((l) => l.id === lessonId)
+  if (!lesson) return blocks
+  const next = blocks.map((b) => ({ topic: b.topic, lessons: b.lessons.filter((l) => l.id !== lessonId) }))
+  const target = next.find((b) => b.topic.id === topicId)
+  if (!target) return blocks
+  target.lessons.splice(Math.max(0, Math.min(index, target.lessons.length)), 0, lesson)
+  return next
+}
+
+/** Ставить тему на місце index. */
+export function placeTopic(blocks: TopicBlock[], topicId: string, index: number): TopicBlock[] {
+  const from = blocks.findIndex((b) => b.topic.id === topicId)
+  if (from < 0) return blocks
+  const next = [...blocks]
+  const [b] = next.splice(from, 1)
+  next.splice(Math.max(0, Math.min(index, next.length)), 0, b)
+  return next
+}
+
+/**
+ * Зміна типу уроку. «Резерв» не має номера («*») і не входить у години;
+ * коли тип змінюють з «Резерву» на інший, урок знову отримує номер.
+ */
+export function typePatch(l: Pick<Lesson, 'lesson_type' | 'extra'>, type: LessonType) {
+  if (type === 'reserve') return { lesson_type: type, extra: true }
+  if (l.lesson_type === 'reserve') return { lesson_type: type, extra: false }
+  return { lesson_type: type }
 }

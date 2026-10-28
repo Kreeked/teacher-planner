@@ -1,6 +1,4 @@
 import {
-  ChevronDown,
-  ChevronUp,
   Cloud,
   File,
   FileSpreadsheet,
@@ -18,6 +16,8 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { DragHandle, SortableList } from '../../components/Sortable'
+import { useSortableItem } from '../../lib/drag'
 import { commit, createDoc, newBatch, removeDoc, updateFields } from '../../data/db'
 import {
   driveFolder,
@@ -67,6 +67,35 @@ export function MaterialLink({ m }: { m: LessonMaterial }) {
       {m.size_bytes ? <small>{formatSize(m.size_bytes)}</small> : null}
       {saved && <Smartphone size={12} className="saved-mark" aria-label="Є на пристрої" />}
     </a>
+  )
+}
+
+/** Рядок матеріалу в діалозі: ручка для перетягування, шпилька, видалення. */
+function MaterialRow({ m, onRemove }: { m: LessonMaterial; onRemove: () => void }) {
+  const { ref, style, handle } = useSortableItem(m.id)
+  return (
+    <div ref={ref} style={style} className="material-row">
+      <DragHandle label={`Перемістити ${m.title}`} {...handle} />
+      <MaterialLink m={m} />
+      {m.kind === 'file' && (
+        <button
+          className={m.keep_offline ? 'icon-btn pin on' : 'icon-btn pin'}
+          aria-pressed={m.keep_offline}
+          onClick={() => updateFields('lesson_materials', m.id, { keep_offline: !m.keep_offline })}
+          aria-label="Завжди мати на пристрої"
+          title={
+            m.keep_offline
+              ? 'Завжди на пристрої. Натисни, щоб тримати лише перед уроком'
+              : 'Завжди мати на пристрої, не лише в тиждень уроку'
+          }
+        >
+          <Pin size={14} />
+        </button>
+      )}
+      <button className="icon-btn del" onClick={onRemove} aria-label={`Прибрати ${m.title}`}>
+        <Trash2 size={15} />
+      </button>
+    </div>
   )
 }
 
@@ -195,18 +224,9 @@ export function MaterialsDialog({ course, year, lesson, topic, materials, onClos
     }
   }
 
-  function move(m: LessonMaterial, dir: -1 | 1) {
-    const i = own.indexOf(m)
-    const other = own[i + dir]
-    if (!other) return
+  function reorder(next: LessonMaterial[]) {
     const batch = newBatch()
-    updateFields(
-      'lesson_materials',
-      m.id,
-      { position: other.position === m.position ? i + dir : other.position },
-      batch,
-    )
-    updateFields('lesson_materials', other.id, { position: other.position === m.position ? i : m.position }, batch)
+    next.forEach((m, i) => m.position !== i && updateFields('lesson_materials', m.id, { position: i }, batch))
     commit(batch)
   }
 
@@ -235,40 +255,9 @@ export function MaterialsDialog({ course, year, lesson, topic, materials, onClos
 
         <div className="material-list">
           {!own.length && !uploads.length && <p className="muted small-text">Ще нічого не додано.</p>}
-          {own.map((m, i) => (
-            <div key={m.id} className="material-row">
-              <MaterialLink m={m} />
-              {m.kind === 'file' && (
-                <button
-                  className={m.keep_offline ? 'icon-btn pin on' : 'icon-btn pin'}
-                  aria-pressed={m.keep_offline}
-                  onClick={() => updateFields('lesson_materials', m.id, { keep_offline: !m.keep_offline })}
-                  aria-label="Завжди мати на пристрої"
-                  title={
-                    m.keep_offline
-                      ? 'Завжди на пристрої. Натисни, щоб тримати лише перед уроком'
-                      : 'Завжди мати на пристрої, не лише в тиждень уроку'
-                  }
-                >
-                  <Pin size={14} />
-                </button>
-              )}
-              <button className="icon-btn" disabled={i === 0} onClick={() => move(m, -1)} aria-label="Вище">
-                <ChevronUp size={15} />
-              </button>
-              <button
-                className="icon-btn"
-                disabled={i === own.length - 1}
-                onClick={() => move(m, 1)}
-                aria-label="Нижче"
-              >
-                <ChevronDown size={15} />
-              </button>
-              <button className="icon-btn del" onClick={() => remove(m)} aria-label={`Прибрати ${m.title}`}>
-                <Trash2 size={15} />
-              </button>
-            </div>
-          ))}
+          <SortableList items={own} getId={(m) => m.id} onReorder={reorder}>
+            {(m) => <MaterialRow key={m.id} m={m} onRemove={() => remove(m)} />}
+          </SortableList>
           {uploads.map((u) => (
             <div key={u.name} className="material-row uploading">
               <Upload size={14} />

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { DatePicker } from '../../components/DatePicker'
 import { commit, createDoc, newBatch } from '../../data/db'
 import { defaultYear, defaultYearStart, validateYear } from '../../data/year'
 
@@ -51,14 +52,19 @@ export function NewYearForm({ onCreated, makeCurrent }: { onCreated: (id: string
         <input className="field" value={title} onChange={(e) => setTitle(e.target.value)} />
       </label>
       <div className="form-row">
-        <label>
+        <div className="label">
           Початок
-          <input className="field" type="date" value={start} onChange={(e) => setStart(e.target.value)} />
-        </label>
-        <label>
+          <DatePicker label="Початок року" value={start || null} onChange={(d) => setStart(d ?? '')} />
+        </div>
+        <div className="label">
           Кінець
-          <input className="field" type="date" value={end} onChange={(e) => setEnd(e.target.value)} />
-        </label>
+          <DatePicker
+            label="Кінець року"
+            value={end || null}
+            min={start || undefined}
+            onChange={(d) => setEnd(d ?? '')}
+          />
+        </div>
       </div>
       <label className="check">
         <input type="checkbox" checked={withSemesters} onChange={(e) => setWithSemesters(e.target.checked)} />

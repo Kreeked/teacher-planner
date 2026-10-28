@@ -1,6 +1,7 @@
 import { Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import type { ISODate } from '../data/types'
+import { DatePicker } from './DatePicker'
 
 export type RangeValue = { title: string; start_date: ISODate; end_date: ISODate }
 
@@ -43,20 +44,17 @@ export function RangeRow({ value, validate, onSave, onDelete, titleLabel, classN
         onChange={(e) => change({ title: e.target.value }, false)}
         onBlur={() => change({}, draft.title !== value.title)}
       />
-      <input
-        className="field"
-        type="date"
-        aria-label="Початок"
-        value={draft.start_date}
-        onChange={(e) => change({ start_date: e.target.value }, true)}
+      <DatePicker
+        label="Початок"
+        value={draft.start_date || null}
+        onChange={(d) => change({ start_date: d ?? '' }, true)}
       />
       <span className="dash">—</span>
-      <input
-        className="field"
-        type="date"
-        aria-label="Кінець"
-        value={draft.end_date}
-        onChange={(e) => change({ end_date: e.target.value }, true)}
+      <DatePicker
+        label="Кінець"
+        value={draft.end_date || null}
+        min={draft.start_date || undefined}
+        onChange={(d) => change({ end_date: d ?? '' }, true)}
       />
       {onDelete && (
         <button className="icon-btn del" onClick={onDelete} aria-label="Видалити" title="Видалити">

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { groupLessons, hourWarnings, lessonsWord, moveLesson, moveTopic, renumber } from './ktp'
+import { groupLessons, hourWarnings, lessonsWord, placeLesson, placeTopic, renumber, typePatch } from './ktp'
 import type { Lesson, Topic } from './types'
 
 function topic(id: string, position: number, planned_hours = 0): Topic {
@@ -60,38 +60,46 @@ describe('extra lessons', () => {
   })
 })
 
-describe('moveLesson', () => {
+describe('placeLesson', () => {
   const blocks = groupLessons(topics, lessons)
 
-  it('swaps inside a topic', () => {
-    expect(ids(moveLesson(blocks, 'b', -1))).toEqual([['b', 'a'], ['c']])
+  it('reorders inside a topic', () => {
+    expect(ids(placeLesson(blocks, 'b', 'T1', 0))).toEqual([['b', 'a'], ['c']])
   })
 
-  it('moves across the topic boundary', () => {
-    expect(ids(moveLesson(blocks, 'b', 1))).toEqual([['a'], ['b', 'c']])
-    expect(ids(moveLesson(blocks, 'c', -1))).toEqual([['a', 'b', 'c'], []])
-  })
-
-  it('stays put at the very ends', () => {
-    expect(ids(moveLesson(blocks, 'a', -1))).toEqual([['a', 'b'], ['c']])
-    expect(ids(moveLesson(blocks, 'c', 1))).toEqual([['a', 'b'], ['c']])
+  it('moves into another topic at the given place', () => {
+    expect(ids(placeLesson(blocks, 'a', 'T2', 1))).toEqual([['b'], ['c', 'a']])
+    expect(ids(placeLesson(blocks, 'c', 'T1', 0))).toEqual([['c', 'a', 'b'], []])
   })
 
   it('renumbers after a move across topics', () => {
-    const moved = moveLesson(blocks, 'b', 1)
-    expect(renumber(moved)).toEqual([{ id: 'b', topic_id: 'T2', position: 0, number: 2 }, { id: 'c', topic_id: 'T2', position: 1, number: 3 }])
+    const moved = placeLesson(blocks, 'b', 'T2', 0)
+    expect(renumber(moved)).toEqual([
+      { id: 'b', topic_id: 'T2', position: 0, number: 2 },
+      { id: 'c', topic_id: 'T2', position: 1, number: 3 },
+    ])
   })
 })
 
-describe('moveTopic', () => {
+describe('placeTopic', () => {
   it('moves a topic with its lessons and renumbers', () => {
-    const moved = moveTopic(groupLessons(topics, lessons), 'T2', -1)
+    const moved = placeTopic(groupLessons(topics, lessons), 'T2', 0)
     expect(ids(moved)).toEqual([['c'], ['a', 'b']])
     expect(renumber(moved).map((p) => [p.id, p.number])).toEqual([
       ['c', 1],
       ['a', 2],
       ['b', 3],
     ])
+  })
+})
+
+describe('typePatch', () => {
+  it('makes a reserve lesson unnumbered and back', () => {
+    const l = lesson('a', 'T1', 0)
+    expect(typePatch(l, 'reserve')).toEqual({ lesson_type: 'reserve', extra: true })
+    expect(typePatch({ lesson_type: 'reserve', extra: true }, 'regular')).toEqual({ lesson_type: 'regular', extra: false })
+    // Додатковий урок з імпорту («*») лишається таким при зміні на інший тип.
+    expect(typePatch({ lesson_type: 'regular', extra: true }, 'practical')).toEqual({ lesson_type: 'practical' })
   })
 })
 

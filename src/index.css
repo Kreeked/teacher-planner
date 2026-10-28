@@ -1011,8 +1011,17 @@ select.cell {
     display: none;
   }
 
-  .lesson-row {
+  .ktp .lesson-row {
     grid-template-columns: 28px minmax(0, 1fr) auto;
+    grid-template-areas:
+      'no title tools'
+      '. dates dates'
+      '. hw hw';
+    gap: 2px 6px;
+  }
+
+  .ktp.edit .lesson-row {
+    grid-template-columns: 52px minmax(0, 1fr) auto;
     grid-template-areas:
       'no title title'
       '. dates dates'
@@ -1020,7 +1029,8 @@ select.cell {
       '. type tools';
   }
 
-  .lesson-row .no {
+  .lesson-row > .no,
+  .lesson-row .l-lead {
     grid-area: no;
   }
 
@@ -1034,6 +1044,10 @@ select.cell {
 
   .lesson-row .l-hw {
     grid-area: hw;
+  }
+
+  .lesson-row p.l-hw:empty {
+    display: none;
   }
 
   .lesson-row .l-dates {
@@ -1054,14 +1068,22 @@ select.cell {
     color: var(--ink-2);
   }
 
+  .ktp.view .l-date {
+    padding: 3px 8px;
+    gap: 4px;
+  }
+
+  .ktp.view .l-date.none {
+    display: none;
+  }
+
   .lesson-row .l-date-class {
     display: inline;
   }
 
-  .l-date .cell {
+  .l-date .date-btn.compact {
     width: 52px;
     min-height: 26px;
-    padding-block: 3px;
   }
 
   .lesson-row .l-type {
@@ -1084,10 +1106,6 @@ select.cell {
   display: contents;
 }
 
-.l-date .cell {
-  text-align: center;
-  padding-inline: 2px;
-}
 
 .l-date-class {
   display: none;
@@ -2050,4 +2068,293 @@ a.chip {
 .test-page .sec-head h1 {
   flex: 1 1 240px;
   min-width: 0;
+}
+
+/* ---------- Вибір дати ---------- */
+.date-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.date-btn.field {
+  min-width: 150px;
+}
+
+.date-btn.field svg {
+  color: var(--ink-2);
+  flex: none;
+}
+
+.date-btn.empty {
+  color: #a9a9b8;
+}
+
+.date-btn[aria-expanded='true'] {
+  border-color: var(--ink);
+}
+
+.date-btn.compact {
+  width: 100%;
+  min-height: 30px;
+  justify-content: center;
+  border: 1.5px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  padding: 0 2px;
+}
+
+.date-btn.compact.empty {
+  color: #a9a9b8;
+}
+
+.date-btn.compact:hover {
+  border-color: rgba(31, 31, 36, 0.12);
+}
+
+.date-btn.compact[aria-expanded='true'] {
+  border-color: var(--ink);
+  background: var(--surface);
+}
+
+.date-pop {
+  position: fixed;
+  z-index: 60;
+  width: 272px;
+  background: var(--surface);
+  border-radius: var(--r-xl);
+  box-shadow:
+    0 12px 32px rgba(31, 31, 36, 0.16),
+    0 0 0 1px rgba(31, 31, 36, 0.05);
+  padding-bottom: 6px;
+}
+
+.date-pop .cal {
+  padding-bottom: 4px;
+}
+
+.date-pop-foot {
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+}
+
+.d:disabled {
+  color: #d4d4da;
+  background: none;
+  cursor: default;
+}
+
+.form .label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+/* ---------- Перетягування ---------- */
+.drag-handle {
+  cursor: grab;
+  touch-action: none;
+  color: #a9a9b8;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.dragging {
+  box-shadow: 0 8px 24px rgba(31, 31, 36, 0.18);
+  opacity: 0.95;
+}
+
+/* ---------- КТП: перегляд і редагування ---------- */
+@media (min-width: 761px) {
+  .ktp.view .ktp-head,
+  .ktp.view .lesson-row {
+    grid-template-columns: 32px minmax(0, 2fr) var(--date-cols,) minmax(0, 1.3fr) 36px;
+  }
+
+  .ktp.edit .ktp-head,
+  .ktp.edit .lesson-row {
+    grid-template-columns: 58px minmax(0, 2fr) var(--date-cols,) 112px minmax(0, 1.3fr) 64px;
+  }
+}
+
+.ktp.view .topic {
+  padding-bottom: 8px;
+}
+
+.ktp.view .lesson-row:last-child {
+  margin-bottom: 0;
+}
+
+h2.topic-title {
+  margin: 0;
+  padding: 5px 0;
+  line-height: 1.35;
+}
+
+.ktp.view .hours {
+  font-weight: 600;
+}
+
+.l-text {
+  margin: 0;
+  padding: 5px 7px;
+  font-size: 13px;
+  line-height: 1.35;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.ktp.view .l-hw {
+  color: var(--ink-2);
+}
+
+.l-text .placeholder {
+  color: #a9a9b8;
+}
+
+.type-tag {
+  display: inline-block;
+  vertical-align: 1px;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--ink-2);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.type-tag.test {
+  background: var(--peach);
+  color: #8a4a1c;
+}
+
+.type-tag.practical {
+  background: var(--peri);
+  color: #3a4590;
+}
+
+.type-tag.project {
+  background: var(--lilac);
+  color: #5a3f8f;
+}
+
+.lesson-row.reserve .l-title {
+  color: var(--ink-2);
+}
+
+.l-date-val {
+  display: block;
+  min-height: 30px;
+  padding: 6px 2px;
+  text-align: center;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.l-date.none .l-date-val {
+  color: #c2c2c8;
+}
+
+.l-files {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0 7px 4px;
+}
+
+.l-files .material {
+  flex: 0 1 auto;
+  max-width: 240px;
+  padding: 3px 8px;
+  gap: 6px;
+  font-size: 12px;
+  background: var(--bg);
+}
+
+.topic-files {
+  flex-basis: 100%;
+  padding: 0;
+}
+
+.topic-files .material {
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.ktp-empty {
+  margin: 0;
+  padding: 6px 4px 2px;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.l-lead {
+  display: flex;
+  align-items: center;
+}
+
+.l-lead .drag-handle {
+  width: 24px;
+  height: 30px;
+  border-radius: 8px;
+}
+
+.l-lead .no {
+  flex: 1;
+}
+
+.topic-row .drag-handle {
+  width: 24px;
+  border-radius: 8px;
+  margin-left: -4px;
+}
+
+.topic.lifted {
+  opacity: 0.5;
+}
+
+.lesson-row.placeholder-row {
+  opacity: 0.35;
+}
+
+.drag-ghost {
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  box-shadow: 0 12px 32px rgba(31, 31, 36, 0.2);
+  cursor: grabbing;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 480px;
+}
+
+.topic-end {
+  min-height: 24px;
+}
+
+.edit-hint {
+  margin: 0;
+}
+
+.edit-hint svg {
+  vertical-align: -2px;
+}
+
+.sec-head .btn.small {
+  flex: none;
 }

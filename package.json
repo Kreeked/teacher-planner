@@ -13,6 +13,9 @@
     "dev:emu": "VITE_EMULATORS=1 vite"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "fflate": "^0.8.3",
     "firebase": "^13.1.0",
     "lucide-react": "^1.63.0",

@@ -12,19 +12,22 @@ type Props = {
   onSelect: (d: ISODate) => void
   // Дні, у які є уроки, — з крапкою.
   marked?: Set<ISODate>
+  // Межі вибору (наприклад, навчальний рік); дні поза ними неактивні.
+  min?: ISODate
+  max?: ISODate
 }
 
 function monthOf(d: ISODate) {
   return d.slice(0, 7)
 }
 
-export function MonthCalendar({ today, selected, onSelect, marked }: Props) {
-  const [shown, setShown] = useState(monthOf(selected))
+export function MonthCalendar({ today, selected, onSelect, marked, min, max }: Props) {
+  const [shown, setShown] = useState(monthOf(selected || today))
   // Вибір дня в іншому місяці (стрілками над списком) перемикає й календар.
   const [lastSelected, setLastSelected] = useState(selected)
   if (selected !== lastSelected) {
     setLastSelected(selected)
-    setShown(monthOf(selected))
+    if (selected) setShown(monthOf(selected))
   }
 
   const [y, m] = shown.split('-').map(Number)
@@ -47,10 +50,10 @@ export function MonthCalendar({ today, selected, onSelect, marked }: Props) {
     <div className="cal">
       <div className="cal-head">
         <h3>{title[0].toUpperCase() + title.slice(1)}</h3>
-        <button className="icon-btn" onClick={() => shift(-1)} aria-label="Попередній місяць">
+        <button type="button" className="icon-btn" onClick={() => shift(-1)} aria-label="Попередній місяць">
           <ChevronLeft size={16} />
         </button>
-        <button className="icon-btn" onClick={() => shift(1)} aria-label="Наступний місяць">
+        <button type="button" className="icon-btn" onClick={() => shift(1)} aria-label="Наступний місяць">
           <ChevronRight size={16} />
         </button>
       </div>
@@ -68,8 +71,17 @@ export function MonthCalendar({ today, selected, onSelect, marked }: Props) {
           if (d === today) cls.push('today')
           if (d === selected) cls.push('sel')
           if (marked?.has(d)) cls.push('has')
+          const off = (min && d < min) || (max && d > max)
           return (
-            <button key={d} className={cls.join(' ')} onClick={() => onSelect(d)} aria-label={d} aria-pressed={d === selected}>
+            <button
+              key={d}
+              type="button"
+              className={cls.join(' ')}
+              disabled={!!off}
+              onClick={() => onSelect(d)}
+              aria-label={d}
+              aria-pressed={d === selected}
+            >
               {date.getDate()}
             </button>
           )
