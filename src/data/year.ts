@@ -32,6 +32,31 @@ export function formatDate(d: ISODate) {
   return fmt.format(new Date(y, m - 1, day))
 }
 
+/** Коротка дата для таблиці КТП: «02.09». */
+export function shortDate(d: ISODate) {
+  return `${d.slice(8, 10)}.${d.slice(5, 7)}`
+}
+
+/**
+ * Дата, введена в таблиці КТП («2.9», «02.09», «02.09.2026»), у межах навчального року.
+ * Порожньо — null, нерозпізнано або поза роком — undefined.
+ */
+export function parseShortDate(text: string, year: Range): ISODate | null | undefined {
+  const t = text.trim()
+  if (!t) return null
+  const m = t.match(/^(\d{1,2})[./,-](\d{1,2})(?:[./,-](\d{2}|\d{4}))?$/)
+  if (!m) return undefined
+  const [day, month] = [Number(m[1]), Number(m[2])]
+  const startYear = Number(year.start_date.slice(0, 4))
+  let y = m[3] ? Number(m[3].length === 2 ? '20' + m[3] : m[3]) : startYear
+  const iso = (yy: number) => `${yy}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+  if (!m[3] && iso(y) < year.start_date) y++
+  const d = new Date(y, month - 1, day)
+  if (d.getMonth() !== month - 1 || d.getDate() !== day) return undefined
+  const result = iso(y)
+  return result >= year.start_date && result <= year.end_date ? result : undefined
+}
+
 /**
  * Жорсткі правила для періоду: дати існують і йдуть по порядку, лежать у межах
  * навчального року та батьківського періоду, не перетинаються з сусідами.

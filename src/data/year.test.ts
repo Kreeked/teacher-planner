@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Period } from './types'
-import { defaultYear, defaultYearStart, parseLetters, validatePeriod, validateYear } from './year'
+import { defaultYear, defaultYearStart, parseLetters, parseShortDate, shortDate, validatePeriod, validateYear } from './year'
 
 const year = { start_date: '2026-09-01', end_date: '2027-06-30' }
 
@@ -85,5 +85,23 @@ describe('validateYear', () => {
 describe('parseLetters', () => {
   it('splits, uppercases, dedupes and converts latin look-alikes', () => {
     expect(parseLetters('а, б  B a')).toEqual(['А', 'Б', 'В'])
+  })
+})
+
+describe('parseShortDate', () => {
+  const year = { start_date: '2026-09-01', end_date: '2027-06-30' }
+
+  it('places the date into the right calendar year', () => {
+    expect(parseShortDate('2.9', year)).toBe('2026-09-02')
+    expect(parseShortDate('15.01', year)).toBe('2027-01-15')
+    expect(parseShortDate('15.01.2027', year)).toBe('2027-01-15')
+    expect(shortDate('2027-01-15')).toBe('15.01')
+  })
+
+  it('rejects impossible dates and dates outside the year', () => {
+    expect(parseShortDate('', year)).toBeNull()
+    expect(parseShortDate('31.02', year)).toBeUndefined()
+    expect(parseShortDate('15.07', year)).toBeUndefined()
+    expect(parseShortDate('abc', year)).toBeUndefined()
   })
 })

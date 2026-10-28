@@ -28,7 +28,6 @@ function semesterOf(p: Period) {
   return m ? ({ І: 1, I: 1, '1': 1, ІІ: 2, II: 2, '2': 2 } as Record<string, number>)[m[1].toUpperCase()] : null
 }
 
-const norm = (s: string) => s.toLowerCase().replace(/\s+/g, ' ').replace(/[.;]\s*$/, '').trim()
 
 export type ImportSummary = {
   courseId: string
@@ -36,7 +35,6 @@ export type ImportSummary = {
   topics: number
   lessons: number
   skipped: number
-  outcomes: number
   dates: number
 }
 
@@ -51,7 +49,7 @@ export async function applyImport(
 ): Promise<ImportSummary> {
   const uid = auth.currentUser!.uid
   const w = new BatchWriter()
-  const sum: ImportSummary = { courseId: '', classes: 0, topics: 0, lessons: 0, skipped: 0, outcomes: 0, dates: 0 }
+  const sum: ImportSummary = { courseId: '', classes: 0, topics: 0, lessons: 0, skipped: 0, dates: 0 }
 
   // ---------- Класи ----------
   const classes = await load('class_groups', 'academic_year_id', year.id)
@@ -122,11 +120,9 @@ export async function applyImport(
       links.push({ id: '', owner_id: uid, course_id: courseId, class_group_id: id, weekdays: [], position: links.length })
     }
 
-  // ---------- Теми, уроки, ОРН ----------
+  // ---------- Теми й уроки ----------
   const topics: Topic[] = target ? await load('topics', 'course_id', courseId) : []
   const lessons: Lesson[] = target ? await load('lessons', 'course_id', courseId) : []
-  const outcomes = target ? await load('learning_outcomes', 'course_id', courseId) : []
-  const outcomeIds = new Map(outcomes.map((o) => [norm(o.text), o.id]))
   const newLessons = new Map<string, Omit<Lesson, 'id' | 'owner_id'>>()
 
   for (const pt of k.topics) {
@@ -147,16 +143,6 @@ export async function applyImport(
         sum.skipped++
         continue
       }
-      const ids = pl.outcomes.map((text) => {
-        const key = norm(text)
-        let id = outcomeIds.get(key)
-        if (!id) {
-          id = createDoc('learning_outcomes', { course_id: courseId, text, position: outcomeIds.size }, w.batch)
-          outcomeIds.set(key, id)
-          sum.outcomes++
-        }
-        return id
-      })
       const data: Omit<Lesson, 'id' | 'owner_id'> = {
         course_id: courseId,
         topic_id: topic.id,
@@ -167,7 +153,6 @@ export async function applyImport(
         lesson_type: pl.lesson_type,
         homework: pl.homework,
         notes: '',
-        outcome_ids: [...new Set(ids)],
         extra: pl.number === null,
       }
       // Запис уроку — нижче, коли буде відомий його наскрізний номер.

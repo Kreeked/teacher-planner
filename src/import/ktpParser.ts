@@ -13,7 +13,6 @@ export type ParsedLesson = {
   title: string
   lesson_type: LessonType
   dates: (ISODate | null)[] // по класах, у порядку classNames
-  outcomes: string[]
   homework: string
   semester: number | null
 }
@@ -93,21 +92,6 @@ export function guessLessonType(title: string): LessonType {
   return 'regular'
 }
 
-/**
- * Комірку ОРН ділимо на окремі результати:
- * «… [9 ІФО 1.2.1-2]; … [9 ІФО 3.1.2-1]» — за кодами в дужках,
- * «Знаннєва складова: …. Діяльнісна складова: …» — за складовими.
- */
-export function splitOutcomes(text: string): string[] {
-  const t = clean(text)
-  if (!t || t === '—' || t === '-') return []
-  let parts: string[]
-  if (/\[[^\]]+\]/.test(t)) parts = t.split(/(?<=\])\s*[;.]\s*/)
-  else if (/складова\s*:/i.test(t)) parts = t.split(/(?<=[.;])\s+(?=[А-ЯІЇЄҐ][а-яіїєґʼ']+\s+складова\s*:)/)
-  else parts = [t]
-  return parts.map((p) => p.replace(/[;.]\s*$/, '').trim()).filter(Boolean)
-}
-
 function rowText(row: Cell[]) {
   return row.map((c) => c.text).join(' ')
 }
@@ -137,7 +121,6 @@ export function parseKtp(blocks: Block[]): ParsedKtp {
   const header = plan[headerIdx].map((c) => c.text)
   const col = (re: RegExp) => header.findIndex((h) => re.test(clean(h).toLowerCase()))
   const titleCol = col(/^тема уроку/)
-  const outcomeCol = col(/^очікувані/)
   const hwCol = col(/^домашн/)
   const dateCols = header.map((h, i) => (/^дата/i.test(clean(h)) ? i : -1)).filter((i) => i >= 0)
   const classNames = dateCols.map((i) =>
@@ -247,7 +230,6 @@ export function parseKtp(blocks: Block[]): ParsedKtp {
       title,
       lesson_type: number === null ? 'reserve' : guessLessonType(title),
       dates: dateCols.map((i) => resolveDate(row[i]?.text ?? '', currentSem, fallbackYear)),
-      outcomes: outcomeCol >= 0 ? splitOutcomes(row[outcomeCol]?.text ?? '') : [],
       homework: hw === '—' || hw === '-' ? '' : hw,
       semester: currentSem?.number ?? null,
     })
