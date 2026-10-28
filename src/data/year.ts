@@ -1,0 +1,95 @@
+import type { AcademicYear, ISODate, Period } from './types'
+
+/** Навчальний рік, у якому ми зараз (з липня вже рахуємо наступний). */
+export function defaultYearStart(today: Date) {
+  return today.getMonth() >= 6 ? today.getFullYear() : today.getFullYear() - 1
+}
+
+export function defaultYear(startYear: number) {
+  return {
+    title: `${startYear}/${startYear + 1}`,
+    start_date: `${startYear}-09-01`,
+    end_date: `${startYear + 1}-06-30`,
+    semesters: [
+      { title: 'І семестр', start_date: `${startYear}-09-01`, end_date: `${startYear}-12-26` },
+      { title: 'ІІ семестр', start_date: `${startYear + 1}-01-12`, end_date: `${startYear + 1}-06-30` },
+    ],
+  }
+}
+
+export const ROMAN = ['І', 'ІІ', 'ІІІ', 'ІV', 'V', 'VI']
+
+type Range = { start_date: ISODate; end_date: ISODate }
+
+function overlaps(a: Range, b: Range) {
+  return a.start_date <= b.end_date && b.start_date <= a.end_date
+}
+
+const fmt = new Intl.DateTimeFormat('uk-UA', { day: '2-digit', month: '2-digit', year: 'numeric' })
+
+export function formatDate(d: ISODate) {
+  const [y, m, day] = d.split('-').map(Number)
+  return fmt.format(new Date(y, m - 1, day))
+}
+
+/**
+ * Жорсткі правила для періоду: дати існують і йдуть по порядку, лежать у межах
+ * навчального року та батьківського періоду, не перетинаються з сусідами.
+ * Повертає текст помилки або null.
+ */
+export function validatePeriod(
+  p: Range & { id?: string; parent_id: string | null },
+  year: Range,
+  all: Period[],
+): string | null {
+  if (!p.start_date || !p.end_date) return 'Вкажи обидві дати'
+  if (p.start_date > p.end_date) return 'Початок пізніше за кінець'
+  if (p.start_date < year.start_date || p.end_date > year.end_date) return 'Виходить за межі навчального року'
+  const parent = p.parent_id ? all.find((x) => x.id === p.parent_id) : undefined
+  if (parent && (p.start_date < parent.start_date || p.end_date > parent.end_date))
+    return `Виходить за межі: ${parent.title}`
+  const clash = all.find((x) => x.id !== p.id && x.parent_id === p.parent_id && overlaps(x, p))
+  if (clash) return `Перетинається з: ${clash.title}`
+  // Семестр не можна звузити так, щоб його чверть опинилась поза ним.
+  const child = all.find((x) => x.parent_id === p.id && (x.start_date < p.start_date || x.end_date > p.end_date))
+  if (p.id && child) return `${child.title} виходить за ці межі`
+  return null
+}
+
+export function validateYear(y: Range, periods: Period[]): string | null {
+  if (!y.start_date || !y.end_date) return 'Вкажи обидві дати'
+  if (y.start_date > y.end_date) return 'Початок пізніше за кінець'
+  const out = periods.find((p) => p.start_date < y.start_date || p.end_date > y.end_date)
+  if (out) return `${out.title} виходить за ці межі`
+  return null
+}
+
+export function sortPeriods(periods: Period[]) {
+  return [...periods].sort((a, b) => a.position - b.position || a.start_date.localeCompare(b.start_date))
+}
+
+export function pickCurrentYear(years: AcademicYear[]) {
+  return years.find((y) => y.is_current) ?? [...years].sort((a, b) => b.start_date.localeCompare(a.start_date))[0]
+}
+
+export function classDisplayName(grade: number, letter: string) {
+  return letter ? `${grade}-${letter}` : String(grade)
+}
+
+/** «А Б, В» → ['А', 'Б', 'В']; латинські схожі літери переводимо в кирилицю. */
+export function parseLetters(input: string) {
+  const latin: Record<string, string> = { A: 'А', B: 'В', C: 'С', E: 'Е', H: 'Н', K: 'К', M: 'М', O: 'О', P: 'Р', T: 'Т', X: 'Х' }
+  const parts = input
+    .split(/[\s,;]+/)
+    .map((s) => s.trim().toUpperCase())
+    .filter(Boolean)
+    .map((s) => (s.length === 1 && latin[s] ? latin[s] : s))
+  return [...new Set(parts)]
+}
+
+// Колір картки = паралель (як у дизайні).
+const GRADE_COLORS = ['mint', 'pink', 'butter', 'lilac', 'peri', 'peach']
+
+export function gradeColor(grade: number) {
+  return `var(--${GRADE_COLORS[grade % GRADE_COLORS.length]})`
+}
