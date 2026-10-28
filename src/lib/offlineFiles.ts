@@ -129,28 +129,72 @@ export async function syncOffline(wanted: LessonMaterial[], interactive: boolean
 // Ці типи браузер показує сам; решту віддаємо як файл, щоб відкрився відповідним застосунком.
 const VIEWABLE = /^(application\/pdf|image\/|video\/|audio\/|text\/plain)/
 
-/** Відкриває збережену копію. Викликати прямо з натискання: вкладку відкриваємо одразу, до читання файлу. */
-export function openSaved(f: SavedFile) {
-  const tab = VIEWABLE.test(f.type) ? window.open('', '_blank') : null
-  caches
-    .open(CACHE)
-    .then((c) => c.match(key(f.id)))
-    .then((r) => r?.blob())
-    .then((blob) => {
-      if (!blob) {
+/**
+ * Чи є зв'язок з інтернетом саме зараз. navigator.onLine на ПК часто каже «так»
+ * і з вимкненим Wi-Fi (через інші мережеві адаптери), тому питаємо Google напряму.
+ */
+async function reachable() {
+  if (!navigator.onLine) return false
+  try {
+    await fetch(`https://www.gstatic.com/generate_204?t=${Date.now()}`, {
+      mode: 'no-cors',
+      cache: 'no-store',
+      signal: AbortSignal.timeout(3000),
+    })
+    return true
+  } catch {
+    return false
+  }
+}
+
+async function savedUrl(f: SavedFile) {
+  const r = await (await caches.open(CACHE)).match(key(f.id))
+  if (!r) return null
+  const url = URL.createObjectURL(await r.blob())
+  setTimeout(() => URL.revokeObjectURL(url), 5 * 60_000)
+  return url
+}
+
+function download(url: string, f: SavedFile) {
+  const a = document.createElement('a')
+  a.href = url
+  a.download = f.type === 'application/pdf' && !/\.pdf$/i.test(f.name) ? `${f.name}.pdf` : f.name
+  a.click()
+}
+
+/**
+ * Відкриває файл матеріалу: з інтернетом — на Google Диску, без нього — збережену копію.
+ * Викликати прямо з натискання: вкладку відкриваємо одразу, щоб браузер її не заблокував.
+ */
+export function openMaterial(driveUrl: string, saved: SavedFile | undefined) {
+  const tab = window.open('', '_blank')
+  if (tab) tab.document.title = 'Відкриваю…'
+  reachable()
+    .then(async (online) => {
+      if (online || !saved) {
+        if (!online) {
+          tab?.close()
+          alert(
+            'Немає інтернету, а цього файлу ще немає на пристрої. ' +
+              'Файли до уроків найближчого тижня зберігаються самі; інші можна позначити шпилькою в матеріалах.',
+          )
+          return
+        }
+        if (tab) tab.location.href = driveUrl
+        else window.open(driveUrl, '_blank')
+        return
+      }
+      const url = await savedUrl(saved)
+      if (!url) {
         tab?.close()
         return
       }
-      const url = URL.createObjectURL(blob)
-      setTimeout(() => URL.revokeObjectURL(url), 5 * 60_000)
-      if (tab) {
+      if (tab && VIEWABLE.test(saved.type)) {
         tab.location.href = url
         return
       }
-      const a = document.createElement('a')
-      a.href = url
-      a.download = f.type === 'application/pdf' && !/\.pdf$/i.test(f.name) ? `${f.name}.pdf` : f.name
-      a.click()
+      tab?.close()
+      download(url, saved)
     })
     .catch((e) => {
       console.error(e)
