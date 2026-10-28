@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest'
 import { readDocumentXml, type Block, type Cell } from './docx'
-import { guessLessonType, parseKtp, resolveDate, splitOutcomes } from './ktpParser'
+import { guessLessonType, parseKtp, resolveDate } from './ktpParser'
 
 const c = (text: string, span = 1): Cell => ({ text, span })
 const row = (...texts: string[]) => texts.map((t) => c(t))
@@ -62,14 +62,13 @@ describe('parseKtp', () => {
     ])
   })
 
-  it('reads lessons with dates per class, outcomes, homework and the extra lesson', () => {
+  it('reads lessons with dates per class, homework and the extra lesson', () => {
     const [, os] = k.topics
     expect(os.lessons[0]).toEqual({
       number: 2,
       title: 'Операційні системи',
       lesson_type: 'regular',
       dates: ['2026-09-07', '2026-09-08'],
-      outcomes: ['Пояснює А [9 ІФО 1.1]', 'обирає Б [9 ІФО 2.2]'],
       homework: '§ 1',
       semester: 1,
     })
@@ -86,12 +85,6 @@ describe('helpers', () => {
     expect(resolveDate('15.01', null, 2026)).toBe('2027-01-15')
     expect(resolveDate('03.09', null, 2026)).toBe('2026-09-03')
     expect(resolveDate('—', null, 2026)).toBeNull()
-  })
-
-  it('splits outcomes written as components', () => {
-    expect(
-      splitOutcomes('Знаннєва складова: знає А; розрізняє Б. Діяльнісна складова: виконує В. Ціннісна складова: усвідомлює Г'),
-    ).toEqual(['Знаннєва складова: знає А; розрізняє Б', 'Діяльнісна складова: виконує В', 'Ціннісна складова: усвідомлює Г'])
   })
 
   it('guesses lesson types', () => {

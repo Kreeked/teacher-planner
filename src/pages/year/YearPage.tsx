@@ -36,7 +36,7 @@ export function YearPage() {
     ]
     for (const course of await refsWhere('courses', 'academic_year_id', y.id)) {
       refs.push(course)
-      for (const name of ['course_classes', 'topics', 'lessons', 'learning_outcomes', 'lesson_schedules'] as const)
+      for (const name of ['course_classes', 'topics', 'lessons', 'lesson_schedules'] as const)
         refs.push(...(await refsWhere(name, 'course_id', course.id)))
     }
     deleteRefs(refs)

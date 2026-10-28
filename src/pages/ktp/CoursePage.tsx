@@ -1,8 +1,8 @@
-import { ArrowLeft, ArrowUpRight, ChevronDown, ChevronUp, Plus, Settings2, Target, Trash2, TriangleAlert, X } from 'lucide-react'
-import { useState } from 'react'
+import { ArrowLeft, ChevronDown, ChevronUp, Plus, Settings2, Trash2, TriangleAlert } from 'lucide-react'
+import { useState, type CSSProperties } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { InlineText } from '../../components/InlineText'
-import { commit, createDoc, deleteRefs, newBatch, ref, refsWhere, updateFields, useCollection } from '../../data/db'
+import { commit, createDoc, deleteRefs, newBatch, putDoc, ref, refsWhere, removeDoc, updateFields, useCollection } from '../../data/db'
 import {
   LESSON_TYPES,
   countedLessons,
@@ -15,11 +15,9 @@ import {
   renumber,
   type TopicBlock,
 } from '../../data/ktp'
-import type { Lesson, LessonType, Topic } from '../../data/types'
-import { coverage, outcomeUsage, sortOutcomes } from '../../data/outcomes'
-import { gradeColor } from '../../data/year'
+import type { AcademicYear, ClassGroup, Lesson, LessonSchedule, LessonType, Topic } from '../../data/types'
+import { gradeColor, parseShortDate, shortDate } from '../../data/year'
 import { CourseSettings } from './CourseSettings'
-import { OutcomePicker } from './OutcomePicker'
 import type { WriteBatch } from 'firebase/firestore'
 
 /** Записує новий порядок: позиції тем і номери/позиції уроків, що змінилися. */
@@ -37,13 +35,18 @@ export function CoursePage() {
   const { items: courses, loading } = useCollection('courses')
   const { items: topics } = useCollection('topics', byCourse)
   const { items: lessons } = useCollection('lessons', byCourse)
-  const { items: outcomes } = useCollection('learning_outcomes', byCourse)
+  const { items: links } = useCollection('course_classes', byCourse)
+  const { items: schedules } = useCollection('lesson_schedules', byCourse)
+  const { items: years } = useCollection('academic_years')
+  const course = courses.find((c) => c.id === courseId)
+  const { items: yearClasses } = useCollection(
+    'class_groups',
+    course ? { field: 'academic_year_id', value: course.academic_year_id } : null,
+  )
   const [showSettings, setShowSettings] = useState(false)
-  const [pickerFor, setPickerFor] = useState<string | null>(null)
   // Щойно доданий урок отримує фокус на полі теми.
   const [newLessonId, setNewLessonId] = useState<string | null>(null)
 
-  const course = courses.find((c) => c.id === courseId)
   if (loading) return null
   if (!course)
     return (
@@ -61,10 +64,14 @@ export function CoursePage() {
   const warnings = hourWarnings(blocks, course.total_hours)
   const courseWarning = warnings.find((w) => !w.topicId)
   const color = gradeColor(course.grade)
-  const usage = outcomeUsage(lessons)
-  const stats = coverage(outcomes, lessons)
-  const outcomeById = new Map(sortOutcomes(outcomes).map((o, i) => [o.id, { ...o, n: i + 1 }]))
-  const pickerLesson = lessons.find((l) => l.id === pickerFor)
+  const year = years.find((y) => y.id === course.academic_year_id)
+  // Колонки дат — класи курсу в порядку прив'язки.
+  const classes = [...links]
+    .sort((a, b) => a.position - b.position)
+    .map((l) => yearClasses.find((c) => c.id === l.class_group_id))
+    .filter((c): c is ClassGroup => !!c)
+  const scheduleById = new Map(schedules.map((s) => [s.id, s]))
+  const gridStyle = classes.length ? ({ '--date-cols': `repeat(${classes.length}, 58px)` } as CSSProperties) : undefined
   const flat = blocks.flatMap((b) => b.lessons)
 
   function addTopic() {
@@ -159,9 +166,6 @@ export function CoursePage() {
             {countedLessons(lessons)} {lessonsWord(countedLessons(lessons))} з {course.total_hours} год
           </span>
           <span className="chip plain">{course.hours_per_week} год/тиж</span>
-          <Link to={`/ktp/${courseId}/outcomes`} className="chip plain">
-            <Target size={14} /> ОРН: покрито {stats.covered} з {stats.total} <ArrowUpRight size={13} />
-          </Link>
         </div>
 
         {showSettings && (
@@ -178,21 +182,16 @@ export function CoursePage() {
             <TriangleAlert size={14} /> {courseWarning.text}
           </p>
         )}
-        {stats.total > 0 && stats.lessonsWithout > 0 && (
-          <p className="warn">
-            <TriangleAlert size={14} /> Без ОРН: {stats.lessonsWithout} {lessonsWord(stats.lessonsWithout)}
-          </p>
-        )}
-        {stats.total > stats.covered && (
-          <p className="warn">
-            <TriangleAlert size={14} /> Не прив'язано до уроків: {stats.total - stats.covered} ОРН
-          </p>
-        )}
 
         <div className="ktp">
-          <div className="ktp-head">
+          <div className="ktp-head" style={gridStyle}>
             <span>№</span>
             <span>Тема уроку</span>
+            {classes.map((c) => (
+              <span key={c.id} className="date-head">
+                {c.display_name}
+              </span>
+            ))}
             <span>Тип</span>
             <span>Домашнє завдання</span>
           </div>
@@ -243,7 +242,7 @@ export function CoursePage() {
                 </div>
 
                 {b.lessons.map((l) => (
-                  <div key={l.id} className="lesson-row">
+                  <div key={l.id} className="lesson-row" style={gridStyle}>
                     <span className="no num" title={l.extra ? 'Додатковий урок для частини класів' : undefined}>
                       {l.extra ? '*' : l.number}
                     </span>
@@ -257,30 +256,20 @@ export function CoursePage() {
                         value={l.title}
                         onSave={(title) => updateFields('lessons', l.id, { title })}
                       />
-                      <div className="l-outcomes">
-                        {(l.outcome_ids ?? []).map((id) => {
-                          const o = outcomeById.get(id)
-                          if (!o) return null
-                          return (
-                            <span key={id} className="orn" title={o.text}>
-                              <span className="grow">{o.text}</span>
-                              <button
-                                className="chip-x"
-                                aria-label="Прибрати ОРН"
-                                onClick={() =>
-                                  updateFields('lessons', l.id, { outcome_ids: l.outcome_ids!.filter((x) => x !== id) })
-                                }
-                              >
-                                <X size={11} />
-                              </button>
-                            </span>
-                          )
-                        })}
-                        <button className="link-btn" onClick={() => setPickerFor(l.id)}>
-                          <Plus size={12} /> ОРН
-                        </button>
-                      </div>
                     </div>
+                    {classes.length > 0 && (
+                      <div className="l-dates">
+                        {classes.map((c) => (
+                          <DateCell
+                            key={c.id}
+                            lesson={l}
+                            cls={c}
+                            year={year}
+                            schedule={scheduleById.get(`${l.id}_${c.id}`)}
+                          />
+                        ))}
+                      </div>
+                    )}
                     <select
                       className="cell l-type"
                       aria-label="Тип уроку"
@@ -336,11 +325,55 @@ export function CoursePage() {
         <button className="btn ghost add-topic" onClick={addTopic}>
           <Plus size={16} /> Тема
         </button>
-
-        {pickerLesson && (
-          <OutcomePicker lesson={pickerLesson} outcomes={outcomes} usage={usage} onClose={() => setPickerFor(null)} />
-        )}
       </main>
     </div>
+  )
+}
+
+type DateCellProps = { lesson: Lesson; cls: ClassGroup; year?: AcademicYear; schedule?: LessonSchedule }
+
+/** Дата уроку для одного класу: «дд.мм», порожньо — урок цьому класу не призначено. */
+function DateCell({ lesson, cls, year, schedule }: DateCellProps) {
+  const stored = schedule?.planned_date ?? null
+  const shown = stored ? shortDate(stored) : ''
+
+  function save(input: HTMLInputElement) {
+    if (!year) return
+    const date = parseShortDate(input.value, year)
+    if (date === undefined) {
+      input.value = shown
+      return
+    }
+    input.value = date ? shortDate(date) : ''
+    if (date === stored) return
+    const id = `${lesson.id}_${cls.id}`
+    if (!date) removeDoc('lesson_schedules', id)
+    else if (schedule) updateFields('lesson_schedules', id, { planned_date: date })
+    else
+      putDoc('lesson_schedules', id, {
+        course_id: lesson.course_id,
+        lesson_id: lesson.id,
+        class_group_id: cls.id,
+        planned_date: date,
+        actual_date: null,
+        status: 'planned',
+        note: '',
+      })
+  }
+
+  return (
+    <label className="l-date">
+      <span className="l-date-class">{cls.display_name}</span>
+      <input
+        className="cell num"
+        inputMode="decimal"
+        aria-label={`Дата уроку ${lesson.extra ? '*' : lesson.number} для ${cls.display_name}`}
+        placeholder="—"
+        defaultValue={shown}
+        key={shown}
+        onBlur={(e) => save(e.target)}
+        onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+      />
+    </label>
   )
 }

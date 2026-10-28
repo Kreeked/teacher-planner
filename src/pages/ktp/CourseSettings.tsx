@@ -37,7 +37,6 @@ export function CourseSettings({ course, topics, lessons, onDeleted }: Props) {
       ...links.map((l) => ref('course_classes', l.id)),
       ...topics.map((t) => ref('topics', t.id)),
       ...lessons.map((l) => ref('lessons', l.id)),
-      ...(await refsWhere('learning_outcomes', 'course_id', course.id)),
       ...(await refsWhere('lesson_schedules', 'course_id', course.id)),
     ])
     onDeleted()

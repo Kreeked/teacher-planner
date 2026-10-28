@@ -839,7 +839,7 @@ h2 {
 .ktp-head,
 .lesson-row {
   display: grid;
-  grid-template-columns: 32px minmax(0, 2fr) 112px minmax(0, 1.3fr) 96px;
+  grid-template-columns: 32px minmax(0, 2fr) var(--date-cols,) 112px minmax(0, 1.3fr) 96px;
   gap: 8px;
   align-items: start;
 }
@@ -970,6 +970,7 @@ select.cell {
     grid-template-columns: 28px minmax(0, 1fr) auto;
     grid-template-areas:
       'no title title'
+      '. dates dates'
       '. hw hw'
       '. type tools';
   }
@@ -990,6 +991,34 @@ select.cell {
     grid-area: hw;
   }
 
+  .lesson-row .l-dates {
+    grid-area: dates;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .l-date {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    background: var(--bg);
+    border-radius: 8px;
+    padding-left: 8px;
+    font-size: 11px;
+    color: var(--ink-2);
+  }
+
+  .lesson-row .l-date-class {
+    display: inline;
+  }
+
+  .l-date .cell {
+    width: 52px;
+    min-height: 26px;
+    padding-block: 3px;
+  }
+
   .lesson-row .l-type {
     grid-area: type;
     width: auto;
@@ -1000,39 +1029,27 @@ select.cell {
   }
 }
 
-/* ---------- ОРН ---------- */
+/* ---------- Дати по класах ---------- */
 .l-main {
   min-width: 0;
 }
 
-.l-outcomes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  padding: 0 4px 2px;
+/* На широкому екрані кожна дата — окрема колонка сітки. */
+.l-dates {
+  display: contents;
 }
 
-.l-outcomes .link-btn {
-  padding: 2px 4px;
-  font-size: 11px;
+.l-date .cell {
+  text-align: center;
+  padding-inline: 2px;
 }
 
-.orn {
-  max-width: 100%;
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  background: var(--bg);
-  border-radius: 8px;
-  padding: 2px 2px 2px 8px;
-  font-size: 11px;
-  color: var(--ink-2);
+.l-date-class {
+  display: none;
 }
 
-.orn .grow {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.date-head {
+  text-align: center;
 }
 
 .overlay {

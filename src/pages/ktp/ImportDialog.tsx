@@ -64,7 +64,6 @@ function Preview({ ktp, year, courses, classes, onDone }: Props & { ktp: ParsedK
 
   const lessons = ktp.topics.flatMap((t) => t.lessons)
   const extra = lessons.filter((l) => l.number === null).length
-  const outcomes = new Set(lessons.flatMap((l) => l.outcomes)).size
   const dates = lessons.reduce((n, l) => n + l.dates.filter(Boolean).length, 0)
   const existing = new Set(classes.map((c) => c.display_name.toUpperCase()))
   const missing = ktp.classNames.filter((n) => !existing.has(n.toUpperCase()))
@@ -105,7 +104,7 @@ function Preview({ ktp, year, courses, classes, onDone }: Props & { ktp: ParsedK
           {extra > 0 && ` + ${extra} додатковий «*» лише для частини класів`}
         </span>
         <span>
-          ОРН: {outcomes} · дат по класах: {dates}
+          Дат по класах: {dates}
           {ktp.yearTotal && ` · годин за рік: ${ktp.yearTotal}`}
         </span>
         {missing.length > 0 && <span>Буде створено класи: {missing.join(', ')}</span>}

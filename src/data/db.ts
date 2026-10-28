@@ -49,6 +49,13 @@ export function createDoc<N extends CollectionName>(name: N, data: NewDoc<Collec
   return r.id
 }
 
+/** Створює документ із заданим id (наприклад, дата уроку `${lesson_id}_${class_group_id}`). */
+export function putDoc<N extends CollectionName>(name: N, id: string, data: NewDoc<Collections[N]>, batch?: WriteBatch) {
+  const payload = { ...data, owner_id: uid(), created_at: serverTimestamp(), updated_at: serverTimestamp() }
+  if (batch) batch.set(ref(name, id), payload)
+  else setDoc(ref(name, id), payload).catch(report)
+}
+
 export function updateFields<N extends CollectionName>(
   name: N,
   id: string,

@@ -76,8 +76,6 @@ export type Lesson = Meta & {
   lesson_type: LessonType
   homework: string
   notes: string
-  // Очікувані результати навчання уроку, у порядку показу (id з learning_outcomes).
-  outcome_ids?: string[]
   // Додатковий урок лише для частини класів (у зразку — «*»): без наскрізного номера.
   extra?: boolean
 }
@@ -95,12 +93,6 @@ export type LessonSchedule = Meta & {
   note: string
 }
 
-export type LearningOutcome = Meta & {
-  course_id: string
-  text: string
-  position: number
-}
-
 export type Collections = {
   academic_years: AcademicYear
   periods: Period
@@ -109,7 +101,6 @@ export type Collections = {
   course_classes: CourseClass
   topics: Topic
   lessons: Lesson
-  learning_outcomes: LearningOutcome
   lesson_schedules: LessonSchedule
 }
 
@@ -124,7 +115,6 @@ export const COLLECTION_NAMES: CollectionName[] = [
   'course_classes',
   'topics',
   'lessons',
-  'learning_outcomes',
   'lesson_schedules',
 ]
 
