@@ -2,9 +2,10 @@ import { ArrowLeft, ArrowUpRight, ChevronDown, ChevronUp, Plus, Settings2, Targe
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { InlineText } from '../../components/InlineText'
-import { commit, createDoc, newBatch, ref, updateFields, useCollection } from '../../data/db'
+import { commit, createDoc, deleteRefs, newBatch, ref, refsWhere, updateFields, useCollection } from '../../data/db'
 import {
   LESSON_TYPES,
+  countedLessons,
   courseTitle,
   groupLessons,
   hourWarnings,
@@ -64,6 +65,7 @@ export function CoursePage() {
   const stats = coverage(outcomes, lessons)
   const outcomeById = new Map(sortOutcomes(outcomes).map((o, i) => [o.id, { ...o, n: i + 1 }]))
   const pickerLesson = lessons.find((l) => l.id === pickerFor)
+  const flat = blocks.flatMap((b) => b.lessons)
 
   function addTopic() {
     createDoc('topics', {
@@ -100,8 +102,8 @@ export function CoursePage() {
     setNewLessonId(id)
   }
 
-  function removeLesson(l: Lesson) {
-    if (l.title && !confirm(`Видалити урок ${l.number} «${l.title}»?`)) return
+  async function removeLesson(l: Lesson) {
+    if (l.title && !confirm(`Видалити урок ${l.extra ? '*' : l.number} «${l.title}»?`)) return
     const batch = newBatch()
     batch.delete(ref('lessons', l.id))
     applyOrder(
@@ -109,9 +111,10 @@ export function CoursePage() {
       batch,
     )
     commit(batch)
+    deleteRefs(await refsWhere('lesson_schedules', 'lesson_id', l.id))
   }
 
-  function removeTopic(b: TopicBlock) {
+  async function removeTopic(b: TopicBlock) {
     const msg = b.lessons.length
       ? `Видалити тему «${b.topic.title}» разом із ${b.lessons.length} ${lessonsWord(b.lessons.length)}?`
       : `Видалити тему «${b.topic.title}»?`
@@ -124,6 +127,7 @@ export function CoursePage() {
       batch,
     )
     commit(batch)
+    for (const l of b.lessons) deleteRefs(await refsWhere('lesson_schedules', 'lesson_id', l.id))
   }
 
   function reorder(next: TopicBlock[]) {
@@ -152,7 +156,7 @@ export function CoursePage() {
 
         <div className="chips">
           <span className="chip plain" style={{ background: color }}>
-            {lessons.length} {lessonsWord(lessons.length)} з {course.total_hours} год
+            {countedLessons(lessons)} {lessonsWord(countedLessons(lessons))} з {course.total_hours} год
           </span>
           <span className="chip plain">{course.hours_per_week} год/тиж</span>
           <Link to={`/ktp/${courseId}/outcomes`} className="chip plain">
@@ -240,7 +244,9 @@ export function CoursePage() {
 
                 {b.lessons.map((l) => (
                   <div key={l.id} className="lesson-row">
-                    <span className="no num">{l.number}</span>
+                    <span className="no num" title={l.extra ? 'Додатковий урок для частини класів' : undefined}>
+                      {l.extra ? '*' : l.number}
+                    </span>
                     <div className="l-main">
                       <InlineText
                         multiline
@@ -298,7 +304,7 @@ export function CoursePage() {
                     <span className="row-tools">
                       <button
                         className="icon-btn"
-                        disabled={l.number === 1}
+                        disabled={flat[0]?.id === l.id}
                         onClick={() => reorder(moveLesson(blocks, l.id, -1))}
                         aria-label="Урок вище"
                       >
@@ -306,7 +312,7 @@ export function CoursePage() {
                       </button>
                       <button
                         className="icon-btn"
-                        disabled={l.number === lessons.length}
+                        disabled={flat[flat.length - 1]?.id === l.id}
                         onClick={() => reorder(moveLesson(blocks, l.id, 1))}
                         aria-label="Урок нижче"
                       >

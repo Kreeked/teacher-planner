@@ -48,6 +48,18 @@ describe('renumber', () => {
   })
 })
 
+describe('extra lessons', () => {
+  it('get no number and are not counted against planned hours', () => {
+    const extra = { ...lesson('x', 'T1', 1), extra: true }
+    const blocks = groupLessons(topics, [lesson('a', 'T1', 0, 1), extra, lesson('b', 'T1', 2, 3), lesson('c', 'T2', 0, 4)])
+    expect(renumber(blocks)).toEqual([
+      { id: 'b', topic_id: 'T1', position: 2, number: 2 },
+      { id: 'c', topic_id: 'T2', position: 0, number: 3 },
+    ])
+    expect(hourWarnings(blocks, 3).map((w) => w.text)).toEqual(['1 урок із 2 год'])
+  })
+})
+
 describe('moveLesson', () => {
   const blocks = groupLessons(topics, lessons)
 

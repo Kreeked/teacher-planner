@@ -28,8 +28,12 @@ export function ClassesSection({ year, classes }: { year: AcademicYear; classes:
 
   async function remove(c: ClassGroup) {
     if (!confirm(`Видалити клас ${c.display_name}?`)) return
-    // Разом із класом зникає і його прив'язка до КТП.
-    deleteRefs([ref('class_groups', c.id), ...(await refsWhere('course_classes', 'class_group_id', c.id))])
+    // Разом із класом зникають його прив'язки до КТП і дати уроків.
+    deleteRefs([
+      ref('class_groups', c.id),
+      ...(await refsWhere('course_classes', 'class_group_id', c.id)),
+      ...(await refsWhere('lesson_schedules', 'class_group_id', c.id)),
+    ])
   }
 
   const byGrade = new Map<number, ClassGroup[]>()

@@ -78,6 +78,21 @@ export type Lesson = Meta & {
   notes: string
   // Очікувані результати навчання уроку, у порядку показу (id з learning_outcomes).
   outcome_ids?: string[]
+  // Додатковий урок лише для частини класів (у зразку — «*»): без наскрізного номера.
+  extra?: boolean
+}
+
+export type LessonStatus = 'planned' | 'done' | 'moved' | 'cancelled'
+
+// Дата уроку для класу. id документа = `${lesson_id}_${class_group_id}`.
+export type LessonSchedule = Meta & {
+  course_id: string
+  lesson_id: string
+  class_group_id: string
+  planned_date: ISODate | null
+  actual_date: ISODate | null
+  status: LessonStatus
+  note: string
 }
 
 export type LearningOutcome = Meta & {
@@ -95,6 +110,7 @@ export type Collections = {
   topics: Topic
   lessons: Lesson
   learning_outcomes: LearningOutcome
+  lesson_schedules: LessonSchedule
 }
 
 export type CollectionName = keyof Collections
@@ -109,6 +125,7 @@ export const COLLECTION_NAMES: CollectionName[] = [
   'topics',
   'lessons',
   'learning_outcomes',
+  'lesson_schedules',
 ]
 
 export type NewDoc<T extends Meta> = Omit<T, keyof Meta>

@@ -79,6 +79,25 @@ export function deleteRefs(refs: DocumentReference[]) {
   }
 }
 
+/** Послідовність записів, що сама ділиться на батчі по 450 операцій. */
+export class BatchWriter {
+  private batches: WriteBatch[] = [writeBatch(db)]
+  private ops = 0
+
+  get batch() {
+    if (this.ops === 450) {
+      this.batches.push(writeBatch(db))
+      this.ops = 0
+    }
+    this.ops++
+    return this.batches[this.batches.length - 1]
+  }
+
+  commit() {
+    this.batches.forEach(commit)
+  }
+}
+
 export function newBatch() {
   return writeBatch(db)
 }

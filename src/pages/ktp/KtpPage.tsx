@@ -1,10 +1,11 @@
-import { ArrowUpRight, Plus } from 'lucide-react'
-import { useState } from 'react'
+import { ArrowUpRight, FileUp, Plus } from 'lucide-react'
+import { useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useCollection } from '../../data/db'
-import { courseTitle, lessonsWord } from '../../data/ktp'
+import { countedLessons, courseTitle, lessonsWord } from '../../data/ktp'
 import type { ClassGroup, Course } from '../../data/types'
 import { formatDate, gradeColor, pickCurrentYear } from '../../data/year'
+import { ImportDialog } from './ImportDialog'
 import { NewCourseForm } from './NewCourseForm'
 
 export function KtpPage() {
@@ -16,6 +17,8 @@ export function KtpPage() {
   const { items: classes } = useCollection('class_groups', filter)
   const { items: courses } = useCollection('courses', filter)
   const [creating, setCreating] = useState(false)
+  const [importFile, setImportFile] = useState<File | null>(null)
+  const fileInput = useRef<HTMLInputElement>(null)
 
   const sorted = [...courses].sort((a, b) => a.grade - b.grade || a.subject.localeCompare(b.subject, 'uk'))
 
@@ -49,11 +52,24 @@ export function KtpPage() {
             <div className="sec-head">
               <h2>Мої КТП</h2>
               <span className="grow" />
+              <button className="chip plain" onClick={() => fileInput.current?.click()}>
+                <FileUp size={14} /> Імпорт з Word
+              </button>
               {!creating && (
                 <button className="chip plain on" onClick={() => setCreating(true)}>
                   <Plus size={14} /> Нове КТП
                 </button>
               )}
+              <input
+                ref={fileInput}
+                type="file"
+                accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                hidden
+                onChange={(e) => {
+                  setImportFile(e.target.files?.[0] ?? null)
+                  e.target.value = ''
+                }}
+              />
             </div>
 
             {creating && (
@@ -76,6 +92,20 @@ export function KtpPage() {
               </section>
             )}
 
+            {importFile && (
+              <ImportDialog
+                file={importFile}
+                year={year}
+                courses={courses}
+                classes={classes}
+                onClose={() => setImportFile(null)}
+                onDone={(id) => {
+                  setImportFile(null)
+                  navigate(`/ktp/${id}`)
+                }}
+              />
+            )}
+
             <div className="course-grid">
               {sorted.map((c) => (
                 <CourseCard key={c.id} course={c} classes={classes} />
@@ -91,6 +121,7 @@ export function KtpPage() {
 function CourseCard({ course, classes }: { course: Course; classes: ClassGroup[] }) {
   const { items: links } = useCollection('course_classes', { field: 'course_id', value: course.id })
   const { items: lessons } = useCollection('lessons', { field: 'course_id', value: course.id })
+  const count = countedLessons(lessons)
   const names = [...links]
     .sort((a, b) => a.position - b.position)
     .map((l) => classes.find((c) => c.id === l.class_group_id)?.display_name)
@@ -99,9 +130,9 @@ function CourseCard({ course, classes }: { course: Course; classes: ClassGroup[]
   return (
     <Link to={`/ktp/${course.id}`} className="stat" style={{ background: gradeColor(course.grade) }}>
       <span className="lab">{courseTitle(course)}</span>
-      <span className="big num">{lessons.length}</span>
+      <span className="big num">{count}</span>
       <span className="sub">
-        {lessonsWord(lessons.length)} з {course.total_hours} год · {names.join(', ') || 'класи не вибрано'}
+        {lessonsWord(count)} з {course.total_hours} год · {names.join(', ') || 'класи не вибрано'}
       </span>
       <span className="arrow">
         <ArrowUpRight size={15} />

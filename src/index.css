@@ -1196,3 +1196,27 @@ select.cell {
 a.chip {
   text-decoration: none;
 }
+
+/* ---------- Імпорт ---------- */
+.import-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  background: var(--bg);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+.import-summary span {
+  color: var(--ink-2);
+}
+
+.dialog .form-label .field {
+  width: 100%;
+  margin-top: 4px;
+}
+
+.dialog > .btn:not(.ghost) {
+  align-self: flex-start;
+}
