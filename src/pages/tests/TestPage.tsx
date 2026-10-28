@@ -1,7 +1,9 @@
-import { ArrowLeft, ChevronDown, ChevronUp, Download, FileUp, Plus, Trash2, TriangleAlert, X } from 'lucide-react'
+import { ArrowLeft, Download, FileUp, Plus, Trash2, TriangleAlert, X } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { InlineText } from '../../components/InlineText'
+import { DragHandle, SortableList } from '../../components/Sortable'
+import { useSortableItem } from '../../lib/drag'
 import { updateFields, useCollection } from '../../data/db'
 import {
   MAX_OPTIONS,
@@ -43,12 +45,6 @@ export function TestPage() {
 
   function patch(i: number, p: Partial<Question>) {
     save(questions.map((q, j) => (j === i ? { ...q, ...p } : q)))
-  }
-
-  function move(i: number, dir: -1 | 1) {
-    const next = [...questions]
-    ;[next[i], next[i + dir]] = [next[i + dir], next[i]]
-    save(next)
   }
 
   async function append(f: File | undefined) {
@@ -124,19 +120,25 @@ export function TestPage() {
         )}
 
         <ol className="questions">
-          {questions.map((q, i) => (
-            <QuestionCard
-              key={i}
-              n={i + 1}
-              q={q}
-              last={i === questions.length - 1}
-              onChange={(p) => patch(i, p)}
-              onMove={(dir) => move(i, dir)}
-              onRemove={() => {
-                if (!q.text || confirm(`Видалити питання ${i + 1}?`)) save(questions.filter((_, j) => j !== i))
-              }}
-            />
-          ))}
+          {/* Питання не мають власних id, тож перетягуємо їхні номери. */}
+          <SortableList
+            items={questions.map((_, i) => i)}
+            getId={(i) => `q${i}`}
+            onReorder={(order) => save(order.map((i) => questions[i]))}
+          >
+            {(i) => (
+              <QuestionCard
+                key={i}
+                n={i + 1}
+                q={questions[i]}
+                onChange={(p) => patch(i, p)}
+                onRemove={() => {
+                  if (!questions[i].text || confirm(`Видалити питання ${i + 1}?`))
+                    save(questions.filter((_, j) => j !== i))
+                }}
+              />
+            )}
+          </SortableList>
         </ol>
 
         <div className="row-actions">
@@ -163,13 +165,12 @@ export function TestPage() {
 type CardProps = {
   n: number
   q: Question
-  last: boolean
   onChange: (p: Partial<Question>) => void
-  onMove: (dir: -1 | 1) => void
   onRemove: () => void
 }
 
-function QuestionCard({ n, q, last, onChange, onMove, onRemove }: CardProps) {
+function QuestionCard({ n, q, onChange, onRemove }: CardProps) {
+  const { ref, style, handle } = useSortableItem(`q${n - 1}`)
   const info = typeInfo(q.type)
   const multi = q.type === 'Checkbox'
 
@@ -195,8 +196,9 @@ function QuestionCard({ n, q, last, onChange, onMove, onRemove }: CardProps) {
   }
 
   return (
-    <li className="question">
+    <li ref={ref} style={style} className="question">
       <div className="question-head">
+        <DragHandle label={`Перемістити питання ${n}`} {...handle} />
         <b>{n}</b>
         <select
           className="field"
@@ -223,12 +225,6 @@ function QuestionCard({ n, q, last, onChange, onMove, onRemove }: CardProps) {
           ))}
         </select>
         <span className="grow" />
-        <button className="icon-btn" disabled={n === 1} onClick={() => onMove(-1)} aria-label={`Питання ${n} вище`}>
-          <ChevronUp size={15} />
-        </button>
-        <button className="icon-btn" disabled={last} onClick={() => onMove(1)} aria-label={`Питання ${n} нижче`}>
-          <ChevronDown size={15} />
-        </button>
         <button className="icon-btn del" onClick={onRemove} aria-label={`Видалити питання ${n}`}>
           <Trash2 size={15} />
         </button>

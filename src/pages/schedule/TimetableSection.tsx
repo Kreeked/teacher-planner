@@ -1,5 +1,6 @@
 import { CopyPlus } from 'lucide-react'
 import { useState } from 'react'
+import { DatePicker } from '../../components/DatePicker'
 import { RangeRow } from '../../components/RangeRow'
 import { commit, createDoc, deleteRefs, newBatch, ref, refsWhere, removeDoc, updateFields } from '../../data/db'
 import { WEEKDAYS, addDays } from '../../data/schedule'
@@ -210,14 +211,12 @@ export function TimetableSection({ year, bells, timetables, entries, courses, cl
       <div className="tt-copy">
         <span className="form-label">Розклад змінився серед року?</span>
         <div className="row-actions">
-          <input
-            className="field"
-            type="date"
-            aria-label="Дата нового розкладу"
+          <DatePicker
+            label="Дата нового розкладу"
             min={addDays(current.valid_from, 1)}
             max={current.valid_to}
-            value={copyFrom}
-            onChange={(e) => setCopyFrom(e.target.value)}
+            value={copyFrom || null}
+            onChange={(d) => setCopyFrom(d ?? '')}
           />
           <button className="btn ghost small" disabled={!copyFrom} onClick={copyFromDate}>
             <CopyPlus size={14} /> Новий розклад з цієї дати

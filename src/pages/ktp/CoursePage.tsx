@@ -1,7 +1,31 @@
-import { ArrowLeft, ChevronDown, ChevronUp, ListChecks, Plus, Settings2, Trash2, TriangleAlert } from 'lucide-react'
-import { useState, type CSSProperties } from 'react'
+import {
+  DndContext,
+  DragOverlay,
+  closestCenter,
+  useDroppable,
+  type CollisionDetection,
+  type DragEndEvent,
+  type DragOverEvent,
+  type DragStartEvent,
+} from '@dnd-kit/core'
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import {
+  ArrowLeft,
+  Check,
+  GripVertical,
+  ListChecks,
+  Pencil,
+  Plus,
+  Settings2,
+  Trash2,
+  TriangleAlert,
+} from 'lucide-react'
+import { useState, type CSSProperties, type ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { DatePicker } from '../../components/DatePicker'
 import { InlineText } from '../../components/InlineText'
+import { DragHandle } from '../../components/Sortable'
+import { useDragSensors, useSortableItem } from '../../lib/drag'
 import {
   commit,
   createDoc,
@@ -21,15 +45,26 @@ import {
   groupLessons,
   hourWarnings,
   lessonsWord,
-  moveLesson,
-  moveTopic,
+  placeLesson,
+  placeTopic,
   renumber,
+  typePatch,
   type TopicBlock,
+  type Warning,
 } from '../../data/ktp'
-import type { AcademicYear, ClassGroup, Lesson, LessonSchedule, LessonType, Topic } from '../../data/types'
-import { gradeColor, parseShortDate, shortDate } from '../../data/year'
+import { materialsOf } from '../../data/materials'
+import type {
+  AcademicYear,
+  ClassGroup,
+  Lesson,
+  LessonMaterial,
+  LessonSchedule,
+  LessonType,
+  Topic,
+} from '../../data/types'
+import { gradeColor, shortDate } from '../../data/year'
 import { CourseSettings } from './CourseSettings'
-import { MaterialsButton, MaterialsDialog } from './Materials'
+import { MaterialLink, MaterialsButton, MaterialsDialog } from './Materials'
 import type { WriteBatch } from 'firebase/firestore'
 
 /** Записує новий порядок: позиції тем і номери/позиції уроків, що змінилися. */
@@ -39,6 +74,14 @@ function applyOrder(blocks: TopicBlock[], batch: WriteBatch, skip?: string) {
   })
   for (const { id, ...patch } of renumber(blocks)) if (id !== skip) updateFields('lessons', id, patch, batch)
 }
+
+const typeLabel = (t: LessonType) => LESSON_TYPES.find((x) => x.value === t)?.label ?? ''
+const lessonNo = (l: Lesson) => (l.extra ? '*' : String(l.number))
+
+// Ідентифікатори для перетягування: тема, урок і «кінець теми» (місце під останнім уроком).
+const topicKey = (id: string) => `t:${id}`
+const lessonKey = (id: string) => `l:${id}`
+const endKey = (id: string) => `z:${id}`
 
 export function CoursePage() {
   const { courseId = '' } = useParams()
@@ -58,9 +101,13 @@ export function CoursePage() {
   const { items: materials } = useCollection('lesson_materials', byCourse)
   const { items: tests } = useCollection('tests', byCourse)
   const [showSettings, setShowSettings] = useState(false)
+  const [editing, setEditing] = useState(false)
   const [materialsFor, setMaterialsFor] = useState<{ lessonId?: string; topicId?: string } | null>(null)
   // Щойно доданий урок отримує фокус на полі теми.
   const [newLessonId, setNewLessonId] = useState<string | null>(null)
+  // Порядок під час перетягування: урок може тимчасово перейти в іншу тему, доки його не відпустили.
+  const [drag, setDrag] = useState<{ id: string; blocks: TopicBlock[] } | null>(null)
+  const sensors = useDragSensors()
 
   if (loading) return null
   if (!course)
@@ -75,8 +122,9 @@ export function CoursePage() {
       </div>
     )
 
-  const blocks = groupLessons(topics, lessons)
-  const warnings = hourWarnings(blocks, course.total_hours)
+  const saved = groupLessons(topics, lessons)
+  const blocks = drag?.blocks ?? saved
+  const warnings = hourWarnings(saved, course.total_hours)
   const courseWarning = warnings.find((w) => !w.topicId)
   const color = gradeColor(course.grade)
   const year = years.find((y) => y.id === course.academic_year_id)
@@ -87,20 +135,21 @@ export function CoursePage() {
     .filter((c): c is ClassGroup => !!c)
   const scheduleById = new Map(schedules.map((s) => [s.id, s]))
   const gridStyle = classes.length ? ({ '--date-cols': `repeat(${classes.length}, 58px)` } as CSSProperties) : undefined
-  const flat = blocks.flatMap((b) => b.lessons)
+  const topicFiles = (id: string) =>
+    materials.filter((m) => m.topic_id === id && !m.lesson_id).sort((a, b) => a.position - b.position)
 
   function addTopic() {
     createDoc('topics', {
       course_id: courseId,
-      position: blocks.length,
-      title: `Тема ${blocks.length + 1}`,
+      position: saved.length,
+      title: `Тема ${saved.length + 1}`,
       planned_hours: 0,
     })
   }
 
   function addLesson(topic: Topic) {
     const batch = newBatch()
-    const block = blocks.find((b) => b.topic.id === topic.id)!
+    const block = saved.find((b) => b.topic.id === topic.id)!
     const draft: Omit<Lesson, 'id' | 'owner_id'> = {
       course_id: courseId,
       topic_id: topic.id,
@@ -113,7 +162,7 @@ export function CoursePage() {
       notes: '',
     }
     const id = createDoc('lessons', draft, batch)
-    const next = blocks.map((b) =>
+    const next = saved.map((b) =>
       b.topic.id === topic.id ? { ...b, lessons: [...b.lessons, { ...draft, id, owner_id: '' }] } : b,
     )
     // Номер нового уроку записуємо одразу, решту — зсуваємо.
@@ -124,12 +173,25 @@ export function CoursePage() {
     setNewLessonId(id)
   }
 
+  /** Зміна типу; «Резерв» знімає номер з уроку, тож решту уроків перенумеровуємо. */
+  function setType(l: Lesson, type: LessonType) {
+    const patch = typePatch(l, type)
+    const batch = newBatch()
+    updateFields('lessons', l.id, patch, batch)
+    if ('extra' in patch)
+      applyOrder(
+        saved.map((b) => ({ ...b, lessons: b.lessons.map((x) => (x.id === l.id ? { ...x, ...patch } : x)) })),
+        batch,
+      )
+    commit(batch)
+  }
+
   async function removeLesson(l: Lesson) {
-    if (l.title && !confirm(`Видалити урок ${l.extra ? '*' : l.number} «${l.title}»?`)) return
+    if (l.title && !confirm(`Видалити урок ${lessonNo(l)} «${l.title}»?`)) return
     const batch = newBatch()
     batch.delete(ref('lessons', l.id))
     applyOrder(
-      blocks.map((b) => ({ ...b, lessons: b.lessons.filter((x) => x.id !== l.id) })),
+      saved.map((b) => ({ ...b, lessons: b.lessons.filter((x) => x.id !== l.id) })),
       batch,
     )
     commit(batch)
@@ -151,7 +213,7 @@ export function CoursePage() {
     batch.delete(ref('topics', b.topic.id))
     for (const l of b.lessons) batch.delete(ref('lessons', l.id))
     applyOrder(
-      blocks.filter((x) => x.topic.id !== b.topic.id),
+      saved.filter((x) => x.topic.id !== b.topic.id),
       batch,
     )
     commit(batch)
@@ -167,11 +229,87 @@ export function CoursePage() {
     }
   }
 
-  function reorder(next: TopicBlock[]) {
+  // ---------- Перетягування тем і уроків ----------
+
+  // Тема «бачить» лише теми, урок — уроки та кінці тем (щоб покласти в порожню тему або в кінець).
+  const collide: CollisionDetection = (args) => {
+    const kind = String(args.active.id)[0]
+    return closestCenter({
+      ...args,
+      droppableContainers: args.droppableContainers.filter((c) =>
+        kind === 't' ? String(c.id)[0] === 't' : String(c.id)[0] !== 't',
+      ),
+    })
+  }
+
+  /** Куди ляже урок, якщо відпустити його над over: тема та місце в ній. */
+  function target(list: TopicBlock[], over: string, lessonId: string) {
+    const id = over.slice(2)
+    if (over[0] === 'z') {
+      const b = list.find((x) => x.topic.id === id)
+      return b && { topicId: id, index: b.lessons.filter((l) => l.id !== lessonId).length }
+    }
+    const b = list.find((x) => x.lessons.some((l) => l.id === id))
+    return b && { topicId: b.topic.id, index: b.lessons.findIndex((l) => l.id === id) }
+  }
+
+  function dragStart({ active }: DragStartEvent) {
+    setDrag({ id: String(active.id), blocks: saved })
+  }
+
+  // Урок перейшов в іншу тему — переносимо одразу, щоб рядки розсунулися вже там.
+  function dragOver({ active, over }: DragOverEvent) {
+    if (!drag || !over || drag.id[0] !== 'l') return
+    const lessonId = drag.id.slice(2)
+    const to = target(drag.blocks, String(over.id), lessonId)
+    const from = drag.blocks.find((b) => b.lessons.some((l) => l.id === lessonId))
+    if (!to || !from || from.topic.id === to.topicId) return
+    // Над нижньою половиною рядка — ставимо після нього.
+    const below =
+      over.id !== endKey(to.topicId) &&
+      active.rect.current.translated &&
+      active.rect.current.translated.top > over.rect.top + over.rect.height / 2
+    setDrag({ ...drag, blocks: placeLesson(drag.blocks, lessonId, to.topicId, to.index + (below ? 1 : 0)) })
+  }
+
+  function dragEnd({ over }: DragEndEvent) {
+    const current = drag
+    setDrag(null)
+    if (!current || !over) return
+    const id = current.id.slice(2)
+    let next: TopicBlock[] | undefined
+    if (current.id[0] === 't') {
+      const to = current.blocks.findIndex((b) => topicKey(b.topic.id) === over.id)
+      if (to >= 0) next = placeTopic(current.blocks, id, to)
+    } else {
+      const to = target(current.blocks, String(over.id), id)
+      if (to) next = placeLesson(current.blocks, id, to.topicId, to.index)
+    }
+    if (!next) return
     const batch = newBatch()
     applyOrder(next, batch)
     commit(batch)
   }
+
+  const dragged =
+    drag &&
+    (drag.id[0] === 't'
+      ? blocks.find((b) => topicKey(b.topic.id) === drag.id)?.topic
+      : blocks.flatMap((b) => b.lessons).find((l) => lessonKey(l.id) === drag.id))
+
+  const head = (
+    <div className="ktp-head" style={gridStyle}>
+      <span>№</span>
+      <span>Тема уроку</span>
+      {classes.map((c) => (
+        <span key={c.id} className="date-head">
+          {c.display_name}
+        </span>
+      ))}
+      {editing && <span>Тип</span>}
+      <span>Домашнє завдання</span>
+    </div>
+  )
 
   return (
     <div className="page">
@@ -192,6 +330,17 @@ export function CoursePage() {
           >
             <Settings2 size={14} /> Параметри
           </button>
+          <button className={editing ? 'btn small' : 'btn ghost small'} onClick={() => setEditing(!editing)}>
+            {editing ? (
+              <>
+                <Check size={14} /> Готово
+              </>
+            ) : (
+              <>
+                <Pencil size={14} /> Редагувати
+              </>
+            )}
+          </button>
         </div>
 
         <div className="chips">
@@ -211,168 +360,102 @@ export function CoursePage() {
           </p>
         )}
 
-        <div className="ktp">
-          <div className="ktp-head" style={gridStyle}>
-            <span>№</span>
-            <span>Тема уроку</span>
-            {classes.map((c) => (
-              <span key={c.id} className="date-head">
-                {c.display_name}
-              </span>
-            ))}
-            <span>Тип</span>
-            <span>Домашнє завдання</span>
-          </div>
-
-          {blocks.map((b, bi) => {
-            const w = warnings.find((x) => x.topicId === b.topic.id)
-            return (
+        {!editing ? (
+          <div className="ktp view">
+            {blocks.length > 0 && head}
+            {blocks.map((b) => (
               <section key={b.topic.id} className="topic" style={{ background: color }}>
-                <div className="topic-row">
-                  <InlineText
-                    className="topic-title"
-                    label="Назва теми"
-                    value={b.topic.title}
-                    onSave={(title) => title && updateFields('topics', b.topic.id, { title })}
-                  />
-                  <label className="hours" title="Годин за програмою">
-                    <input
-                      className="cell num"
-                      inputMode="numeric"
-                      aria-label="Годин за програмою"
-                      defaultValue={b.topic.planned_hours || ''}
-                      key={b.topic.planned_hours}
-                      placeholder="0"
-                      onBlur={(e) => {
-                        const n = Math.max(0, Math.round(Number(e.target.value) || 0))
-                        if (n !== b.topic.planned_hours) updateFields('topics', b.topic.id, { planned_hours: n })
-                      }}
-                    />
-                    год
-                  </label>
-                  {w && (
-                    <span className="badge warn-badge">
-                      <TriangleAlert size={12} /> {w.text}
-                    </span>
-                  )}
-                  <span className="grow" />
-                  <span className="row-tools">
-                    <MaterialsButton
-                      count={materials.filter((m) => m.topic_id === b.topic.id && !m.lesson_id).length}
-                      label="Матеріали теми"
-                      onClick={() => setMaterialsFor({ topicId: b.topic.id })}
-                    />
-                    <button
-                      className="icon-btn"
-                      disabled={bi === 0}
-                      onClick={() => reorder(moveTopic(blocks, b.topic.id, -1))}
-                      aria-label="Тему вище"
-                    >
-                      <ChevronUp size={15} />
-                    </button>
-                    <button
-                      className="icon-btn"
-                      disabled={bi === blocks.length - 1}
-                      onClick={() => reorder(moveTopic(blocks, b.topic.id, 1))}
-                      aria-label="Тему нижче"
-                    >
-                      <ChevronDown size={15} />
-                    </button>
-                    <button className="icon-btn del" onClick={() => removeTopic(b)} aria-label="Видалити тему">
-                      <Trash2 size={15} />
-                    </button>
-                  </span>
-                </div>
-
+                <TopicHead
+                  block={b}
+                  warning={warnings.find((x) => x.topicId === b.topic.id)}
+                  files={topicFiles(b.topic.id)}
+                  onMaterials={() => setMaterialsFor({ topicId: b.topic.id })}
+                />
                 {b.lessons.map((l) => (
-                  <div key={l.id} className="lesson-row" style={gridStyle}>
-                    <span className="no num" title={l.extra ? 'Додатковий урок для частини класів' : undefined}>
-                      {l.extra ? '*' : l.number}
-                    </span>
-                    <div className="l-main">
-                      <InlineText
-                        multiline
-                        autoFocus={l.id === newLessonId}
-                        className="l-title"
-                        label={`Тема уроку ${l.number}`}
-                        placeholder="Тема уроку"
-                        value={l.title}
-                        onSave={(title) => updateFields('lessons', l.id, { title })}
-                      />
-                    </div>
-                    {classes.length > 0 && (
-                      <div className="l-dates">
-                        {classes.map((c) => (
-                          <DateCell
-                            key={c.id}
-                            lesson={l}
-                            cls={c}
-                            year={year}
-                            schedule={scheduleById.get(`${l.id}_${c.id}`)}
-                          />
-                        ))}
-                      </div>
-                    )}
-                    <select
-                      className="cell l-type"
-                      aria-label="Тип уроку"
-                      value={l.lesson_type}
-                      onChange={(e) => updateFields('lessons', l.id, { lesson_type: e.target.value as LessonType })}
-                    >
-                      {LESSON_TYPES.map((t) => (
-                        <option key={t.value} value={t.value}>
-                          {t.label}
-                        </option>
-                      ))}
-                    </select>
-                    <InlineText
-                      multiline
-                      className="l-hw"
-                      label={`ДЗ до уроку ${l.number}`}
-                      placeholder="ДЗ"
-                      value={l.homework}
-                      onSave={(homework) => updateFields('lessons', l.id, { homework })}
-                    />
-                    <span className="row-tools">
-                      <MaterialsButton
-                        count={materials.filter((m) => m.lesson_id === l.id).length}
-                        label={`Матеріали уроку ${l.extra ? '*' : l.number}`}
-                        onClick={() => setMaterialsFor({ lessonId: l.id })}
-                      />
-                      <button
-                        className="icon-btn"
-                        disabled={flat[0]?.id === l.id}
-                        onClick={() => reorder(moveLesson(blocks, l.id, -1))}
-                        aria-label="Урок вище"
-                      >
-                        <ChevronUp size={15} />
-                      </button>
-                      <button
-                        className="icon-btn"
-                        disabled={flat[flat.length - 1]?.id === l.id}
-                        onClick={() => reorder(moveLesson(blocks, l.id, 1))}
-                        aria-label="Урок нижче"
-                      >
-                        <ChevronDown size={15} />
-                      </button>
-                      <button className="icon-btn del" onClick={() => removeLesson(l)} aria-label="Видалити урок">
-                        <Trash2 size={15} />
-                      </button>
-                    </span>
-                  </div>
+                  <ViewLesson
+                    key={l.id}
+                    lesson={l}
+                    classes={classes}
+                    schedules={scheduleById}
+                    files={materialsOf(materials, l).own}
+                    style={gridStyle}
+                    onMaterials={() => setMaterialsFor({ lessonId: l.id })}
+                  />
                 ))}
-
-                <button className="link-btn add-lesson" onClick={() => addLesson(b.topic)}>
-                  <Plus size={14} /> Урок
-                </button>
+                {!b.lessons.length && <p className="ktp-empty">У темі ще немає уроків.</p>}
               </section>
-            )
-          })}
-        </div>
-
-        <button className="btn ghost add-topic" onClick={addTopic}>
-          <Plus size={16} /> Тема
-        </button>
+            ))}
+            {!blocks.length && (
+              <p className="muted">
+                КТП порожнє. Натисни «Редагувати», щоб додати теми й уроки, або імпортуй план з Word на сторінці КТП.
+              </p>
+            )}
+          </div>
+        ) : (
+          <>
+            <p className="small-text muted edit-hint">
+              Перетягуй теми й уроки за <GripVertical size={12} />, урок можна перенести і в іншу тему.
+            </p>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={collide}
+              onDragStart={dragStart}
+              onDragOver={dragOver}
+              onDragEnd={dragEnd}
+              onDragCancel={() => setDrag(null)}
+            >
+              <div className="ktp edit">
+                {head}
+                <SortableContext items={blocks.map((b) => topicKey(b.topic.id))} strategy={verticalListSortingStrategy}>
+                  {blocks.map((b) => (
+                    <EditTopic
+                      key={b.topic.id}
+                      block={b}
+                      color={color}
+                      warning={warnings.find((x) => x.topicId === b.topic.id)}
+                      files={topicFiles(b.topic.id).length}
+                      onMaterials={() => setMaterialsFor({ topicId: b.topic.id })}
+                      onRemove={() => removeTopic(b)}
+                      onAddLesson={() => addLesson(b.topic)}
+                    >
+                      {b.lessons.map((l) => (
+                        <EditLesson
+                          key={l.id}
+                          lesson={l}
+                          classes={classes}
+                          year={year}
+                          schedules={scheduleById}
+                          files={materials.filter((m) => m.lesson_id === l.id).length}
+                          style={gridStyle}
+                          autoFocus={l.id === newLessonId}
+                          onType={(t) => setType(l, t)}
+                          onMaterials={() => setMaterialsFor({ lessonId: l.id })}
+                          onRemove={() => removeLesson(l)}
+                        />
+                      ))}
+                    </EditTopic>
+                  ))}
+                </SortableContext>
+              </div>
+              <DragOverlay>
+                {dragged && (
+                  <div className="drag-ghost" style={{ background: color }}>
+                    {'title' in dragged && 'lesson_type' in dragged ? (
+                      <>
+                        <b>{lessonNo(dragged)}</b> {dragged.title || 'Без теми'}
+                      </>
+                    ) : (
+                      <b>{dragged.title}</b>
+                    )}
+                  </div>
+                )}
+              </DragOverlay>
+            </DndContext>
+            <button className="btn ghost add-topic" onClick={addTopic}>
+              <Plus size={16} /> Тема
+            </button>
+          </>
+        )}
 
         {materialsFor && (
           <MaterialsDialog
@@ -389,22 +472,237 @@ export function CoursePage() {
   )
 }
 
+// ---------- Режим перегляду ----------
+
+type TopicHeadProps = { block: TopicBlock; warning?: Warning; files: LessonMaterial[]; onMaterials: () => void }
+
+function TopicHead({ block, warning, files, onMaterials }: TopicHeadProps) {
+  return (
+    <div className="topic-row">
+      <h2 className="topic-title">{block.topic.title}</h2>
+      {block.topic.planned_hours > 0 && <span className="hours">{block.topic.planned_hours} год</span>}
+      {warning && (
+        <span className="badge warn-badge">
+          <TriangleAlert size={12} /> {warning.text}
+        </span>
+      )}
+      <span className="grow" />
+      <span className="row-tools">
+        <MaterialsButton count={files.length} label="Матеріали теми" onClick={onMaterials} />
+      </span>
+      {files.length > 0 && (
+        <div className="l-files topic-files">
+          {files.map((m) => (
+            <MaterialLink key={m.id} m={m} />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+type ViewLessonProps = {
+  lesson: Lesson
+  classes: ClassGroup[]
+  schedules: Map<string, LessonSchedule>
+  files: LessonMaterial[]
+  style?: CSSProperties
+  onMaterials: () => void
+}
+
+function ViewLesson({ lesson: l, classes, schedules, files, style, onMaterials }: ViewLessonProps) {
+  return (
+    <div className={l.lesson_type === 'reserve' ? 'lesson-row reserve' : 'lesson-row'} style={style}>
+      <span className="no num" title={l.extra ? 'Не входить у нумерацію' : undefined}>
+        {lessonNo(l)}
+      </span>
+      <div className="l-main">
+        <p className="l-text l-title">
+          {l.title || <span className="placeholder">Без теми</span>}
+          {l.lesson_type !== 'regular' && (
+            <span className={`type-tag ${l.lesson_type}`}>{typeLabel(l.lesson_type)}</span>
+          )}
+        </p>
+        {files.length > 0 && (
+          <div className="l-files">
+            {files.map((m) => (
+              <MaterialLink key={m.id} m={m} />
+            ))}
+          </div>
+        )}
+      </div>
+      {classes.length > 0 && (
+        <div className="l-dates">
+          {classes.map((c) => {
+            const d = schedules.get(`${l.id}_${c.id}`)?.planned_date
+            return (
+              <span key={c.id} className={d ? 'l-date' : 'l-date none'}>
+                <span className="l-date-class">{c.display_name}</span>
+                <span className="l-date-val num">{d ? shortDate(d) : '—'}</span>
+              </span>
+            )
+          })}
+        </div>
+      )}
+      <p className="l-text l-hw">{l.homework}</p>
+      <span className="row-tools">
+        <MaterialsButton count={files.length} label={`Матеріали уроку ${lessonNo(l)}`} onClick={onMaterials} />
+      </span>
+    </div>
+  )
+}
+
+// ---------- Режим редагування ----------
+
+type EditTopicProps = {
+  block: TopicBlock
+  color: string
+  warning?: Warning
+  files: number
+  onMaterials: () => void
+  onRemove: () => void
+  onAddLesson: () => void
+  children: ReactNode
+}
+
+function EditTopic({ block: b, color, warning, files, onMaterials, onRemove, onAddLesson, children }: EditTopicProps) {
+  const { ref: sortRef, style, dragging, handle } = useSortableItem(topicKey(b.topic.id))
+  const { setNodeRef: endRef } = useDroppable({ id: endKey(b.topic.id) })
+  return (
+    <section ref={sortRef} className={dragging ? 'topic lifted' : 'topic'} style={{ ...style, background: color }}>
+      <div className="topic-row">
+        <DragHandle label={`Перемістити тему «${b.topic.title}»`} {...handle} />
+        <InlineText
+          className="topic-title"
+          label="Назва теми"
+          value={b.topic.title}
+          onSave={(title) => title && updateFields('topics', b.topic.id, { title })}
+        />
+        <label className="hours" title="Годин за програмою">
+          <input
+            className="cell num"
+            inputMode="numeric"
+            aria-label="Годин за програмою"
+            defaultValue={b.topic.planned_hours || ''}
+            key={b.topic.planned_hours}
+            placeholder="0"
+            onBlur={(e) => {
+              const n = Math.max(0, Math.round(Number(e.target.value) || 0))
+              if (n !== b.topic.planned_hours) updateFields('topics', b.topic.id, { planned_hours: n })
+            }}
+          />
+          год
+        </label>
+        {warning && (
+          <span className="badge warn-badge">
+            <TriangleAlert size={12} /> {warning.text}
+          </span>
+        )}
+        <span className="grow" />
+        <span className="row-tools">
+          <MaterialsButton count={files} label="Матеріали теми" onClick={onMaterials} />
+          <button className="icon-btn del" onClick={onRemove} aria-label="Видалити тему">
+            <Trash2 size={15} />
+          </button>
+        </span>
+      </div>
+
+      <SortableContext items={b.lessons.map((l) => lessonKey(l.id))} strategy={verticalListSortingStrategy}>
+        {children}
+      </SortableContext>
+
+      <div ref={endRef} className="topic-end">
+        <button className="link-btn add-lesson" onClick={onAddLesson}>
+          <Plus size={14} /> Урок
+        </button>
+      </div>
+    </section>
+  )
+}
+
+type EditLessonProps = {
+  lesson: Lesson
+  classes: ClassGroup[]
+  year?: AcademicYear
+  schedules: Map<string, LessonSchedule>
+  files: number
+  style?: CSSProperties
+  autoFocus: boolean
+  onType: (t: LessonType) => void
+  onMaterials: () => void
+  onRemove: () => void
+}
+
+function EditLesson(props: EditLessonProps) {
+  const { lesson: l, classes, year, schedules, files, autoFocus, onType, onMaterials, onRemove } = props
+  const { ref: sortRef, style, dragging, handle } = useSortableItem(lessonKey(l.id))
+  return (
+    <div
+      ref={sortRef}
+      className={dragging ? 'lesson-row placeholder-row' : 'lesson-row'}
+      style={{ ...props.style, ...style }}
+    >
+      <div className="l-lead">
+        <DragHandle label={`Перемістити урок ${lessonNo(l)}`} {...handle} />
+        <span className="no num" title={l.extra ? 'Не входить у нумерацію' : undefined}>
+          {lessonNo(l)}
+        </span>
+      </div>
+      <div className="l-main">
+        <InlineText
+          multiline
+          autoFocus={autoFocus}
+          className="l-title"
+          label={`Тема уроку ${lessonNo(l)}`}
+          placeholder="Тема уроку"
+          value={l.title}
+          onSave={(title) => updateFields('lessons', l.id, { title })}
+        />
+      </div>
+      {classes.length > 0 && (
+        <div className="l-dates">
+          {classes.map((c) => (
+            <DateCell key={c.id} lesson={l} cls={c} year={year} schedule={schedules.get(`${l.id}_${c.id}`)} />
+          ))}
+        </div>
+      )}
+      <select
+        className="cell l-type"
+        aria-label="Тип уроку"
+        value={l.lesson_type}
+        onChange={(e) => onType(e.target.value as LessonType)}
+      >
+        {LESSON_TYPES.map((t) => (
+          <option key={t.value} value={t.value}>
+            {t.label}
+          </option>
+        ))}
+      </select>
+      <InlineText
+        multiline
+        className="l-hw"
+        label={`ДЗ до уроку ${lessonNo(l)}`}
+        placeholder="ДЗ"
+        value={l.homework}
+        onSave={(homework) => updateFields('lessons', l.id, { homework })}
+      />
+      <span className="row-tools">
+        <MaterialsButton count={files} label={`Матеріали уроку ${lessonNo(l)}`} onClick={onMaterials} />
+        <button className="icon-btn del" onClick={onRemove} aria-label="Видалити урок">
+          <Trash2 size={15} />
+        </button>
+      </span>
+    </div>
+  )
+}
+
 type DateCellProps = { lesson: Lesson; cls: ClassGroup; year?: AcademicYear; schedule?: LessonSchedule }
 
-/** Дата уроку для одного класу: «дд.мм», порожньо — урок цьому класу не призначено. */
+/** Дата уроку для одного класу; порожньо — урок цьому класу не призначено. */
 function DateCell({ lesson, cls, year, schedule }: DateCellProps) {
   const stored = schedule?.planned_date ?? null
-  const shown = stored ? shortDate(stored) : ''
 
-  function save(input: HTMLInputElement) {
-    if (!year) return
-    const date = parseShortDate(input.value, year)
-    if (date === undefined) {
-      input.value = shown
-      return
-    }
-    input.value = date ? shortDate(date) : ''
-    if (date === stored) return
+  function save(date: string | null) {
     const id = `${lesson.id}_${cls.id}`
     if (!date) removeDoc('lesson_schedules', id)
     else if (schedule) updateFields('lesson_schedules', id, { planned_date: date })
@@ -421,18 +719,17 @@ function DateCell({ lesson, cls, year, schedule }: DateCellProps) {
   }
 
   return (
-    <label className="l-date">
+    <span className="l-date">
       <span className="l-date-class">{cls.display_name}</span>
-      <input
-        className="cell num"
-        inputMode="decimal"
-        aria-label={`Дата уроку ${lesson.extra ? '*' : lesson.number} для ${cls.display_name}`}
-        placeholder="—"
-        defaultValue={shown}
-        key={shown}
-        onBlur={(e) => save(e.target)}
-        onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+      <DatePicker
+        compact
+        clearable
+        label={`Дата уроку ${lessonNo(lesson)} для ${cls.display_name}`}
+        value={stored}
+        min={year?.start_date}
+        max={year?.end_date}
+        onChange={save}
       />
-    </label>
+    </span>
   )
 }
