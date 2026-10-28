@@ -5,6 +5,7 @@ import { useAuth } from '../auth/context'
 import { updateFields, useCollection } from '../data/db'
 import { LESSON_TYPES } from '../data/ktp'
 import { addDays, toISO } from '../data/schedule'
+import { slotsOn, timetableOn } from '../data/timetable'
 import type { ISODate } from '../data/types'
 import { gradeColor, shortDate } from '../data/year'
 import { MonthCalendar } from '../layout/MonthCalendar'
@@ -27,6 +28,9 @@ export function TodayPage() {
   const { items: courses } = useCollection('courses')
   const { items: classes } = useCollection('class_groups')
   const { items: topics } = useCollection('topics')
+  const { items: timetables } = useCollection('timetables')
+  const { items: entries } = useCollection('timetable_entries')
+  const { items: bells } = useCollection('bell_schedules')
 
   const marked = new Set(schedules.flatMap((s) => (s.planned_date ? [s.planned_date] : [])))
   const items = schedules
@@ -38,8 +42,25 @@ export function TodayPage() {
       cls: classes.find((c) => c.id === s.class_group_id),
     }))
     .filter((x) => x.lesson && x.course && x.cls)
+    .sort((a, b) => a.lesson!.number - b.lesson!.number)
+
+  // Номер уроку в дні — з тижневого розкладу; здвоєний урок отримує номери по черзі.
+  const slots = slotsOn(entries, timetableOn(timetables, day), day)
+  const taken = new Map<string, number>()
+  const timed = items
+    .map((x) => {
+      const key = `${x.s.class_group_id}_${x.s.course_id}`
+      const i = taken.get(key) ?? 0
+      taken.set(key, i + 1)
+      const slot = slots.get(key)?.[i] ?? null
+      const bell = bells
+        .find((b) => b.academic_year_id === x.course!.academic_year_id)
+        ?.slots.find((b) => b.number === slot)
+      return { ...x, slot, bell }
+    })
     .sort(
       (a, b) =>
+        (a.slot ?? 99) - (b.slot ?? 99) ||
         a.cls!.grade - b.cls!.grade ||
         a.cls!.letter.localeCompare(b.cls!.letter, 'uk') ||
         a.course!.subject.localeCompare(b.course!.subject, 'uk'),
@@ -90,7 +111,7 @@ export function TodayPage() {
           </section>
         )}
 
-        {!loading && courses.length > 0 && !items.length && (
+        {!loading && courses.length > 0 && !timed.length && (
           <section className="empty" style={{ background: 'var(--surface)' }}>
             <div>
               <h2>Цього дня уроків немає</h2>
@@ -107,7 +128,7 @@ export function TodayPage() {
         )}
 
         <div className="day-list">
-          {items.map(({ s, lesson, course, cls }) => {
+          {timed.map(({ s, lesson, course, cls, slot, bell }) => {
             const l = lesson!
             const topic = topics.find((t) => t.id === l.topic_id)
             const type = LESSON_TYPES.find((t) => t.value === l.lesson_type)
@@ -119,6 +140,12 @@ export function TodayPage() {
                 style={{ background: gradeColor(cls!.grade) }}
               >
                 <div className="day-card-head">
+                  {slot && (
+                    <span className="day-time">
+                      <b>{slot} урок</b>
+                      {bell && ` ${bell.start}–${bell.end}`}
+                    </span>
+                  )}
                   <span className="class-badge">{cls!.display_name}</span>
                   <span className="day-subject">{course!.subject}</span>
                   <span className="day-no">

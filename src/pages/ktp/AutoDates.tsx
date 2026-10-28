@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { BatchWriter, putDoc, updateFields, useCollection } from '../../data/db'
 import { groupLessons, lessonsWord } from '../../data/ktp'
 import { WEEKDAYS, fillDates } from '../../data/schedule'
+import { lessonsPerDay } from '../../data/timetable'
 import type { AcademicYear, ClassGroup, Course, CourseClass, Lesson, Topic } from '../../data/types'
 
 type Props = { course: Course; topics: Topic[]; lessons: Lesson[]; links: CourseClass[]; classes: ClassGroup[] }
@@ -12,6 +13,12 @@ export function AutoDates({ course, topics, lessons, links, classes }: Props) {
   const { items: schedules } = useCollection('lesson_schedules', { field: 'course_id', value: course.id })
   const { items: periods } = useCollection('periods', { field: 'academic_year_id', value: course.academic_year_id })
   const { items: years } = useCollection('academic_years')
+  const { items: timetables } = useCollection('timetables', {
+    field: 'academic_year_id',
+    value: course.academic_year_id,
+  })
+  const { items: allEntries } = useCollection('timetable_entries')
+  const entries = allEntries.filter((e) => e.course_id === course.id && timetables.some((t) => t.id === e.timetable_id))
   const [done, setDone] = useState<Record<string, string>>({})
 
   const year: AcademicYear | undefined = years.find((y) => y.id === course.academic_year_id)
@@ -32,11 +39,11 @@ export function AutoDates({ course, topics, lessons, links, classes }: Props) {
 
   function fill(link: CourseClass, cls: ClassGroup) {
     const existing = new Map(
-      schedules
-        .filter((s) => s.class_group_id === cls.id && s.planned_date)
-        .map((s) => [s.lesson_id, s.planned_date!]),
+      schedules.filter((s) => s.class_group_id === cls.id && s.planned_date).map((s) => [s.lesson_id, s.planned_date!]),
     )
-    const dates = fillDates(ordered, existing, link.weekdays, terms)
+    const fromTimetable = entries.some((e) => e.class_group_id === cls.id)
+    const days = fromTimetable ? lessonsPerDay(timetables, entries, cls.id, course.id) : link.weekdays
+    const dates = fillDates(ordered, existing, days, terms)
     const w = new BatchWriter()
     for (const { lessonId, date } of dates) {
       const id = `${lessonId}_${cls.id}`
@@ -67,39 +74,59 @@ export function AutoDates({ course, topics, lessons, links, classes }: Props) {
     })
   }
 
+  const inTimetable = (classId: string) => entries.some((e) => e.class_group_id === classId)
+  // «Пн, Ср ×2» — дні з усіх шаблонів року.
+  function dayList(classId: string) {
+    const counts = new Map<number, number>()
+    const latest = [...timetables].sort((a, b) => b.valid_from.localeCompare(a.valid_from))
+    const t = latest.find((x) => entries.some((e) => e.timetable_id === x.id && e.class_group_id === classId))
+    for (const e of entries)
+      if (e.timetable_id === t?.id && e.class_group_id === classId)
+        counts.set(e.weekday, (counts.get(e.weekday) ?? 0) + 1)
+    return [...counts]
+      .sort((a, b) => a[0] - b[0])
+      .map(([d, n]) => `${WEEKDAYS.find((w) => w.value === d)?.label}${n > 1 ? ` ×${n}` : ''}`)
+      .join(', ')
+  }
+
   if (!rows.length) return null
 
   return (
     <div className="auto-dates">
       <span className="form-label">Дні уроків і автодати</span>
       <p className="muted small-text">
-        Познач, у які дні тижня в кожного класу урок. «Заповнити» поставить дати урокам, у яких їх ще немає, після
-        останньої вже поставленої дати й лише в межах семестрів. Свята поки не враховуються — їх можна виправити вручну.
+        Дні уроків беруться з тижневого розкладу (здвоєний урок — два уроки КТП в один день). Якщо класу ще немає в
+        розкладі, познач дні тут. «Заповнити» поставить дати урокам, у яких їх ще немає, після останньої вже поставленої
+        дати й лише в межах семестрів. Свята поки не враховуються — їх можна виправити вручну.
       </p>
       {rows.map(({ link, cls }) => (
         <div key={link.id} className="auto-row">
           <b className="auto-class">{cls.display_name}</b>
-          <div className="chips">
-            {WEEKDAYS.map((d) => {
-              const on = link.weekdays.includes(d.value)
-              return (
-                <button
-                  key={d.value}
-                  type="button"
-                  className={on ? 'chip plain on' : 'chip plain'}
-                  aria-pressed={on}
-                  aria-label={`${cls.display_name}: ${d.label}`}
-                  onClick={() => toggleDay(link, d.value)}
-                >
-                  {d.label}
-                </button>
-              )
-            })}
-          </div>
+          {inTimetable(cls.id) ? (
+            <span className="muted small-text tt-days">З розкладу: {dayList(cls.id)}</span>
+          ) : (
+            <div className="chips">
+              {WEEKDAYS.map((d) => {
+                const on = link.weekdays.includes(d.value)
+                return (
+                  <button
+                    key={d.value}
+                    type="button"
+                    className={on ? 'chip plain on' : 'chip plain'}
+                    aria-pressed={on}
+                    aria-label={`${cls.display_name}: ${d.label}`}
+                    onClick={() => toggleDay(link, d.value)}
+                  >
+                    {d.label}
+                  </button>
+                )
+              })}
+            </div>
+          )}
           <button
             type="button"
             className="btn ghost small"
-            disabled={!link.weekdays.length}
+            disabled={!inTimetable(cls.id) && !link.weekdays.length}
             onClick={() => fill(link, cls)}
           >
             <CalendarPlus size={14} /> Заповнити

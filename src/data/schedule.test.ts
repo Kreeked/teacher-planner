@@ -46,3 +46,16 @@ describe('fillDates', () => {
     expect(fillDates([lesson('a')], new Map(), [], terms)).toEqual([])
   })
 })
+
+describe('fillDates with double lessons', () => {
+  it('puts two lessons on a repeated weekday', () => {
+    const r = fillDates([lesson('a'), lesson('b'), lesson('c')], new Map(), [3, 3], terms)
+    expect(r.map((x) => x.date)).toEqual(['2026-09-02', '2026-09-02', '2026-09-09'])
+  })
+
+  it('fills the second half of a double lesson after an existing date', () => {
+    const existing = new Map([['a', '2026-09-02']])
+    const r = fillDates([lesson('a'), lesson('b')], existing, [3, 3], terms)
+    expect(r).toEqual([{ lessonId: 'b', date: '2026-09-02' }])
+  })
+})
