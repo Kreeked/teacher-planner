@@ -1,10 +1,12 @@
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { useAuth } from './auth/context'
 import { AppLayout } from './layout/AppLayout'
+import { KtpPage } from './pages/KtpPage'
 import { LoginPage } from './pages/LoginPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { SoonPage } from './pages/SoonPage'
 import { TodayPage } from './pages/TodayPage'
+import { YearPage } from './pages/year/YearPage'
 
 export default function App() {
   const { user, loading } = useAuth()
@@ -18,10 +20,8 @@ export default function App() {
       <Routes>
         <Route element={<AppLayout />}>
           <Route index element={<TodayPage />} />
-          <Route
-            path="ktp"
-            element={<SoonPage title="КТП" color="lilac" text="Наступний крок: навчальний рік, класи й таблиця календарно-тематичного планування." />}
-          />
+          <Route path="ktp" element={<KtpPage />} />
+          <Route path="ktp/year" element={<YearPage />} />
           <Route
             path="schedule"
             element={<SoonPage title="Розклад" color="peri" text="Дзвінки й тижневий розклад з'являться після модуля КТП." />}

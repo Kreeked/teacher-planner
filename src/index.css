@@ -452,3 +452,323 @@ h2 {
     box-shadow: 0 0 0 4px #2e2e36;
   }
 }
+
+/* ---------- Картки-показники ---------- */
+.stat {
+  border-radius: var(--r-lg);
+  padding: 12px 14px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 10px;
+  row-gap: 2px;
+  position: relative;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.stat .lab {
+  font-size: 12px;
+  font-weight: 500;
+  width: 100%;
+  padding-right: 36px;
+}
+
+.stat .big {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  margin-top: 4px;
+}
+
+.stat .sub {
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.stat .arrow {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+}
+
+/* ---------- Чипи ---------- */
+.chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.chip {
+  height: 30px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 6px 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.chip .sw {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+}
+
+.chip.plain {
+  padding: 0 12px;
+}
+
+.chip.on {
+  background: var(--ink);
+  color: #fff;
+}
+
+.panel .chip {
+  background: var(--bg);
+}
+
+.chip-x {
+  width: 20px;
+  height: 20px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink-2);
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+
+.chip-x:hover {
+  background: var(--surface);
+  color: var(--danger);
+}
+
+/* ---------- Форми ---------- */
+.field {
+  height: 34px;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  padding: 0 10px;
+  min-width: 0;
+}
+
+.field:focus {
+  outline: none;
+  border-color: var(--ink);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+.form label.check {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink);
+}
+
+.form .btn {
+  align-self: flex-start;
+}
+
+.form-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.field-error {
+  width: 100%;
+  margin: 2px 0 0;
+  color: var(--danger);
+  font-size: 12px;
+}
+
+.muted {
+  color: var(--ink-2);
+  margin: 0 0 8px;
+  line-height: 1.45;
+}
+
+.row-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.row-actions .btn.ghost {
+  margin-top: 0;
+}
+
+.btn.danger {
+  color: var(--danger);
+}
+
+.icon-btn {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink-2);
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+
+.icon-btn:hover {
+  background: var(--bg);
+  color: var(--danger);
+}
+
+.link-btn {
+  border: 0;
+  background: none;
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 0;
+}
+
+.link-btn:hover {
+  color: var(--ink);
+}
+
+.back {
+  color: var(--ink-2);
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: -8px;
+}
+
+/* ---------- Навчальний рік ---------- */
+.range-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 0;
+}
+
+.range-row .title {
+  flex: 1 1 160px;
+  font-weight: 600;
+}
+
+.range-row .dash {
+  color: var(--ink-2);
+}
+
+.nested {
+  padding-left: 22px;
+}
+
+.period-group {
+  padding: 6px 0;
+  border-top: 1px solid var(--line);
+}
+
+.period-group:first-of-type {
+  border-top: 0;
+}
+
+.panel > .btn.ghost {
+  margin-top: 8px;
+}
+
+.grades {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.grade-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.grade-label {
+  width: 44px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-2);
+  flex: none;
+}
+
+.add-class {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.add-class input {
+  flex: 1 1 120px;
+}
+
+@media (max-width: 760px) {
+  .range-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+    grid-template-areas:
+      't t d'
+      's e .'
+      'x x x';
+  }
+
+  .range-row .title {
+    grid-area: t;
+  }
+
+  .range-row .field[type='date'] {
+    grid-area: s;
+  }
+
+  .range-row .field[type='date'] ~ .field[type='date'] {
+    grid-area: e;
+  }
+
+  .range-row .icon-btn {
+    grid-area: d;
+  }
+
+  .range-row .field-error {
+    grid-area: x;
+  }
+
+  .range-row .dash {
+    display: none;
+  }
+}

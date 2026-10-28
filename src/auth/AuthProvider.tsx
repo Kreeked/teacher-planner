@@ -1,6 +1,6 @@
-import { onAuthStateChanged, signInWithPopup, signInWithRedirect, signOut, type User } from 'firebase/auth'
+import { onAuthStateChanged, signInAnonymously, signInWithPopup, signInWithRedirect, signOut, type User } from 'firebase/auth'
 import { useEffect, useState, type ReactNode } from 'react'
-import { auth, googleProvider } from '../lib/firebase'
+import { auth, googleProvider, usingEmulators } from '../lib/firebase'
 import { AuthContext } from './context'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -17,6 +17,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 
   async function signIn() {
+    if (usingEmulators) {
+      await signInAnonymously(auth)
+      return
+    }
     try {
       await signInWithPopup(auth, googleProvider)
     } catch (e) {

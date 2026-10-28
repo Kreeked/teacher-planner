@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app'
-import { GoogleAuthProvider, getAuth } from 'firebase/auth'
+import { GoogleAuthProvider, connectAuthEmulator, getAuth } from 'firebase/auth'
 import {
+  connectFirestoreEmulator,
   initializeFirestore,
   persistentLocalCache,
   persistentMultipleTabManager,
@@ -30,3 +31,10 @@ googleProvider.setCustomParameters({ prompt: 'select_account' })
 export const db = initializeFirestore(app, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
 })
+
+// Для розробки: `npm run emulators` і `npm run dev:emu` — локальна база замість справжньої.
+export const usingEmulators = import.meta.env.VITE_EMULATORS === '1'
+if (usingEmulators) {
+  connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true })
+  connectFirestoreEmulator(db, '127.0.0.1', 8080)
+}
