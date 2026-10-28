@@ -1,6 +1,7 @@
 import { Trash2 } from 'lucide-react'
 import { createDoc, deleteRefs, ref, refsWhere, removeDoc, updateFields, useCollection } from '../../data/db'
 import type { Course, CourseStatus, Lesson, Topic } from '../../data/types'
+import { AutoDates } from './AutoDates'
 
 const STATUSES: { value: CourseStatus; label: string }[] = [
   { value: 'draft', label: 'Чернетка' },
@@ -105,6 +106,7 @@ export function CourseSettings({ course, topics, lessons, onDeleted }: Props) {
           })}
         </div>
       </div>
+      <AutoDates course={course} topics={topics} lessons={lessons} links={links} classes={classes} />
       <div className="row-actions">
         <button type="button" className="btn ghost danger" onClick={remove}>
           <Trash2 size={15} /> Видалити КТП
