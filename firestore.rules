@@ -1,0 +1,11 @@
+rules_version = '2';
+
+// Усі дані користувача лежать у users/{uid}/…
+// Читати й змінювати їх може лише сам власник після входу через Google.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{uid}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+  }
+}
