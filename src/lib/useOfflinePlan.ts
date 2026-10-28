@@ -17,7 +17,9 @@ export function useOfflinePlan() {
     () => offlinePlan(materials, schedules, lessons, today, sizes),
     [materials, schedules, lessons, today, sizes],
   )
-  const missing = plan.keep.filter((x) => !files.saved.has(x.material.drive_file_id!))
+  const missing = plan.keep.filter(
+    (x) => !files.saved.has(x.material.drive_file_id!) && !files.skipped.has(x.material.drive_file_id!),
+  )
   const loading = l1 || l2 || l3 || !files.ready
   return { plan, files, missing, loading, hasMaterials: materials.length > 0 }
 }

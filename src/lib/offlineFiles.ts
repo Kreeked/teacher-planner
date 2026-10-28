@@ -18,9 +18,44 @@ export type OfflineState = {
   done: number
   total: number
   error: string
+  skipped: Set<string> // файли, які на цьому пристрої вирішили не тримати
+  paused: boolean // після «Очистити все» нічого не докачуємо, доки не натиснуть «Зберегти зараз»
 }
 
-let state: OfflineState = { saved: new Map(), ready: false, running: false, done: 0, total: 0, error: '' }
+// Налаштування цього пристрою: інші пристрої зберігають свої копії самі.
+const SKIP_KEY = 'offline-skip'
+const PAUSE_KEY = 'offline-paused'
+
+function readPrefs() {
+  try {
+    return {
+      skipped: new Set<string>(JSON.parse(localStorage.getItem(SKIP_KEY) ?? '[]')),
+      paused: localStorage.getItem(PAUSE_KEY) === '1',
+    }
+  } catch {
+    return { skipped: new Set<string>(), paused: false }
+  }
+}
+
+function savePrefs(p: { skipped?: Set<string>; paused?: boolean }) {
+  try {
+    if (p.skipped) localStorage.setItem(SKIP_KEY, JSON.stringify([...p.skipped]))
+    if (p.paused !== undefined) localStorage.setItem(PAUSE_KEY, p.paused ? '1' : '0')
+  } catch {
+    // Без сховища налаштування житимуть до перезавантаження.
+  }
+  set(p)
+}
+
+let state: OfflineState = {
+  saved: new Map(),
+  ready: false,
+  running: false,
+  done: 0,
+  total: 0,
+  error: '',
+  ...readPrefs(),
+}
 const listeners = new Set<() => void>()
 
 function set(patch: Partial<OfflineState>) {
@@ -77,19 +112,16 @@ export function savedSizes(s: OfflineState) {
  * interactive — запущено натисканням (можна показати вікно дозволу Google);
  * інакше працює лише з уже виданим доступом і тихо нічого не робить без нього.
  */
-export async function syncOffline(wanted: LessonMaterial[], interactive: boolean) {
+export async function syncOffline(all: LessonMaterial[], interactive: boolean) {
   if (!supported || state.running || !state.ready) return
-  const ids = new Set(wanted.map((m) => m.drive_file_id!))
-  const cache = await caches.open(CACHE)
+  if (interactive && state.paused) savePrefs({ paused: false })
+  const wanted = all.filter((m) => !state.skipped.has(m.drive_file_id!))
+  await clearStale(wanted)
   const saved = new Map(state.saved)
-  for (const id of saved.keys()) {
-    if (ids.has(id)) continue
-    await cache.delete(key(id))
-    saved.delete(id)
-  }
   const missing = wanted.filter((m) => !saved.has(m.drive_file_id!))
-  set({ saved })
-  if (!missing.length || !navigator.onLine || (!interactive && !savedDriveToken())) return
+  if (!missing.length || !navigator.onLine) return
+  if (!interactive && (state.paused || !savedDriveToken())) return
+  const cache = await caches.open(CACHE)
 
   // Просимо браузер не стирати копії, коли місця мало.
   navigator.storage?.persist?.().catch(() => {})
@@ -124,6 +156,44 @@ export async function syncOffline(wanted: LessonMaterial[], interactive: boolean
     running: false,
     error: failed ? `Не збережено файлів: ${failed}. ${error}` : '',
   })
+}
+
+/** Видаляє копії файлів, яких уже немає в списку потрібних (минулі уроки, прибрані матеріали). */
+export async function clearStale(wanted: LessonMaterial[]) {
+  if (!supported) return
+  const ids = new Set(wanted.map((m) => m.drive_file_id!))
+  const stale = [...state.saved.keys()].filter((id) => !ids.has(id))
+  if (!stale.length) return
+  const cache = await caches.open(CACHE)
+  for (const id of stale) await cache.delete(key(id))
+  const saved = new Map(state.saved)
+  for (const id of stale) saved.delete(id)
+  set({ saved })
+}
+
+/** Прибирає копію одного файлу й більше не зберігає його на цьому пристрої. */
+export async function removeSaved(id: string) {
+  if (!supported || state.running) return
+  await (await caches.open(CACHE)).delete(key(id))
+  const saved = new Map(state.saved)
+  saved.delete(id)
+  set({ saved })
+  savePrefs({ skipped: new Set([...state.skipped, id]) })
+}
+
+/** Знову зберігати файл, від якого раніше відмовились. */
+export function unskip(id: string) {
+  const skipped = new Set(state.skipped)
+  skipped.delete(id)
+  savePrefs({ skipped })
+}
+
+/** Видаляє всі копії; нові не зберігаються, доки не натиснуть «Зберегти зараз». */
+export async function clearAll() {
+  if (!supported || state.running) return
+  await caches.delete(CACHE)
+  set({ saved: new Map(), error: '' })
+  savePrefs({ paused: true, skipped: new Set() })
 }
 
 // Ці типи браузер показує сам; решту віддаємо як файл, щоб відкрився відповідним застосунком.

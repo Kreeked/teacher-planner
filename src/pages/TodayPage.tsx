@@ -205,7 +205,7 @@ function OfflineNotice() {
         <CloudDownload size={14} /> Зберігаю файли до уроків на пристрій: {files.done} з {files.total}…
       </p>
     )
-  if (loading || !online || !driveConfigured || !missing.length) return null
+  if (loading || !online || !driveConfigured || !missing.length || files.paused) return null
   return (
     <p className="offline-note">
       <CloudDownload size={14} />
