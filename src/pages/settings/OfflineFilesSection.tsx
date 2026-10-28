@@ -29,11 +29,11 @@ export function OfflineFilesSection() {
         інтернету не працюють.
       </p>
 
-      <div className="meter" role="img" aria-label={`Зайнято ${formatSize(used) || '0 МБ'} з 500 МБ`}>
+      <div className="meter" role="img" aria-label={`Зайнято ${formatSize(used) || '0 МБ'} з 1 ГБ`}>
         <i style={{ width: `${Math.min(100, (used / OFFLINE_LIMIT) * 100)}%` }} />
       </div>
       <p className="small-text muted">
-        Збережено файлів: {files.saved.size} ({formatSize(used) || '0 МБ'} з 500 МБ).
+        Збережено файлів: {files.saved.size} ({formatSize(used) || '0 МБ'} з 1 ГБ).
         {!loading && missing.length > 0 && ` Ще не збережено: ${missing.length}.`}
         {plan.over.length > 0 && ` Не вмістилися в ліміт: ${plan.over.length}.`}
       </p>
