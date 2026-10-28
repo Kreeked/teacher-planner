@@ -52,7 +52,35 @@ export function preloadDrive() {
 
 // ---------- Токен доступу ----------
 
-let token: { value: string; expires: number } | null = null
+type Token = { value: string; expires: number }
+
+// Токен живе годину; зберігаємо його, щоб офлайн-копії оновлювались і після перезапуску без вікна Google.
+const TOKEN_KEY = 'drive-token'
+let token: Token | null = readToken()
+
+function readToken(): Token | null {
+  try {
+    const t = JSON.parse(localStorage.getItem(TOKEN_KEY) ?? 'null') as Token | null
+    return t && t.expires > Date.now() ? t : null
+  } catch {
+    return null
+  }
+}
+
+function saveToken(t: Token | null) {
+  token = t
+  try {
+    if (t) localStorage.setItem(TOKEN_KEY, JSON.stringify(t))
+    else localStorage.removeItem(TOKEN_KEY)
+  } catch {
+    // Без сховища токен просто житиме до перезавантаження.
+  }
+}
+
+/** Чинний токен без вікна Google, або null. Для фонової роботи. */
+export function savedDriveToken() {
+  return token && token.expires > Date.now() + 5 * 60_000 ? token.value : null
+}
 
 /** Токен для Drive API; уперше (і коли сплив) — вікно дозволу Google. Викликати з обробника натискання. */
 export async function driveToken(): Promise<string> {
@@ -69,7 +97,7 @@ export async function driveToken(): Promise<string> {
           reject(new DriveError('Google не дав доступу до Диска.'))
           return
         }
-        token = { value: r.access_token, expires: Date.now() + Number(r.expires_in) * 1000 }
+        saveToken({ value: r.access_token, expires: Date.now() + Number(r.expires_in) * 1000 })
         resolve(r.access_token)
       },
       error_callback: () => reject(new DriveError('Вікно дозволу Google закрито.')),
@@ -81,7 +109,7 @@ export async function driveToken(): Promise<string> {
 async function api<T>(url: string, init: RequestInit = {}): Promise<T> {
   const t = await driveToken()
   const r = await fetch(url, { ...init, headers: { ...init.headers, Authorization: `Bearer ${t}` } })
-  if (r.status === 401) token = null
+  if (r.status === 401) saveToken(null)
   if (!r.ok) throw new DriveError(`Google Диск відповів помилкою ${r.status}.`)
   return r.json() as Promise<T>
 }
@@ -178,6 +206,23 @@ async function sendChunk(session: string, file: File, from: number, to: number) 
   }
 }
 
+// ---------- Завантаження копії ----------
+
+// Файли Google (Документи, Презентації, Таблиці) не мають власного вмісту — беремо PDF-версію.
+const GOOGLE_APPS = 'application/vnd.google-apps.'
+
+/** Вміст файлу з Диска для офлайн-копії. Файли Google приходять як PDF. */
+export async function downloadFile(id: string, mimeType: string | null): Promise<Blob> {
+  const t = await driveToken()
+  const url = mimeType?.startsWith(GOOGLE_APPS)
+    ? `https://www.googleapis.com/drive/v3/files/${id}/export?mimeType=application/pdf`
+    : `https://www.googleapis.com/drive/v3/files/${id}?alt=media`
+  const r = await fetch(url, { headers: { Authorization: `Bearer ${t}` } })
+  if (r.status === 401) saveToken(null)
+  if (!r.ok) throw new DriveError(`Google Диск відповів помилкою ${r.status}.`)
+  return r.blob()
+}
+
 // ---------- Вибір файлу з Диска ----------
 
 /** Вікно Google Picker; повертає вибрані файли (порожньо, якщо закрили). */
@@ -214,4 +259,3 @@ export async function pickFiles(): Promise<DriveFile[]> {
     picker.setVisible(true)
   })
 }
-
