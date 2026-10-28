@@ -31,8 +31,7 @@ import {
 } from '../../data/materials'
 import type { AcademicYear, Course, Lesson, LessonMaterial, Topic } from '../../data/types'
 import { DriveError, driveConfigured, pickFiles, preloadDrive, uploadFile, type DriveFile } from '../../lib/drive'
-import { openSaved, useOfflineFiles } from '../../lib/offlineFiles'
-import { useOnline } from '../../lib/useOnline'
+import { openMaterial, useOfflineFiles } from '../../lib/offlineFiles'
 
 const ICONS: Record<MaterialType, LucideIcon> = {
   slides: Presentation,
@@ -48,7 +47,6 @@ const ICONS: Record<MaterialType, LucideIcon> = {
 /** Матеріал одним рядком-посиланням: іконка, назва, розмір. Без інтернету відкриває копію з пристрою. */
 export function MaterialLink({ m }: { m: LessonMaterial }) {
   const Icon = ICONS[materialType(m)]
-  const online = useOnline()
   const saved = useOfflineFiles().saved.get(m.drive_file_id ?? '')
   return (
     <a
@@ -58,9 +56,10 @@ export function MaterialLink({ m }: { m: LessonMaterial }) {
       rel="noreferrer"
       title={saved ? `${m.title} (є на пристрої)` : m.title}
       onClick={(e) => {
-        if (online || !saved) return
+        // Файли Диска відкриваємо через перевірку зв'язку: без інтернету — копію з пристрою.
+        if (m.kind !== 'file' || e.ctrlKey || e.metaKey || e.shiftKey) return
         e.preventDefault()
-        openSaved(saved)
+        openMaterial(materialUrl(m), saved)
       }}
     >
       <Icon size={14} />
