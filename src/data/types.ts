@@ -93,6 +93,38 @@ export type LessonSchedule = Meta & {
   note: string
 }
 
+// Розклад дзвінків року: однаковий для всіх днів. Час уроку береться за номером уроку в дні.
+export type BellSlot = {
+  number: number
+  start: string // «08:30»
+  end: string
+  break_after: number // хвилин перерви після уроку
+}
+
+export type BellSchedule = Meta & {
+  academic_year_id: string
+  first_start: string
+  lesson_minutes: number
+  slots: BellSlot[]
+}
+
+// Тижневий шаблон розкладу; щотижня однаковий. Новий розклад серед року — новий запис.
+export type Timetable = Meta & {
+  academic_year_id: string
+  title: string
+  valid_from: ISODate
+  valid_to: ISODate
+}
+
+// Клітинка шаблону: день тижня × номер уроку → клас і КТП.
+export type TimetableEntry = Meta & {
+  timetable_id: string
+  weekday: number // 1 = пн
+  slot_number: number
+  class_group_id: string
+  course_id: string
+}
+
 export type Collections = {
   academic_years: AcademicYear
   periods: Period
@@ -102,6 +134,9 @@ export type Collections = {
   topics: Topic
   lessons: Lesson
   lesson_schedules: LessonSchedule
+  bell_schedules: BellSchedule
+  timetables: Timetable
+  timetable_entries: TimetableEntry
 }
 
 export type CollectionName = keyof Collections
@@ -116,6 +151,9 @@ export const COLLECTION_NAMES: CollectionName[] = [
   'topics',
   'lessons',
   'lesson_schedules',
+  'bell_schedules',
+  'timetables',
+  'timetable_entries',
 ]
 
 export type NewDoc<T extends Meta> = Omit<T, keyof Meta>
