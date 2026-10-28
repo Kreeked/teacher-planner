@@ -6,6 +6,8 @@ import { KtpPage } from './pages/ktp/KtpPage'
 import { LoginPage } from './pages/LoginPage'
 import { SchedulePage } from './pages/schedule/SchedulePage'
 import { SettingsPage } from './pages/SettingsPage'
+import { CourseTests } from './pages/tests/CourseTests'
+import { TestPage } from './pages/tests/TestPage'
 import { TodayPage } from './pages/TodayPage'
 import { YearPage } from './pages/year/YearPage'
 
@@ -24,6 +26,8 @@ export default function App() {
           <Route path="ktp" element={<KtpPage />} />
           <Route path="ktp/year" element={<YearPage />} />
           <Route path="ktp/:courseId" element={<CoursePage />} />
+          <Route path="ktp/:courseId/tests" element={<CourseTests />} />
+          <Route path="tests/:testId" element={<TestPage />} />
           <Route path="schedule" element={<SchedulePage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />

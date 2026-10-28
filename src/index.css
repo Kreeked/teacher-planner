@@ -1886,3 +1886,168 @@ a.chip {
 .offline-note a {
   color: inherit;
 }
+
+/* ---------- Тести ---------- */
+.test-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.test-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: var(--r-lg, 14px);
+  background: var(--surface);
+}
+
+.test-item a {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.test-item a span {
+  color: var(--ink-2);
+  font-size: 12px;
+}
+
+.test-page .title-input {
+  font-size: inherit;
+  font-weight: inherit;
+  padding: 2px 6px;
+  margin-left: -8px;
+}
+
+.test-meta {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.test-meta label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1 1 260px;
+}
+
+.test-meta select {
+  width: 100%;
+}
+
+.test-issues {
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--surface);
+  font-size: 13px;
+}
+
+.test-issues summary {
+  cursor: pointer;
+}
+
+.test-issues ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  color: var(--ink-2);
+}
+
+.test-issues li.bad {
+  color: var(--danger, #b3261e);
+}
+
+.questions {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.question {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: var(--r-lg, 14px);
+  background: var(--surface);
+}
+
+.question-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.question-head b {
+  min-width: 22px;
+}
+
+.question-head select {
+  width: auto;
+  height: 30px;
+  padding: 0 8px;
+  font-size: 13px;
+}
+
+.question .q-text {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.question .q-expl {
+  color: var(--ink-2);
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: 4px;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 8px;
+}
+
+.option.right {
+  background: var(--mint);
+}
+
+.option input[type='radio'],
+.option input[type='checkbox'] {
+  flex: none;
+  margin: 0 0 0 6px;
+}
+
+.option .icon-btn {
+  opacity: 0.5;
+}
+
+.options .link-btn {
+  align-self: flex-start;
+  margin-left: 6px;
+  font-size: 13px;
+}
+
+.test-page .sec-head {
+  flex-wrap: wrap;
+}
+
+.test-page .sec-head h1 {
+  flex: 1 1 240px;
+  min-width: 0;
+}
