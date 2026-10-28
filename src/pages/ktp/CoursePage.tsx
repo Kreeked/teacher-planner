@@ -1,4 +1,4 @@
-import { ArrowLeft, ChevronDown, ChevronUp, Plus, Settings2, Trash2, TriangleAlert } from 'lucide-react'
+import { ArrowLeft, ChevronDown, ChevronUp, ListChecks, Plus, Settings2, Trash2, TriangleAlert } from 'lucide-react'
 import { useState, type CSSProperties } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { InlineText } from '../../components/InlineText'
@@ -56,6 +56,7 @@ export function CoursePage() {
     course ? { field: 'academic_year_id', value: course.academic_year_id } : null,
   )
   const { items: materials } = useCollection('lesson_materials', byCourse)
+  const { items: tests } = useCollection('tests', byCourse)
   const [showSettings, setShowSettings] = useState(false)
   const [materialsFor, setMaterialsFor] = useState<{ lessonId?: string; topicId?: string } | null>(null)
   // Щойно доданий урок отримує фокус на полі теми.
@@ -136,6 +137,9 @@ export function CoursePage() {
       ...(await refsWhere('lesson_schedules', 'lesson_id', l.id)),
       ...(await refsWhere('lesson_materials', 'lesson_id', l.id)),
     ])
+    // Тести уроку не видаляємо: вони переходять до його теми.
+    for (const r of await refsWhere('tests', 'lesson_id', l.id))
+      updateFields('tests', r.id, { lesson_id: null, topic_id: l.topic_id })
   }
 
   async function removeTopic(b: TopicBlock) {
@@ -152,11 +156,15 @@ export function CoursePage() {
     )
     commit(batch)
     deleteRefs(await refsWhere('lesson_materials', 'topic_id', b.topic.id))
-    for (const l of b.lessons)
+    // Тести теми та її уроків лишаються в курсі без прив'язки.
+    for (const r of await refsWhere('tests', 'topic_id', b.topic.id)) updateFields('tests', r.id, { topic_id: null })
+    for (const l of b.lessons) {
       deleteRefs([
         ...(await refsWhere('lesson_schedules', 'lesson_id', l.id)),
         ...(await refsWhere('lesson_materials', 'lesson_id', l.id)),
       ])
+      for (const r of await refsWhere('tests', 'lesson_id', l.id)) updateFields('tests', r.id, { lesson_id: null })
+    }
   }
 
   function reorder(next: TopicBlock[]) {
@@ -174,6 +182,9 @@ export function CoursePage() {
         <div className="sec-head">
           <h1>{courseTitle(course)}</h1>
           <span className="grow" />
+          <Link to={`/ktp/${courseId}/tests`} className="chip plain">
+            <ListChecks size={14} /> Тести{tests.length > 0 && ` (${tests.length})`}
+          </Link>
           <button
             className={showSettings ? 'chip plain on' : 'chip plain'}
             onClick={() => setShowSettings(!showSettings)}

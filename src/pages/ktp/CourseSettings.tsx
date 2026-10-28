@@ -12,7 +12,10 @@ const STATUSES: { value: CourseStatus; label: string }[] = [
 type Props = { course: Course; topics: Topic[]; lessons: Lesson[]; onDeleted: () => void }
 
 export function CourseSettings({ course, topics, lessons, onDeleted }: Props) {
-  const { items: classes } = useCollection('class_groups', { field: 'academic_year_id', value: course.academic_year_id })
+  const { items: classes } = useCollection('class_groups', {
+    field: 'academic_year_id',
+    value: course.academic_year_id,
+  })
   const { items: links } = useCollection('course_classes', { field: 'course_id', value: course.id })
 
   const gradeClasses = classes
@@ -22,16 +25,27 @@ export function CourseSettings({ course, topics, lessons, onDeleted }: Props) {
   function toggleClass(classId: string) {
     const link = links.find((l) => l.class_group_id === classId)
     if (link) removeDoc('course_classes', link.id)
-    else createDoc('course_classes', { course_id: course.id, class_group_id: classId, weekdays: [], position: links.length })
+    else
+      createDoc('course_classes', {
+        course_id: course.id,
+        class_group_id: classId,
+        weekdays: [],
+        position: links.length,
+      })
   }
 
   function number(field: 'hours_per_week' | 'total_hours', raw: string) {
     const n = Number(raw.replace(',', '.'))
-    if (n > 0 && n !== course[field]) updateFields('courses', course.id, { [field]: field === 'total_hours' ? Math.round(n) : n })
+    if (n > 0 && n !== course[field])
+      updateFields('courses', course.id, { [field]: field === 'total_hours' ? Math.round(n) : n })
   }
 
   async function remove() {
-    if (!confirm(`Видалити КТП «${course.subject}, ${course.grade} клас» з усіма темами й уроками (${lessons.length})?`))
+    if (
+      !confirm(
+        `Видалити КТП «${course.subject}, ${course.grade} клас» з усіма темами, уроками (${lessons.length}) і тестами?`,
+      )
+    )
       return
     deleteRefs([
       ref('courses', course.id),
@@ -40,6 +54,7 @@ export function CourseSettings({ course, topics, lessons, onDeleted }: Props) {
       ...lessons.map((l) => ref('lessons', l.id)),
       ...(await refsWhere('lesson_schedules', 'course_id', course.id)),
       ...(await refsWhere('lesson_materials', 'course_id', course.id)),
+      ...(await refsWhere('tests', 'course_id', course.id)),
     ])
     onDeleted()
   }
@@ -60,11 +75,21 @@ export function CourseSettings({ course, topics, lessons, onDeleted }: Props) {
         </label>
         <label>
           Годин на тиждень
-          <input className="field" inputMode="decimal" defaultValue={course.hours_per_week} onBlur={(e) => number('hours_per_week', e.target.value)} />
+          <input
+            className="field"
+            inputMode="decimal"
+            defaultValue={course.hours_per_week}
+            onBlur={(e) => number('hours_per_week', e.target.value)}
+          />
         </label>
         <label>
           Годин за рік
-          <input className="field" inputMode="numeric" defaultValue={course.total_hours} onBlur={(e) => number('total_hours', e.target.value)} />
+          <input
+            className="field"
+            inputMode="numeric"
+            defaultValue={course.total_hours}
+            onBlur={(e) => number('total_hours', e.target.value)}
+          />
         </label>
       </div>
       <div className="form-row">
@@ -100,7 +125,13 @@ export function CourseSettings({ course, topics, lessons, onDeleted }: Props) {
           {gradeClasses.map((c) => {
             const on = links.some((l) => l.class_group_id === c.id)
             return (
-              <button key={c.id} type="button" className={on ? 'chip plain on' : 'chip plain'} aria-pressed={on} onClick={() => toggleClass(c.id)}>
+              <button
+                key={c.id}
+                type="button"
+                className={on ? 'chip plain on' : 'chip plain'}
+                aria-pressed={on}
+                onClick={() => toggleClass(c.id)}
+              >
                 {c.display_name}
               </button>
             )

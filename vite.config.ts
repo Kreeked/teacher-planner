@@ -32,7 +32,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,png,svg,woff2}'],
+        globPatterns: ['**/*.{js,css,html,png,svg,woff2,xlsx}'],
         runtimeCaching: [
           {
             // Шрифт Onest з Google Fonts — щоб і без інтернету виглядало так само.
