@@ -47,7 +47,7 @@ export function NewCourseForm({
       batch,
     )
     chosen.forEach((c, i) =>
-      createDoc('course_classes', { course_id: courseId, class_group_id: c.id, weekdays: [], position: i }, batch),
+      createDoc('course_classes', { course_id: courseId, class_group_id: c.id, position: i }, batch),
     )
     commit(batch)
     onDone(courseId)

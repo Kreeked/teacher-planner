@@ -81,18 +81,3 @@ export function slotsOn(entries: TimetableEntry[], timetable: Timetable | undefi
   return map
 }
 
-/** Дні тижня уроків класу за КТП з шаблону, з повтором для здвоєних уроків: [1, 3, 3]. */
-export function weekdaysFor(entries: TimetableEntry[], timetableId: string, classId: string, courseId: string) {
-  return entries
-    .filter((e) => e.timetable_id === timetableId && e.class_group_id === classId && e.course_id === courseId)
-    .map((e) => e.weekday)
-    .sort((a, b) => a - b)
-}
-
-/** Скільки уроків класу за КТП у цей день за чинним шаблоном (для автодат). */
-export function lessonsPerDay(timetables: Timetable[], entries: TimetableEntry[], classId: string, courseId: string) {
-  return (date: ISODate) => {
-    const t = timetableOn(timetables, date)
-    return t ? weekdaysFor(entries, t.id, classId, courseId).filter((w) => w === weekday(date)).length : 0
-  }
-}

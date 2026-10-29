@@ -52,6 +52,7 @@ import {
   placeTopic,
   renumber,
   typePatch,
+  weeklyHours,
   type TopicBlock,
   type Warning,
 } from '../../data/ktp'
@@ -329,7 +330,7 @@ export function CoursePage() {
           </span>
           <span>
             <b className="num">{countedLessons(lessons)}</b> {lessonsWord(countedLessons(lessons))} з{' '}
-            {course.total_hours} год · {course.hours_per_week} год/тиж
+            {course.total_hours} год · {weeklyHours(course)} год/тиж
             {classes.length > 0 && ` · ${classes.map((c) => c.display_name).join(', ')}`}
           </span>
         </div>

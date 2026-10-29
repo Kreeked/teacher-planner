@@ -42,7 +42,9 @@ export type Course = Meta & {
   academic_year_id: string
   subject: string
   grade: number
-  hours_per_week: number
+  hours_per_week: number // у І семестрі (або весь рік)
+  // Годин на тиждень у ІІ семестрі; немає — як у І.
+  hours_per_week_2?: number
   total_hours: number
   program_ref: string
   status: CourseStatus
@@ -51,8 +53,6 @@ export type Course = Meta & {
 export type CourseClass = Meta & {
   course_id: string
   class_group_id: string
-  // Дні тижня уроків (1 = пн) для автодат — тимчасово, до модуля «Розклад».
-  weekdays: number[]
   position: number
 }
 
