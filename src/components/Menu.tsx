@@ -1,5 +1,5 @@
 import { MoreHorizontal, type LucideIcon } from 'lucide-react'
-import { Fragment, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
+import { Fragment, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 
 export type MenuItem = {
@@ -11,13 +11,13 @@ export type MenuItem = {
   danger?: boolean
 }
 
-// Групи пунктів розділяються лінією.
-type Props = { label: string; groups: MenuItem[][] }
+// Групи пунктів розділяються лінією. trigger — власний вміст кнопки (наприклад, «Додати») замість «⋯».
+type Props = { label: string; groups: MenuItem[][]; trigger?: ReactNode; triggerClass?: string }
 
 const WIDTH = 220
 
 /** Кнопка «⋯» з випадаючим меню дій у стилі застосунку. */
-export function Menu({ label, groups }: Props) {
+export function Menu({ label, groups, trigger, triggerClass = 'icon-btn menu-btn' }: Props) {
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState<CSSProperties>({ visibility: 'hidden' })
   const button = useRef<HTMLButtonElement>(null)
@@ -46,6 +46,7 @@ export function Menu({ label, groups }: Props) {
     }
     const key = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        e.preventDefault()
         setOpen(false)
         button.current?.focus()
         return
@@ -59,12 +60,13 @@ export function Menu({ label, groups }: Props) {
     }
     const scroll = (e: Event) => !pop.current?.contains(e.target as Node) && setOpen(false)
     document.addEventListener('pointerdown', close)
-    document.addEventListener('keydown', key)
+    // Перехоплюємо раніше за вікно, щоб Escape закривав лише меню.
+    document.addEventListener('keydown', key, true)
     window.addEventListener('scroll', scroll, true)
     window.addEventListener('resize', scroll)
     return () => {
       document.removeEventListener('pointerdown', close)
-      document.removeEventListener('keydown', key)
+      document.removeEventListener('keydown', key, true)
       window.removeEventListener('scroll', scroll, true)
       window.removeEventListener('resize', scroll)
     }
@@ -80,9 +82,9 @@ export function Menu({ label, groups }: Props) {
       <button
         ref={button}
         type="button"
-        className={open ? 'icon-btn menu-btn on' : 'icon-btn menu-btn'}
+        className={open ? `${triggerClass} on` : triggerClass}
         aria-label={label}
-        title={label}
+        title={trigger ? undefined : label}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => {
@@ -90,7 +92,7 @@ export function Menu({ label, groups }: Props) {
           setOpen(!open)
         }}
       >
-        <MoreHorizontal size={18} />
+        {trigger ?? <MoreHorizontal size={18} />}
       </button>
       {open &&
         createPortal(

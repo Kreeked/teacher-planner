@@ -26,7 +26,9 @@ export function Dialog({ title, subtitle, onClose, children, footer, className }
   useEffect(() => {
     const me = {}
     stack.push(me)
-    const key = (e: KeyboardEvent) => e.key === 'Escape' && stack[stack.length - 1] === me && close.current()
+    // Escape, який уже обробило відкрите меню, вікно не закриває.
+    const key = (e: KeyboardEvent) =>
+      e.key === 'Escape' && !e.defaultPrevented && stack[stack.length - 1] === me && close.current()
     document.addEventListener('keydown', key)
     // Сторінка під вікном не прокручується.
     const overflow = document.body.style.overflow

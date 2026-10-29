@@ -14,7 +14,6 @@ import {
   ArrowLeft,
   Check,
   GripVertical,
-  ListChecks,
   Paperclip,
   Pencil,
   Plus,
@@ -68,7 +67,9 @@ import type {
 } from '../../data/types'
 import { gradeColor, shortDate } from '../../data/year'
 import { CourseSettings } from './CourseSettings'
-import { MaterialLink, MaterialsDialog } from './Materials'
+import { LessonShelves, MaterialLink, MaterialsDialog } from './Materials'
+import { useClassifyLegacy } from '../../lib/useClassifyLegacy'
+import { LegacyTests } from './LegacyTests'
 import type { WriteBatch } from 'firebase/firestore'
 
 /** Записує новий порядок: позиції тем і номери/позиції уроків, що змінилися. */
@@ -103,7 +104,8 @@ export function CoursePage() {
     course ? { field: 'academic_year_id', value: course.academic_year_id } : null,
   )
   const { items: materials } = useCollection('lesson_materials', byCourse)
-  const { items: tests } = useCollection('tests', byCourse)
+  // Старі файли уроків без типу розкладаємо по поличках (один раз).
+  useClassifyLegacy(materials)
   const [showSettings, setShowSettings] = useState(false)
   const [editing, setEditing] = useState(false)
   const [materialsFor, setMaterialsFor] = useState<{ lessonId?: string; topicId?: string } | null>(null)
@@ -204,9 +206,6 @@ export function CoursePage() {
       ...(await refsWhere('lesson_schedules', 'lesson_id', l.id)),
       ...(await refsWhere('lesson_materials', 'lesson_id', l.id)),
     ])
-    // Тести уроку не видаляємо: вони переходять до його теми.
-    for (const r of await refsWhere('tests', 'lesson_id', l.id))
-      updateFields('tests', r.id, { lesson_id: null, topic_id: l.topic_id })
   }
 
   async function removeTopic(b: TopicBlock) {
@@ -223,15 +222,11 @@ export function CoursePage() {
     )
     commit(batch)
     deleteRefs(await refsWhere('lesson_materials', 'topic_id', b.topic.id))
-    // Тести теми та її уроків лишаються в курсі без прив'язки.
-    for (const r of await refsWhere('tests', 'topic_id', b.topic.id)) updateFields('tests', r.id, { topic_id: null })
-    for (const l of b.lessons) {
+    for (const l of b.lessons)
       deleteRefs([
         ...(await refsWhere('lesson_schedules', 'lesson_id', l.id)),
         ...(await refsWhere('lesson_materials', 'lesson_id', l.id)),
       ])
-      for (const r of await refsWhere('tests', 'lesson_id', l.id)) updateFields('tests', r.id, { lesson_id: null })
-    }
   }
 
   // ---------- Перетягування тем і уроків ----------
@@ -312,9 +307,6 @@ export function CoursePage() {
           <h1>{courseTitle(course)}</h1>
           <span className="grow" />
           <div className="actions">
-            <Link to={`/ktp/${courseId}/tests`} className="btn ghost">
-              <ListChecks size={15} /> Тести{tests.length > 0 && ` · ${tests.length}`}
-            </Link>
             <button className="btn ghost" onClick={() => setShowSettings(true)} aria-haspopup="dialog">
               <Settings2 size={15} /> Параметри
             </button>
@@ -352,6 +344,8 @@ export function CoursePage() {
             lessons={lessons}
           />
         )}
+
+        <LegacyTests course={course} year={year} topics={topics} lessons={lessons} materials={materials} />
 
         {courseWarning && (
           <p className="warn">
@@ -527,13 +521,7 @@ function ViewLesson({ lesson: l, classes, schedules, today, color, files, onMate
             <span className={`type-tag ${l.lesson_type}`}>{typeLabel(l.lesson_type)}</span>
           )}
         </p>
-        {files.length > 0 && (
-          <div className="l-files">
-            {files.map((m) => (
-              <MaterialLink key={m.id} m={m} />
-            ))}
-          </div>
-        )}
+        <LessonShelves own={files} onOpen={onMaterials} />
         {l.homework && <p className="l-hw">ДЗ: {l.homework}</p>}
       </div>
       {classes.length > 0 && (
@@ -679,13 +667,7 @@ function EditLesson(props: EditLessonProps) {
           value={l.title}
           onSave={(title) => updateFields('lessons', l.id, { title })}
         />
-        {files.length > 0 && (
-          <div className="l-files">
-            {files.map((m) => (
-              <MaterialLink key={m.id} m={m} />
-            ))}
-          </div>
-        )}
+        <LessonShelves own={files} onOpen={onMaterials} />
         <div className="l-meta">
           <select
             className={`type-pill ${l.lesson_type}`}

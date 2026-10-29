@@ -51,7 +51,7 @@ export function CourseSettings({ course, topics, lessons, onDeleted, onClose }: 
   async function remove() {
     if (
       !(await ask(
-        `Видалити КТП «${course.subject}, ${course.grade} клас» з усіма темами, уроками (${lessons.length}) і тестами?`,
+        `Видалити КТП «${course.subject}, ${course.grade} клас» з усіма темами, уроками (${lessons.length}) і матеріалами?`,
       ))
     )
       return
@@ -62,7 +62,6 @@ export function CourseSettings({ course, topics, lessons, onDeleted, onClose }: 
       ...lessons.map((l) => ref('lessons', l.id)),
       ...(await refsWhere('lesson_schedules', 'course_id', course.id)),
       ...(await refsWhere('lesson_materials', 'course_id', course.id)),
-      ...(await refsWhere('tests', 'course_id', course.id)),
     ])
     onDeleted()
   }

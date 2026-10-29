@@ -1,5 +1,5 @@
 import { courseTitle } from './ktp'
-import type { AcademicYear, Course, Lesson, LessonMaterial, Topic } from './types'
+import type { AcademicYear, Course, Lesson, LessonMaterial, MaterialCategory, Topic } from './types'
 
 /** Папка на Диску: Планер / 2026–2027 / Інформатика, 9 клас / Урок 5 (або Тема …). */
 export function driveFolder(
@@ -23,6 +23,83 @@ export function materialsOf(all: LessonMaterial[], lesson: Lesson) {
     own: sort(all.filter((m) => m.lesson_id === lesson.id)),
     topic: sort(all.filter((m) => m.topic_id === lesson.topic_id && !m.lesson_id)),
   }
+}
+
+// ---------- Типи файлів уроку («полички») ----------
+
+export const CATEGORIES: { value: MaterialCategory; label: string; short: string }[] = [
+  { value: 'slides', label: 'Презентація до уроку', short: 'Презентація' },
+  { value: 'card', label: 'Інструкційна картка', short: 'Картка' },
+  { value: 'shelter', label: 'Завдання для укриття', short: 'Укриття' },
+  { value: 'remote', label: 'Дистанційне завдання', short: 'Дистанційно' },
+  { value: 'test', label: 'Тест', short: 'Тест' },
+]
+
+/** Ключ розділу: категорія або «none» — «Без типу». */
+export type Shelf = MaterialCategory | 'none'
+
+export const SHELVES: Shelf[] = [...CATEGORIES.map((c) => c.value), 'none']
+
+export type Shelves = Record<Shelf, LessonMaterial[]>
+
+export const shelfOf = (m: Pick<LessonMaterial, 'category'>): Shelf => m.category ?? 'none'
+
+/** Власні матеріали уроку, розкладені по категоріях; у кожній — за position. */
+export function groupByCategory(own: LessonMaterial[]): Shelves {
+  const groups = Object.fromEntries(SHELVES.map((k) => [k, []])) as unknown as Shelves
+  for (const m of own) (groups[shelfOf(m)] ?? groups.none).push(m)
+  for (const list of Object.values(groups)) list.sort((a, b) => a.position - b.position)
+  return groups
+}
+
+/**
+ * Одноразова класифікація старих файлів уроків (без поля category):
+ * презентації → «slides», решта → null («Без типу», розкласти вручну).
+ * Позиція ставиться в кінець розділу, щоб не змішатися з уже розкладеними.
+ */
+export function classifyLegacy(
+  all: LessonMaterial[],
+): { id: string; category: MaterialCategory | null; position: number }[] {
+  const next = new Map<string, number>()
+  const key = (lessonId: string, shelf: Shelf) => `${lessonId}|${shelf}`
+  for (const m of all)
+    if (m.lesson_id && m.category !== undefined) {
+      const k = key(m.lesson_id, shelfOf(m))
+      next.set(k, Math.max(next.get(k) ?? 0, m.position + 1))
+    }
+  const out: { id: string; category: MaterialCategory | null; position: number }[] = []
+  const legacy = all.filter((m) => m.lesson_id && m.category === undefined).sort((a, b) => a.position - b.position)
+  for (const m of legacy) {
+    const category = materialType(m) === 'slides' ? 'slides' : null
+    const k = key(m.lesson_id!, category ?? 'none')
+    const position = next.get(k) ?? 0
+    next.set(k, position + 1)
+    out.push({ id: m.id, category, position })
+  }
+  return out
+}
+
+/** Ставить матеріал у розділ to на місце index (з будь-якого розділу, зокрема того самого). */
+export function placeMaterial(groups: Shelves, id: string, to: Shelf, index: number): Shelves {
+  const from = (Object.keys(groups) as Shelf[]).find((k) => groups[k].some((m) => m.id === id))
+  if (!from) return groups
+  const moved = groups[from].find((m) => m.id === id)!
+  const next = { ...groups, [from]: groups[from].filter((m) => m.id !== id) }
+  const target = [...next[to]]
+  target.splice(Math.max(0, Math.min(index, target.length)), 0, moved)
+  next[to] = target
+  return next
+}
+
+/** Що записати після перетягування: нові category/position лише для тих, у кого вони змінилися. */
+export function shelfPatches(groups: Shelves) {
+  const out: { id: string; category: MaterialCategory | null; position: number }[] = []
+  for (const shelf of Object.keys(groups) as Shelf[])
+    groups[shelf].forEach((m, i) => {
+      if (m.position !== i || shelfOf(m) !== shelf || m.category === undefined)
+        out.push({ id: m.id, category: shelf === 'none' ? null : shelf, position: i })
+    })
+  return out
 }
 
 /** Посилання з тексту: додає https://, якщо його немає; null — не схоже на адресу. */

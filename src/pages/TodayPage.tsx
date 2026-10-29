@@ -1,4 +1,4 @@
-import { ArrowUpRight, Check, ChevronLeft, ChevronRight, CloudDownload, ListChecks, Paperclip } from 'lucide-react'
+import { ArrowUpRight, Check, ChevronLeft, ChevronRight, CloudDownload, Paperclip } from 'lucide-react'
 import { useEffect, useState, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/context'
@@ -7,9 +7,9 @@ import { updateFields, useCollection } from '../data/db'
 import { LESSON_TYPES } from '../data/ktp'
 import { addDays, toISO, WEEKDAYS } from '../data/schedule'
 import { materialsOf } from '../data/materials'
-import { questionsWord, testsOf } from '../data/tests'
-import type { AcademicYear, ISODate, LessonMaterial, Test, Topic } from '../data/types'
-import { MaterialLink, MaterialsDialog } from './ktp/Materials'
+import type { AcademicYear, ISODate, LessonMaterial, Topic } from '../data/types'
+import { LessonShelves, MaterialLink, MaterialsDialog } from './ktp/Materials'
+import { useClassifyLegacy } from '../lib/useClassifyLegacy'
 import { gradeColor, shortDate } from '../data/year'
 import { MonthCalendar } from '../layout/MonthCalendar'
 import { driveConfigured } from '../lib/drive'
@@ -59,7 +59,7 @@ export function TodayPage() {
   const { items: bells } = useCollection('bell_schedules')
   const { items: materials } = useCollection('lesson_materials')
   const { items: years } = useCollection('academic_years')
-  const { items: tests } = useCollection('tests')
+  useClassifyLegacy(materials)
   const data: DayData = { schedules, lessons, courses, classes, timetables, entries, bells }
 
   function switchView(v: View) {
@@ -181,7 +181,6 @@ export function TodayPage() {
             list={list}
             topics={topics}
             materials={materials}
-            tests={tests}
             years={years}
             live={day === today ? currentAndNext(list, now) : null}
           />
@@ -233,12 +232,11 @@ type DayViewProps = {
   list: DayLesson[]
   topics: Topic[]
   materials: LessonMaterial[]
-  tests: Test[]
   years: AcademicYear[]
   live: Live
 }
 
-function DayView({ list, topics, materials, tests, years, live }: DayViewProps) {
+function DayView({ list, topics, materials, years, live }: DayViewProps) {
   const [open, setOpen] = useState<DayLesson | null>(null)
   return (
     <div className="day-list">
@@ -290,8 +288,7 @@ function DayView({ list, topics, materials, tests, years, live }: DayViewProps) 
                 <b>ДЗ:</b> {l.homework}
               </p>
             )}
-            <LessonMaterials list={materials} lesson={l} />
-            <LessonTests list={tests} lesson={l} />
+            <LessonMaterials list={materials} lesson={l} onOpen={() => setOpen(x)} />
             <div className="day-actions">
               <button
                 className={done ? 'chip plain on' : 'chip plain'}
@@ -311,33 +308,28 @@ function DayView({ list, topics, materials, tests, years, live }: DayViewProps) 
   )
 }
 
-function LessonMaterials({ list, lesson }: { list: LessonMaterial[]; lesson: DayLesson['lesson'] }) {
+/** Полички уроку і під ними — спільні файли теми. */
+function LessonMaterials({
+  list,
+  lesson,
+  onOpen,
+}: {
+  list: LessonMaterial[]
+  lesson: DayLesson['lesson']
+  onOpen: () => void
+}) {
   const { own, topic } = materialsOf(list, lesson)
-  if (!own.length && !topic.length) return null
   return (
-    <div className="day-materials">
-      {[...own, ...topic].map((m) => (
-        <MaterialLink key={m.id} m={m} />
-      ))}
-    </div>
-  )
-}
-
-function LessonTests({ list, lesson }: { list: Test[]; lesson: DayLesson['lesson'] }) {
-  const own = testsOf(list, lesson)
-  if (!own.length) return null
-  return (
-    <div className="day-materials">
-      {own.map((t) => (
-        <Link key={t.id} to={`/tests/${t.id}`} className="material">
-          <ListChecks size={14} />
-          <span className="grow">{t.title}</span>
-          <small>
-            {t.questions.length} {questionsWord(t.questions.length)}
-          </small>
-        </Link>
-      ))}
-    </div>
+    <>
+      <LessonShelves own={own} onOpen={onOpen} />
+      {topic.length > 0 && (
+        <div className="day-materials">
+          {topic.map((m) => (
+            <MaterialLink key={m.id} m={m} />
+          ))}
+        </div>
+      )}
+    </>
   )
 }
 

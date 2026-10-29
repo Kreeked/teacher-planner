@@ -44,7 +44,6 @@ export function YearPage() {
         'lessons',
         'lesson_schedules',
         'lesson_materials',
-        'tests',
       ] as const)
         refs.push(...(await refsWhere(name, 'course_id', course.id)))
     }
