@@ -41,6 +41,7 @@ import { BatchWriter, createDoc, removeDoc, updateFields } from '../../data/db'
 import {
   CATEGORIES,
   driveFolder,
+  filledShelves,
   formatSize,
   groupByCategory,
   linkTitle,
@@ -106,38 +107,32 @@ export function MaterialLink({ m }: { m: LessonMaterial }) {
 }
 
 /**
- * Ряд «поличок» уроку: по одній на тип файлу. Поличка з одним файлом відкриває його,
- * з кількома або порожня — вікно матеріалів. Файли «Без типу» — додаткова поличка «Інше».
+ * Полички уроку: лише типи, у яких є файли, і в кінці «Додати файл». Поличка з одним файлом відкриває його,
+ * з кількома — вікно матеріалів. Файли «Без типу» — поличка «Інше · N», теж відкриває вікно.
  */
 export function LessonShelves({ own, onOpen }: { own: LessonMaterial[]; onOpen: () => void }) {
   const saved = useOfflineFiles().saved
-  const groups = groupByCategory(own)
-  const list = [
-    ...CATEGORIES.map((c) => ({ key: c.value as Shelf, label: c.short, full: c.label, files: groups[c.value] })),
-    ...(groups.none.length ? [{ key: 'none' as Shelf, label: 'Інше', full: 'Без типу', files: groups.none }] : []),
-  ]
   return (
     <div className="shelves">
-      {list.map(({ key, label, full, files }) => {
-        const Icon = SHELF_ICONS[key]
+      {filledShelves(own).map(({ shelf, files }) => {
+        const Icon = SHELF_ICONS[shelf]
         const n = files.length
-        const cls = ['shelf', n && 'on', key === 'none' && 'other'].filter(Boolean).join(' ')
+        const category = CATEGORIES.find((c) => c.value === shelf)
+        const full = category?.label ?? 'Без типу'
         const text = (
           <>
             <Icon size={12} aria-hidden />
-            <span className="shelf-label">
-              {label}
-              {(n > 1 || key === 'none') && ` · ${n}`}
-            </span>
+            {category?.short ?? 'Інше'}
+            {(n > 1 || !category) && ` · ${n}`}
           </>
         )
-        if (n === 1 && key !== 'none') {
+        if (n === 1 && category) {
           const m = files[0]
           const copy = saved.get(m.drive_file_id ?? '')
           return (
             <a
-              key={key}
-              className={cls}
+              key={shelf}
+              className="shelf"
               href={materialUrl(m)}
               target="_blank"
               rel="noreferrer"
@@ -154,18 +149,14 @@ export function LessonShelves({ own, onOpen }: { own: LessonMaterial[]; onOpen: 
           )
         }
         return (
-          <button
-            key={key}
-            type="button"
-            className={cls}
-            onClick={onOpen}
-            title={n ? `${full}: ${n}` : `${full}: додати`}
-            aria-label={n ? `${full}: ${n} файли` : `${full}: додати`}
-          >
+          <button key={shelf} type="button" className="shelf" onClick={onOpen} aria-label={`${full}: ${n}`}>
             {text}
           </button>
         )
       })}
+      <button type="button" className="shelf add" onClick={onOpen}>
+        <Plus size={12} aria-hidden /> Додати файл
+      </button>
     </div>
   )
 }

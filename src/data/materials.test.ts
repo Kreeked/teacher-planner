@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   classifyLegacy,
+  filledShelves,
   driveFolder,
   formatSize,
   groupByCategory,
@@ -81,6 +82,16 @@ describe('materials', () => {
     expect(g.shelter).toEqual([])
     // Без типу, старі без поля й невідомі — у «Без типу».
     expect(g.none.map((m) => m.id)).toEqual(['x', 'odd', 'old'])
+  })
+
+  it('shows only filled shelves, «without type» last', () => {
+    const shelves = filledShelves([f('x', null, 0), f('t', 'test', 0), f('c2', 'card', 1), f('c1', 'card', 0)])
+    expect(shelves.map((s) => [s.shelf, s.files.map((m) => m.id)])).toEqual([
+      ['card', ['c1', 'c2']],
+      ['test', ['t']],
+      ['none', ['x']],
+    ])
+    expect(filledShelves([])).toEqual([])
   })
 
   it('classifies old lesson files once: presentations to slides, the rest without type', () => {
