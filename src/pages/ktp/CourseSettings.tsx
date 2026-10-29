@@ -1,5 +1,9 @@
+import { ask } from '../../lib/confirm'
 import { Trash2 } from 'lucide-react'
+import { Dialog } from '../../components/Dialog'
+import { notifySaved } from '../../lib/saved'
 import { createDoc, deleteRefs, ref, refsWhere, removeDoc, updateFields, useCollection } from '../../data/db'
+import { courseTitle } from '../../data/ktp'
 import type { Course, CourseStatus, Lesson, Topic } from '../../data/types'
 import { AutoDates } from './AutoDates'
 
@@ -9,9 +13,9 @@ const STATUSES: { value: CourseStatus; label: string }[] = [
   { value: 'archived', label: 'В архіві' },
 ]
 
-type Props = { course: Course; topics: Topic[]; lessons: Lesson[]; onDeleted: () => void }
+type Props = { course: Course; topics: Topic[]; lessons: Lesson[]; onDeleted: () => void; onClose: () => void }
 
-export function CourseSettings({ course, topics, lessons, onDeleted }: Props) {
+export function CourseSettings({ course, topics, lessons, onDeleted, onClose }: Props) {
   const { items: classes } = useCollection('class_groups', {
     field: 'academic_year_id',
     value: course.academic_year_id,
@@ -21,6 +25,11 @@ export function CourseSettings({ course, topics, lessons, onDeleted }: Props) {
   const gradeClasses = classes
     .filter((c) => c.grade === course.grade)
     .sort((a, b) => a.letter.localeCompare(b.letter, 'uk'))
+
+  function save(patch: Partial<Course>) {
+    updateFields('courses', course.id, patch)
+    notifySaved()
+  }
 
   function toggleClass(classId: string) {
     const link = links.find((l) => l.class_group_id === classId)
@@ -36,15 +45,14 @@ export function CourseSettings({ course, topics, lessons, onDeleted }: Props) {
 
   function number(field: 'hours_per_week' | 'total_hours', raw: string) {
     const n = Number(raw.replace(',', '.'))
-    if (n > 0 && n !== course[field])
-      updateFields('courses', course.id, { [field]: field === 'total_hours' ? Math.round(n) : n })
+    if (n > 0 && n !== course[field]) save({ [field]: field === 'total_hours' ? Math.round(n) : n })
   }
 
   async function remove() {
     if (
-      !confirm(
+      !(await ask(
         `Видалити КТП «${course.subject}, ${course.grade} клас» з усіма темами, уроками (${lessons.length}) і тестами?`,
-      )
+      ))
     )
       return
     deleteRefs([
@@ -60,67 +68,69 @@ export function CourseSettings({ course, topics, lessons, onDeleted }: Props) {
   }
 
   return (
-    <section className="panel form">
-      <div className="form-row">
-        <label className="grow">
-          Предмет
-          <input
-            className="field"
-            defaultValue={course.subject}
-            onBlur={(e) => {
-              const v = e.target.value.trim()
-              if (v && v !== course.subject) updateFields('courses', course.id, { subject: v })
-            }}
-          />
-        </label>
+    <Dialog title="Параметри КТП" subtitle={courseTitle(course)} onClose={onClose} className="settings-dialog">
+      <section className="form dialog-sec">
+        <span className="sec-label">Основне</span>
+        <div className="form-grid two">
+          <label>
+            Предмет
+            <input
+              className="field"
+              defaultValue={course.subject}
+              onBlur={(e) => {
+                const v = e.target.value.trim()
+                if (v && v !== course.subject) save({ subject: v })
+              }}
+            />
+          </label>
+          <label>
+            Статус
+            <select
+              className="field"
+              value={course.status}
+              onChange={(e) => save({ status: e.target.value as CourseStatus })}
+            >
+              {STATUSES.map((s) => (
+                <option key={s.value} value={s.value}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Годин на тиждень
+            <input
+              className="field"
+              inputMode="decimal"
+              defaultValue={course.hours_per_week}
+              onBlur={(e) => number('hours_per_week', e.target.value)}
+            />
+          </label>
+          <label>
+            Годин за рік
+            <input
+              className="field"
+              inputMode="numeric"
+              defaultValue={course.total_hours}
+              onBlur={(e) => number('total_hours', e.target.value)}
+            />
+          </label>
+        </div>
         <label>
-          Годин на тиждень
-          <input
-            className="field"
-            inputMode="decimal"
-            defaultValue={course.hours_per_week}
-            onBlur={(e) => number('hours_per_week', e.target.value)}
-          />
-        </label>
-        <label>
-          Годин за рік
-          <input
-            className="field"
-            inputMode="numeric"
-            defaultValue={course.total_hours}
-            onBlur={(e) => number('total_hours', e.target.value)}
-          />
-        </label>
-      </div>
-      <div className="form-row">
-        <label className="grow">
           Навчальна програма
           <input
             className="field"
             defaultValue={course.program_ref}
             onBlur={(e) => {
               const v = e.target.value.trim()
-              if (v !== course.program_ref) updateFields('courses', course.id, { program_ref: v })
+              if (v !== course.program_ref) save({ program_ref: v })
             }}
           />
         </label>
-        <label>
-          Статус
-          <select
-            className="field"
-            value={course.status}
-            onChange={(e) => updateFields('courses', course.id, { status: e.target.value as CourseStatus })}
-          >
-            {STATUSES.map((s) => (
-              <option key={s.value} value={s.value}>
-                {s.label}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-      <div>
-        <span className="form-label">Класи, що йдуть за цим КТП</span>
+      </section>
+
+      <section className="form dialog-sec">
+        <span className="sec-label">Класи і дні уроків</span>
         <div className="chips">
           {gradeClasses.map((c) => {
             const on = links.some((l) => l.class_group_id === c.id)
@@ -137,13 +147,14 @@ export function CourseSettings({ course, topics, lessons, onDeleted }: Props) {
             )
           })}
         </div>
-      </div>
-      <AutoDates course={course} topics={topics} lessons={lessons} links={links} classes={classes} />
-      <div className="row-actions">
+        <AutoDates course={course} topics={topics} lessons={lessons} links={links} classes={classes} />
+      </section>
+
+      <section className="dialog-sec danger-zone">
         <button type="button" className="btn ghost danger" onClick={remove}>
           <Trash2 size={15} /> Видалити КТП
         </button>
-      </div>
-    </section>
+      </section>
+    </Dialog>
   )
 }

@@ -1,4 +1,5 @@
-import { FileUp, TriangleAlert, X } from 'lucide-react'
+import { FileUp, TriangleAlert } from 'lucide-react'
+import { Dialog } from '../../components/Dialog'
 import { useState } from 'react'
 import { courseTitle, lessonsWord } from '../../data/ktp'
 import type { AcademicYear, ClassGroup, Course } from '../../data/types'
@@ -29,32 +30,22 @@ export function ImportDialog(props: Props) {
         console.error(e)
         setState({
           status: 'error',
-          message: e instanceof KtpParseError ? e.message : 'Не вдалося прочитати файл. Це точно документ Word (.docx)?',
+          message:
+            e instanceof KtpParseError ? e.message : 'Не вдалося прочитати файл. Це точно документ Word (.docx)?',
         })
       })
   }
 
+  if (state.status === 'ready') return <Preview {...props} ktp={state.ktp} />
   return (
-    <div className="overlay" onClick={props.onClose}>
-      <div className="dialog" role="dialog" aria-label="Імпорт КТП" onClick={(e) => e.stopPropagation()}>
-        <div className="dialog-head">
-          <div className="grow">
-            <b>Імпорт КТП з Word</b>
-            <span>{props.file.name}</span>
-          </div>
-          <button className="icon-btn" onClick={props.onClose} aria-label="Закрити">
-            <X size={16} />
-          </button>
-        </div>
-        {state.status === 'reading' && <p className="muted">Читаю файл…</p>}
-        {state.status === 'error' && <p className="field-error">{state.message}</p>}
-        {state.status === 'ready' && <Preview {...props} ktp={state.ktp} />}
-      </div>
-    </div>
+    <Dialog title="Імпорт КТП з Word" subtitle={props.file.name} onClose={props.onClose}>
+      {state.status === 'reading' && <p className="muted">Читаю файл…</p>}
+      {state.status === 'error' && <p className="field-error">{state.message}</p>}
+    </Dialog>
   )
 }
 
-function Preview({ ktp, year, courses, classes, onDone }: Props & { ktp: ParsedKtp }) {
+function Preview({ ktp, file, year, courses, classes, onClose, onDone }: Props & { ktp: ParsedKtp }) {
   const candidates = courses.filter((c) => c.grade === ktp.grade)
   const [targetId, setTargetId] = useState(
     candidates.find((c) => c.subject.toLowerCase() === ktp.subject.toLowerCase())?.id ?? '',
@@ -84,37 +75,70 @@ function Preview({ ktp, year, courses, classes, onDone }: Props & { ktp: ParsedK
   }
 
   return (
-    <>
-      <div className="import-summary">
+    <Dialog
+      title="Імпорт КТП з Word"
+      subtitle={file.name}
+      onClose={onClose}
+      footer={
+        <>
+          <button className="btn ghost" onClick={onClose}>
+            Скасувати
+          </button>
+          <button className="btn" onClick={run} disabled={busy}>
+            <FileUp size={15} /> {busy ? 'Імпортую…' : `Імпортувати ${lessons.length} ${lessonsWord(lessons.length)}`}
+          </button>
+        </>
+      }
+    >
+      <div className="import-head">
         <b>
           {ktp.subject}, {ktp.grade} клас
         </b>
-        <span>Класи: {ktp.classNames.join(', ')}</span>
+        <div className="chips">
+          {ktp.classNames.map((n) => (
+            <span key={n} className="badge">
+              {n}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <div className="import-stats">
+        <span>
+          <b className="num">{topicsWithLessons.length}</b>
+          {topicsWord(topicsWithLessons.length)}
+        </span>
+        <span>
+          <b className="num">{lessons.length - extra}</b>
+          {lessonsWord(lessons.length - extra)}
+          {extra > 0 && <small>+ {extra} з «*»</small>}
+        </span>
+        <span>
+          <b className="num">{dates}</b>
+          {datesWord(dates)} по класах
+        </span>
+      </div>
+
+      <div className="import-notes">
         {ktp.semesters.map((s) => (
           <span key={s.number}>
             {s.number === 1 ? 'І' : 'ІІ'} семестр: {formatDate(s.start)} — {formatDate(s.end)}
           </span>
         ))}
-        <span>
-          Тем з уроками: {topicsWithLessons.length}
-          {emptyTopics > 0 && ` (і ще ${emptyTopics} з таблиці годин, поки без уроків)`}
-        </span>
-        <span>
-          Уроків: {lessons.length - extra}
-          {extra > 0 && ` + ${extra} додатковий «*» лише для частини класів`}
-        </span>
-        <span>
-          Дат по класах: {dates}
-          {ktp.yearTotal && ` · годин за рік: ${ktp.yearTotal}`}
-        </span>
+        {ktp.yearTotal && <span>Годин за рік: {ktp.yearTotal}</span>}
+        {emptyTopics > 0 && <span>Ще {emptyTopics} тем з таблиці годин поки без уроків</span>}
         {missing.length > 0 && <span>Буде створено класи: {missing.join(', ')}</span>}
       </div>
 
-      {ktp.warnings.map((w) => (
-        <p key={w} className="warn">
-          <TriangleAlert size={14} /> {w}
-        </p>
-      ))}
+      {ktp.warnings.length > 0 && (
+        <div className="warn-box">
+          {ktp.warnings.map((w) => (
+            <p key={w} className="warn">
+              <TriangleAlert size={14} /> {w}
+            </p>
+          ))}
+        </div>
+      )}
 
       <label className="form-label">
         Куди імпортувати
@@ -128,15 +152,23 @@ function Preview({ ktp, year, courses, classes, onDone }: Props & { ktp: ParsedK
         </select>
       </label>
       {targetId && (
-        <p className="muted">
+        <p className="muted small-text">
           Теми з такими самими назвами об'єднаються, а уроки, що вже є в темі, пропустяться. Так можна імпортувати ІІ
           семестр у те саме КТП.
         </p>
       )}
       {error && <p className="field-error">{error}</p>}
-      <button className="btn" onClick={run} disabled={busy}>
-        <FileUp size={16} /> {busy ? 'Імпортую…' : `Імпортувати ${lessons.length} ${lessonsWord(lessons.length)}`}
-      </button>
-    </>
+    </Dialog>
   )
 }
+
+function plural(n: number, one: string, few: string, many: string) {
+  const d = n % 10
+  const h = n % 100
+  if (d === 1 && h !== 11) return one
+  if (d >= 2 && d <= 4 && (h < 12 || h > 14)) return few
+  return many
+}
+
+const topicsWord = (n: number) => plural(n, 'тема', 'теми', 'тем')
+const datesWord = (n: number) => plural(n, 'дата', 'дати', 'дат')

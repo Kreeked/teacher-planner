@@ -368,8 +368,13 @@ h2 {
   line-height: 1.45;
 }
 
+/*
+ * Кнопки однакові по всьому застосунку:
+ * .btn — головна дія (чорна), .btn.ghost — інша дія (біла на фоні сторінки, сіра в панелі чи вікні),
+ * .btn.danger — видалення, .btn.small — дрібна дія в рядку. Висота 34 px, дрібна — 30 px, як чипи.
+ */
 .btn {
-  height: 38px;
+  height: 34px;
   border: 0;
   border-radius: 999px;
   background: var(--ink);
@@ -377,20 +382,44 @@ h2 {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 0 18px;
+  gap: 6px;
+  padding: 0 14px;
   font-weight: 600;
   font-size: 13px;
+  white-space: nowrap;
+  text-decoration: none;
+  flex: none;
 }
 
 .btn:disabled {
-  opacity: 0.6;
+  opacity: 0.45;
+  cursor: default;
 }
 
 .btn.ghost {
-  background: var(--bg);
+  background: var(--surface);
   color: var(--ink);
-  margin-top: 12px;
+}
+
+.panel .btn.ghost,
+.dialog .btn.ghost {
+  background: var(--bg);
+}
+
+.btn.ghost:not(:disabled):hover {
+  background: var(--line);
+}
+
+.btn.danger-fill {
+  background: var(--danger);
+}
+
+/* Ряд кнопок у шапці сторінки чи секції. */
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 /* ---------- Вхід ---------- */
@@ -569,11 +598,13 @@ h2 {
   color: #fff;
 }
 
-.panel .chip {
+.panel .chip,
+.dialog .chip {
   background: var(--bg);
 }
 
-.panel .chip.on {
+.panel .chip.on,
+.dialog .chip.on {
   background: var(--ink);
   color: #fff;
 }
@@ -665,10 +696,6 @@ h2 {
   margin-top: 10px;
 }
 
-.row-actions .btn.ghost {
-  margin-top: 0;
-}
-
 .btn.danger {
   color: var(--danger);
 }
@@ -722,21 +749,37 @@ h2 {
 }
 
 /* ---------- Навчальний рік ---------- */
+/* Назва · початок — кінець · кошик: однакові колонки в усіх рядках, тож дати стоять одна під одною. */
 .range-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 172px 10px 172px 30px;
   align-items: center;
-  flex-wrap: wrap;
   gap: 6px;
   padding: 4px 0;
 }
 
 .range-row .title {
-  flex: 1 1 160px;
+  min-width: 0;
   font-weight: 600;
+}
+
+.range-row .date-btn.field {
+  width: 100%;
+  min-width: 0;
+}
+
+.range-row .date-btn.field span {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .range-row .dash {
   color: var(--ink-2);
+  text-align: center;
+}
+
+.range-row .field-error {
+  grid-column: 1 / -1;
 }
 
 .nested {
@@ -788,37 +831,50 @@ h2 {
 }
 
 @media (max-width: 760px) {
+  /* Назва з кошиком у першому рядку, дві дати з тире — у другому. */
   .range-row {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
-    grid-template-areas:
-      't t d'
-      's e .'
-      'x x x';
+    grid-template-columns: minmax(0, 1fr) 10px minmax(0, 1fr) 30px;
   }
 
   .range-row .title {
-    grid-area: t;
-  }
-
-  .range-row .field[type='date'] {
-    grid-area: s;
-  }
-
-  .range-row .field[type='date'] ~ .field[type='date'] {
-    grid-area: e;
+    grid-column: 1 / 4;
+    grid-row: 1;
   }
 
   .range-row .icon-btn {
-    grid-area: d;
+    grid-column: 4;
+    grid-row: 1;
   }
 
-  .range-row .field-error {
-    grid-area: x;
+  /* Дати завжди в другому рядку, навіть коли кошика немає (рядок року). */
+  .range-row > :nth-child(2) {
+    grid-column: 1;
+    grid-row: 2;
   }
 
-  .range-row .dash {
-    display: none;
+  .range-row > .dash {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .range-row > :nth-child(4) {
+    grid-column: 3;
+    grid-row: 2;
+  }
+
+  .range-row .date-btn.field {
+    padding: 0 8px;
+    font-size: 12px;
+    gap: 5px;
+  }
+
+  /* Чверть: відступ лише в назви, дати стоять під датами семестру. */
+  .range-row.nested {
+    padding-left: 0;
+  }
+
+  .range-row.nested .title {
+    margin-left: 14px;
   }
 }
 
@@ -1106,7 +1162,6 @@ select.cell {
   display: contents;
 }
 
-
 .l-date-class {
   display: none;
 }
@@ -1128,7 +1183,7 @@ select.cell {
 .dialog {
   width: 100%;
   max-width: 560px;
-  max-height: min(640px, calc(100dvh - 32px));
+  max-height: min(720px, calc(100dvh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom)));
   background: var(--surface);
   border-radius: var(--r-xl);
   padding: 14px;
@@ -1136,6 +1191,75 @@ select.cell {
   flex-direction: column;
   gap: 10px;
   box-shadow: 0 30px 60px rgba(31, 31, 36, 0.18);
+  min-width: 0;
+}
+
+/* Вміст прокручується всередині вікна, тож воно не виходить за край екрана. */
+.dialog-body {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 -14px;
+  padding: 0 14px 2px;
+}
+
+.dialog-foot {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 4px;
+}
+
+.dialog-foot .left {
+  margin-right: auto;
+}
+
+.confirm-dialog {
+  max-width: 400px;
+}
+
+.confirm-text {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.saved-toast {
+  position: fixed;
+  left: 50%;
+  bottom: max(20px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 70;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  box-shadow: 0 8px 24px rgba(31, 31, 36, 0.2);
+  pointer-events: none;
+}
+
+@media (max-width: 760px) {
+  .overlay {
+    padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
+  }
+
+  .dialog {
+    max-height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  }
+
+  .saved-toast {
+    bottom: calc(max(14px, env(safe-area-inset-bottom)) + 64px);
+  }
 }
 
 .dialog-head {
@@ -1153,15 +1277,6 @@ select.cell {
 .dialog-head span {
   font-size: 12px;
   color: var(--ink-2);
-}
-
-.dialog .btn.ghost {
-  margin-top: 0;
-  justify-content: flex-start;
-  height: auto;
-  min-height: 38px;
-  padding: 8px 14px;
-  text-align: left;
 }
 
 .search-field {
@@ -1278,28 +1393,6 @@ a.chip {
 }
 
 /* ---------- Імпорт ---------- */
-.import-summary {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  background: var(--bg);
-  border-radius: 12px;
-  padding: 10px 12px;
-  font-size: 13px;
-}
-
-.import-summary span {
-  color: var(--ink-2);
-}
-
-.dialog .form-label .field {
-  width: 100%;
-  margin-top: 4px;
-}
-
-.dialog > .btn:not(.ghost) {
-  align-self: flex-start;
-}
 
 /* ---------- Автодати ---------- */
 .auto-dates {
@@ -1333,10 +1426,6 @@ a.chip {
   padding: 0 12px;
   font-size: 12px;
   gap: 6px;
-}
-
-.auto-row .btn.ghost {
-  margin-top: 0;
 }
 
 /* ---------- Сьогодні ---------- */
@@ -1810,12 +1899,6 @@ a.chip {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
-}
-
-.materials-dialog .btn.small {
-  height: 30px;
-  min-height: 30px;
-  padding: 0 12px;
 }
 
 /* Офлайн-копії файлів. */
@@ -2357,4 +2440,296 @@ h2.topic-title {
 
 .sec-head .btn.small {
   flex: none;
+}
+
+/* ---------- Шапка сторінки з кнопками ---------- */
+.page-head h1 {
+  min-width: 0;
+}
+
+.year-link {
+  align-self: center;
+}
+
+@media (max-width: 760px) {
+  /* На телефоні кнопки — окремим рядком під заголовком. */
+  .page-head .actions {
+    width: 100%;
+  }
+}
+
+/* ---------- Форми у вікнах ---------- */
+.form-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.form-grid.two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.form-grid.three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.form-grid .field,
+.form-grid .date-btn.field {
+  width: 100%;
+  min-width: 0;
+}
+
+.form > label > .field {
+  width: 100%;
+}
+
+@media (max-width: 480px) {
+  .form-grid.three {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .form-grid.three > :first-child {
+    grid-column: 1 / -1;
+  }
+}
+
+.dialog-sec + .dialog-sec {
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+
+.sec-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+.danger-zone {
+  display: flex;
+}
+
+.settings-dialog {
+  max-width: 600px;
+}
+
+.auto-row .btn {
+  margin-left: auto;
+}
+
+/* ---------- Список КТП ---------- */
+.course-card .big small {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-2);
+  letter-spacing: 0;
+}
+
+.course-card .meter {
+  width: 100%;
+  height: 5px;
+  margin: 8px 0 6px;
+  background: rgba(31, 31, 36, 0.12);
+}
+
+.card-classes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+/* ---------- Таблиця КТП ---------- */
+/* Шапка з назвами класів лишається видимою під час прокрутки. */
+.ktp-head {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  background: var(--bg);
+  padding-top: 8px;
+  padding-bottom: 6px;
+  margin: -8px 0 -6px;
+}
+
+.topic-title .hours {
+  display: inline;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+/* Назва теми завширшки з текст — години стоять одразу за нею. */
+.ktp.edit .topic-row .topic-title {
+  flex: 0 1 auto;
+  max-width: 100%;
+  min-width: 120px;
+}
+
+@supports (field-sizing: content) {
+  .ktp.edit .topic-row .topic-title {
+    field-sizing: content;
+    width: auto !important;
+  }
+}
+
+.lesson-row .no.extra {
+  font-size: 17px;
+  line-height: 1;
+}
+
+.l-date.past .l-date-val,
+.l-date.past .date-btn.compact {
+  color: #a3a3ad;
+}
+
+/* Тип уроку — пігулка зі стрілкою, щоб було видно, що це вибір. */
+.type-pill {
+  appearance: none;
+  justify-self: start;
+  align-self: center;
+  max-width: 100%;
+  height: 26px;
+  border: 0;
+  border-radius: 999px;
+  padding: 0 24px 0 10px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--bg)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%236b6b76' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")
+    no-repeat right 9px center;
+  color: var(--ink-2);
+}
+
+.type-pill:focus-visible {
+  outline: 2px solid var(--ink);
+}
+
+.type-pill.test {
+  background-color: var(--peach);
+  color: #8a4a1c;
+}
+
+.type-pill.practical {
+  background-color: var(--peri);
+  color: #3a4590;
+}
+
+.type-pill.project {
+  background-color: var(--lilac);
+  color: #5a3f8f;
+}
+
+.add-topic {
+  width: 100%;
+  height: 44px;
+  border: 1.5px dashed #c4c4cc;
+  border-radius: var(--r-lg);
+  background: transparent;
+  color: var(--ink-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.add-topic:hover {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+@media (max-width: 760px) {
+  /* Пігулки дат: клас і дата одним розміром. */
+  .l-date,
+  .lesson-row .l-date-class,
+  .ktp.view .l-date-val,
+  .l-date .date-btn.compact {
+    font-size: 12px;
+  }
+
+  .ktp.view .l-date-val {
+    min-height: 0;
+    padding: 0;
+    font-weight: 500;
+  }
+
+  .l-date .date-btn.compact {
+    font-weight: 500;
+  }
+
+  .lesson-row .l-date-class {
+    font-weight: 500;
+  }
+
+  /* Минулий урок — уся пігулка блідіша, текст у ній однаковий. */
+  .l-date.past {
+    opacity: 0.6;
+  }
+
+  .l-date.past .l-date-val,
+  .l-date.past .date-btn.compact {
+    color: var(--ink);
+  }
+}
+
+/* ---------- Імпорт з Word ---------- */
+.import-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.import-head .badge {
+  background: var(--bg);
+}
+
+.import-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.import-stats > span {
+  background: var(--bg);
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.import-stats b {
+  font-size: 22px;
+  color: var(--ink);
+  line-height: 1.1;
+}
+
+.import-stats small {
+  font-size: 11px;
+}
+
+.import-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.warn-box {
+  background: #fdf1df;
+  border-radius: 12px;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dialog .form-label .field {
+  width: 100%;
+  margin-top: 4px;
 }

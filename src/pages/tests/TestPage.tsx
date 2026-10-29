@@ -1,3 +1,4 @@
+import { ask } from '../../lib/confirm'
 import { ArrowLeft, Download, FileUp, Plus, Trash2, TriangleAlert, X } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
@@ -58,10 +59,13 @@ export function TestPage() {
     }
   }
 
-  function download(t: Test) {
+  async function download(t: Test) {
     if (
       blocking.length &&
-      !confirm(`У тесті є помилки (${blocking.length}), Wayground може не прийняти файл. Все одно зберегти?`)
+      !(await ask(`У тесті є помилки (${blocking.length}), Wayground може не прийняти файл. Все одно зберегти?`, {
+        ok: 'Зберегти',
+        danger: false,
+      }))
     )
       return
     exportTest(t)
@@ -82,8 +86,8 @@ export function TestPage() {
               onSave={(v) => updateFields('tests', test.id, { title: v || 'Тест' })}
             />
           </h1>
-          <button className="btn small" disabled={!questions.length} onClick={() => download(test)}>
-            <Download size={14} /> Для Wayground
+          <button className="btn" disabled={!questions.length} onClick={() => download(test)}>
+            <Download size={15} /> Для Wayground
           </button>
         </div>
 
@@ -132,8 +136,8 @@ export function TestPage() {
                 n={i + 1}
                 q={questions[i]}
                 onChange={(p) => patch(i, p)}
-                onRemove={() => {
-                  if (!questions[i].text || confirm(`Видалити питання ${i + 1}?`))
+                onRemove={async () => {
+                  if (!questions[i].text || (await ask(`Видалити питання ${i + 1}?`)))
                     save(questions.filter((_, j) => j !== i))
                 }}
               />

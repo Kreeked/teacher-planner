@@ -1,3 +1,4 @@
+import { ask } from '../../lib/confirm'
 import { Plus, X } from 'lucide-react'
 import { useState } from 'react'
 import { createDoc, deleteRefs, ref, refsWhere } from '../../data/db'
@@ -27,7 +28,7 @@ export function ClassesSection({ year, classes }: { year: AcademicYear; classes:
   }
 
   async function remove(c: ClassGroup) {
-    if (!confirm(`Видалити клас ${c.display_name}?`)) return
+    if (!(await ask(`Видалити клас ${c.display_name}?`))) return
     // Разом із класом зникають його прив'язки до КТП і дати уроків.
     deleteRefs([
       ref('class_groups', c.id),
@@ -63,7 +64,12 @@ export function ClassesSection({ year, classes }: { year: AcademicYear; classes:
         ))}
       </div>
       <form className="add-class" onSubmit={add}>
-        <select className="field" value={grade} onChange={(e) => setGrade(Number(e.target.value))} aria-label="Паралель">
+        <select
+          className="field"
+          value={grade}
+          onChange={(e) => setGrade(Number(e.target.value))}
+          aria-label="Паралель"
+        >
           {GRADES.map((g) => (
             <option key={g} value={g}>
               {g} клас

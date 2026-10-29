@@ -1,7 +1,9 @@
+import { ask } from '../../lib/confirm'
 import { ArrowLeft, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { RangeRow } from '../../components/RangeRow'
+import { notifySaved } from '../../lib/saved'
 import { commit, deleteRefs, newBatch, ref, refsWhere, updateFields, useCollection } from '../../data/db'
 import type { AcademicYear } from '../../data/types'
 import { pickCurrentYear, validateYear } from '../../data/year'
@@ -28,7 +30,7 @@ export function YearPage() {
   }
 
   async function removeYear(y: AcademicYear) {
-    if (!confirm(`Видалити навчальний рік ${y.title} разом із семестрами, класами і всіма КТП цього року?`)) return
+    if (!(await ask(`Видалити навчальний рік ${y.title} разом із семестрами, класами і всіма КТП цього року?`))) return
     const refs = [
       ref('academic_years', y.id),
       ...periods.map((p) => ref('periods', p.id)),
@@ -58,11 +60,22 @@ export function YearPage() {
         <Link to="/ktp" className="back">
           <ArrowLeft size={14} /> КТП
         </Link>
-        <h1>Навчальний рік</h1>
+        <div className="sec-head page-head">
+          <h1>Навчальний рік</h1>
+          <span className="grow" />
+          {year && (
+            <div className="actions">
+              <button className="btn ghost" onClick={() => setCreating(true)}>
+                <Plus size={15} /> Новий рік
+              </button>
+            </div>
+          )}
+        </div>
 
-        {!loading && (years.length === 0 || creating) && (
+        {creating && (
           <NewYearForm
             makeCurrent={years.length === 0}
+            onClose={() => setCreating(false)}
             onCreated={(id) => {
               setSelectedId(id)
               setCreating(false)
@@ -70,23 +83,34 @@ export function YearPage() {
           />
         )}
 
-        {year && !creating && (
-          <>
-            <div className="chips">
-              {sortedYears.map((y) => (
-                <button
-                  key={y.id}
-                  className={y.id === year.id ? 'chip plain on' : 'chip plain'}
-                  onClick={() => setSelectedId(y.id)}
-                >
-                  {y.title}
-                  {y.is_current && ' · поточний'}
-                </button>
-              ))}
-              <button className="chip plain" onClick={() => setCreating(true)}>
-                <Plus size={14} /> Новий рік
-              </button>
+        {!loading && years.length === 0 && (
+          <section className="empty" style={{ background: 'var(--butter)' }}>
+            <div>
+              <h2>Ще немає навчального року</h2>
+              <p>Створи рік, і до нього одразу додадуться два семестри. Потім додай класи.</p>
             </div>
+            <button className="btn" onClick={() => setCreating(true)}>
+              <Plus size={15} /> Створити рік
+            </button>
+          </section>
+        )}
+
+        {year && (
+          <>
+            {sortedYears.length > 1 && (
+              <div className="chips">
+                {sortedYears.map((y) => (
+                  <button
+                    key={y.id}
+                    className={y.id === year.id ? 'chip plain on' : 'chip plain'}
+                    onClick={() => setSelectedId(y.id)}
+                  >
+                    {y.title}
+                    {y.is_current && ' · поточний'}
+                  </button>
+                ))}
+              </div>
+            )}
 
             <section className="panel">
               <h3>Рік</h3>
@@ -94,7 +118,7 @@ export function YearPage() {
                 titleLabel="Назва року"
                 value={year}
                 validate={(v) => validateYear(v, periods)}
-                onSave={(v) => updateFields('academic_years', year.id, v)}
+                onSave={(v) => (updateFields('academic_years', year.id, v), notifySaved())}
               />
               <div className="row-actions">
                 {!year.is_current && (
