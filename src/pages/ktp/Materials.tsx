@@ -7,7 +7,6 @@ import {
   Film,
   Image,
   Link2,
-  Paperclip,
   Pin,
   Presentation,
   Smartphone,
@@ -98,16 +97,6 @@ function MaterialRow({ m, onRemove }: { m: LessonMaterial; onRemove: () => void 
         <Trash2 size={15} />
       </button>
     </div>
-  )
-}
-
-/** Кнопка зі скріпкою й кількістю матеріалів для рядка таблиці КТП. */
-export function MaterialsButton({ count, onClick, label }: { count: number; onClick: () => void; label: string }) {
-  return (
-    <button className={count ? 'icon-btn clip on' : 'icon-btn clip'} onClick={onClick} aria-label={label} title={label}>
-      <Paperclip size={14} />
-      {count > 0 && <span className="clip-count">{count}</span>}
-    </button>
   )
 }
 
