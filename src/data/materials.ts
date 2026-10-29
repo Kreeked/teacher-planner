@@ -52,6 +52,12 @@ export function groupByCategory(own: LessonMaterial[]): Shelves {
   return groups
 }
 
+/** Заповнені полички уроку в порядку типів; «Без типу» — наприкінці. Порожні не показуються. */
+export function filledShelves(own: LessonMaterial[]) {
+  const groups = groupByCategory(own)
+  return SHELVES.filter((s) => groups[s].length).map((s) => ({ shelf: s, files: groups[s] }))
+}
+
 /**
  * Одноразова класифікація старих файлів уроків (без поля category):
  * презентації → «slides», решта → null («Без типу», розкласти вручну).

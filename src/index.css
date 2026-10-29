@@ -1754,10 +1754,10 @@ a.chip {
   position: relative;
   height: 22px;
   padding: 0 8px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--ink);
   border-radius: 999px;
-  background: transparent;
-  color: var(--ink-2);
+  background: var(--ink);
+  color: #fff;
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -1771,32 +1771,22 @@ a.chip {
 }
 
 .shelf:hover {
-  border-color: #c4c4cc;
-  color: var(--ink);
-}
-
-.shelf.on {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: #fff;
-}
-
-.shelf.on:hover {
   background: #3a3a42;
 }
 
-.shelf.other.on {
+/* «Додати файл» — як .btn.ghost, але на висоту полички. */
+.shelf.add {
   background: var(--surface);
-  border-color: var(--ink-2);
+  border-color: var(--line);
   color: var(--ink);
+}
+
+.shelf.add:hover {
+  background: var(--bg);
 }
 
 .day-card .shelves {
   width: 100%;
-}
-
-.day-card .shelf:not(.on) {
-  border-color: rgba(31, 31, 36, 0.12);
 }
 
 .link-form {
@@ -2910,34 +2900,18 @@ h2.topic-title {
     grid-area: menu;
   }
 
-  /* Полички дрібні, але область натискання — на всю висоту ряду (≥ 40 px). Ряд один, прокручується вбік. */
+  /* Полички дрібні, але область натискання — на всю висоту ряду (≥ 40 px).
+     Між рядами 10 px, щоб розширення сусідніх рядів не налазили на самі пігулки. */
   .shelves {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    scrollbar-width: none;
-    padding: 11px 0;
-    margin: -8px 0;
+    gap: 10px 4px;
     position: relative;
     z-index: 1;
-  }
-
-  .shelves::-webkit-scrollbar {
-    display: none;
-  }
-
-  /* Порожні полички на телефоні — лише іконка, щоб усі вміщалися в ряд. */
-  .shelf:not(.on) {
-    padding: 0 7px;
-  }
-
-  .shelf:not(.on) .shelf-label {
-    display: none;
   }
 
   .shelf::after {
     content: '';
     position: absolute;
-    inset: -10px -2px;
+    inset: -9px -2px;
   }
 
   .lesson-item .l-title,

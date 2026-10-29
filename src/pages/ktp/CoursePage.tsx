@@ -69,7 +69,6 @@ import { gradeColor, shortDate } from '../../data/year'
 import { CourseSettings } from './CourseSettings'
 import { LessonShelves, MaterialLink, MaterialsDialog } from './Materials'
 import { useClassifyLegacy } from '../../lib/useClassifyLegacy'
-import { LegacyTests } from './LegacyTests'
 import type { WriteBatch } from 'firebase/firestore'
 
 /** Записує новий порядок: позиції тем і номери/позиції уроків, що змінилися. */
@@ -344,8 +343,6 @@ export function CoursePage() {
             lessons={lessons}
           />
         )}
-
-        <LegacyTests course={course} year={year} topics={topics} lessons={lessons} materials={materials} />
 
         {courseWarning && (
           <p className="warn">

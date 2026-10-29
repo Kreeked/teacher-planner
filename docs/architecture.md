@@ -9,7 +9,7 @@
 | Дані | Cloud Firestore з `persistentLocalCache` + `persistentMultipleTabManager` |
 | Вхід | Firebase Authentication, Google |
 | Файли | Google Drive API (scope `drive.file`) + Google Picker, токен через Google Identity Services |
-| Розбір .docx, збирання .xlsx | `fflate` у браузері (файли не йдуть на сервер) |
+| Розбір .docx | `fflate` у браузері (файли не йдуть на сервер) |
 | Перетягування | `@dnd-kit` |
 | Іконки | `lucide-react` |
 | Тести / лінтер | `vitest`, `oxlint` |
@@ -29,9 +29,9 @@
 
 | Папка | Вміст |
 | --- | --- |
-| `data/` | `types.ts` (усі типи й список колекцій), `db.ts` (доступ до Firestore, хуки), логіка: `ktp.ts`, `day.ts`, `year.ts`, `schedule.ts`, `timetable.ts`, `materials.ts` (зокрема типи файлів уроку), `offline.ts`, `backup.ts`, `legacyTests.ts` (перенесення старих тестів у .xlsx); поруч `*.test.ts` |
+| `data/` | `types.ts` (усі типи й список колекцій), `db.ts` (доступ до Firestore, хуки), логіка: `ktp.ts`, `day.ts`, `year.ts`, `schedule.ts`, `timetable.ts`, `materials.ts` (зокрема типи файлів уроку), `offline.ts`, `backup.ts`; поруч `*.test.ts` |
 | `import/` | `docx.ts`, `ktpParser.ts`, `applyImport.ts` (імпорт КТП) |
-| `lib/` | `firebase.ts`, `drive.ts`, `offlineFiles.ts`, `useOfflinePlan.ts`, `useOnline.ts`, `confirm.ts`, `saved.ts`, `drag.ts`, `dates.ts`, `useClassifyLegacy.ts`, `migrateTests.ts` (старі тести → файли на Диску) |
+| `lib/` | `firebase.ts`, `drive.ts`, `offlineFiles.ts`, `useOfflinePlan.ts`, `useOnline.ts`, `confirm.ts`, `saved.ts`, `drag.ts`, `dates.ts`, `useClassifyLegacy.ts` |
 | `components/` | `Dialog`, `Confirm`, `Menu`, `Sortable`, `DatePicker`, `InlineText`, `RangeRow`, `Saved` |
 | `pages/` | `TodayPage`, `schedule/`, `ktp/` (зокрема `Materials` — вікно й полички), `year/`, `settings/`, `LoginPage`, `SettingsPage` |
 | `layout/` | `AppLayout`, `nav.ts` (меню), `MonthCalendar` |

@@ -19,7 +19,6 @@ Firestore: кожна колекція лежить у `users/{uid}/<колек�
 | `timetables` | тижневий розклад | academic_year_id, title, valid_from, valid_to |
 | `timetable_entries` | клітинка розкладу | timetable_id, weekday, slot_number, class_group_id, course_id |
 | `lesson_materials` | файл / посилання | course_id, lesson_id АБО topic_id (рівно одне), title, kind (file/link), drive_file_id, url, mime_type, size_bytes, position (у межах категорії), keep_offline, category |
-| `tests` | **застаріла**, лише для перенесення | старі тести Wayground: course_id, topic_id, lesson_id, title, `questions[]`. Не входить у `COLLECTION_NAMES` і резервну копію; документ видаляється після перенесення у файл |
 
 `lesson_type`: `regular | practical | test | project | reserve`. `status` дати: `planned | done | moved | cancelled`.
 `category` матеріалу уроку: `slides | card | shelter | remote | test`, `null` — «Без типу». У старих записів поля немає:
