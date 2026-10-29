@@ -1,3 +1,4 @@
+import { ask } from '../lib/confirm'
 import { Download, LogOut, Upload } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useAuth } from '../auth/context'
@@ -24,7 +25,10 @@ export function SettingsPage() {
     try {
       const data = parseBackup(await file.text())
       const when = new Date(data.exported_at).toLocaleString('uk-UA')
-      if (!confirm(`Замінити всі поточні дані копією від ${when} (записів: ${countDocs(data)})?`)) return
+      if (
+        !(await ask(`Замінити всі поточні дані копією від ${when} (записів: ${countDocs(data)})?`, { ok: 'Замінити' }))
+      )
+        return
       await restoreBackup(data)
       setBackupMsg('Дані відновлено з копії')
     } catch (e) {

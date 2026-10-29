@@ -127,7 +127,7 @@ export function TodayPage() {
                 <ChevronLeft size={18} />
               </button>
               {!isCurrent && (
-                <button className="chip plain" onClick={() => setDay(today)}>
+                <button className="btn ghost small" onClick={() => setDay(today)}>
                   Сьогодні
                 </button>
               )}
@@ -213,7 +213,7 @@ function OfflineNotice() {
         Файлів до уроків тижня, яких ще немає на пристрої: {missing.length}. <Link to="/settings">Докладніше</Link>
       </span>
       <button
-        className="chip plain"
+        className="btn ghost small"
         onClick={() =>
           syncOffline(
             plan.keep.map((x) => x.material),
@@ -300,7 +300,7 @@ function DayView({ list, topics, materials, tests, years, live }: DayViewProps) 
               >
                 <Check size={14} /> {done ? 'Проведено' : 'Позначити проведеним'}
               </button>
-              <button className="chip plain" onClick={() => setOpen(x)}>
+              <button className="btn ghost small" onClick={() => setOpen(x)}>
                 <Paperclip size={14} /> Матеріали
               </button>
             </div>

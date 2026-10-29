@@ -1,3 +1,4 @@
+import { ask } from '../../lib/confirm'
 import {
   DndContext,
   DragOverlay,
@@ -23,6 +24,7 @@ import {
 import { useState, type CSSProperties, type ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { DatePicker } from '../../components/DatePicker'
+import { toISO } from '../../data/schedule'
 import { InlineText } from '../../components/InlineText'
 import { DragHandle } from '../../components/Sortable'
 import { useDragSensors, useSortableItem } from '../../lib/drag'
@@ -108,6 +110,8 @@ export function CoursePage() {
   // Порядок під час перетягування: урок може тимчасово перейти в іншу тему, доки його не відпустили.
   const [drag, setDrag] = useState<{ id: string; blocks: TopicBlock[] } | null>(null)
   const sensors = useDragSensors()
+  // Дати, що вже минули, показуємо блідіше.
+  const [today] = useState(() => toISO(new Date()))
 
   if (loading) return null
   if (!course)
@@ -187,7 +191,7 @@ export function CoursePage() {
   }
 
   async function removeLesson(l: Lesson) {
-    if (l.title && !confirm(`Видалити урок ${lessonNo(l)} «${l.title}»?`)) return
+    if (l.title && !(await ask(`Видалити урок ${lessonNo(l)} «${l.title}»?`))) return
     const batch = newBatch()
     batch.delete(ref('lessons', l.id))
     applyOrder(
@@ -208,7 +212,7 @@ export function CoursePage() {
     const msg = b.lessons.length
       ? `Видалити тему «${b.topic.title}» разом із ${b.lessons.length} ${lessonsWord(b.lessons.length)}?`
       : `Видалити тему «${b.topic.title}»?`
-    if (!confirm(msg)) return
+    if (!(await ask(msg))) return
     const batch = newBatch()
     batch.delete(ref('topics', b.topic.id))
     for (const l of b.lessons) batch.delete(ref('lessons', l.id))
@@ -317,30 +321,28 @@ export function CoursePage() {
         <Link to="/ktp" className="back">
           <ArrowLeft size={14} /> КТП
         </Link>
-        <div className="sec-head">
+        <div className="sec-head page-head">
           <h1>{courseTitle(course)}</h1>
           <span className="grow" />
-          <Link to={`/ktp/${courseId}/tests`} className="chip plain">
-            <ListChecks size={14} /> Тести{tests.length > 0 && ` (${tests.length})`}
-          </Link>
-          <button
-            className={showSettings ? 'chip plain on' : 'chip plain'}
-            onClick={() => setShowSettings(!showSettings)}
-            aria-expanded={showSettings}
-          >
-            <Settings2 size={14} /> Параметри
-          </button>
-          <button className={editing ? 'btn small' : 'btn ghost small'} onClick={() => setEditing(!editing)}>
-            {editing ? (
-              <>
-                <Check size={14} /> Готово
-              </>
-            ) : (
-              <>
-                <Pencil size={14} /> Редагувати
-              </>
-            )}
-          </button>
+          <div className="actions">
+            <Link to={`/ktp/${courseId}/tests`} className="btn ghost">
+              <ListChecks size={15} /> Тести{tests.length > 0 && ` · ${tests.length}`}
+            </Link>
+            <button className="btn ghost" onClick={() => setShowSettings(true)} aria-haspopup="dialog">
+              <Settings2 size={15} /> Параметри
+            </button>
+            <button className={editing ? 'btn' : 'btn ghost'} onClick={() => setEditing(!editing)}>
+              {editing ? (
+                <>
+                  <Check size={15} /> Готово
+                </>
+              ) : (
+                <>
+                  <Pencil size={15} /> Редагувати
+                </>
+              )}
+            </button>
+          </div>
         </div>
 
         <div className="chips">
@@ -351,7 +353,13 @@ export function CoursePage() {
         </div>
 
         {showSettings && (
-          <CourseSettings course={course} onDeleted={() => navigate('/ktp')} topics={topics} lessons={lessons} />
+          <CourseSettings
+            course={course}
+            onDeleted={() => navigate('/ktp')}
+            onClose={() => setShowSettings(false)}
+            topics={topics}
+            lessons={lessons}
+          />
         )}
 
         {courseWarning && (
@@ -377,6 +385,7 @@ export function CoursePage() {
                     lesson={l}
                     classes={classes}
                     schedules={scheduleById}
+                    today={today}
                     files={materialsOf(materials, l).own}
                     style={gridStyle}
                     onMaterials={() => setMaterialsFor({ lessonId: l.id })}
@@ -394,7 +403,7 @@ export function CoursePage() {
         ) : (
           <>
             <p className="small-text muted edit-hint">
-              Перетягуй теми й уроки за <GripVertical size={12} />, урок можна перенести і в іншу тему.
+              <GripVertical size={12} /> — перетягнути тему чи урок, зокрема в іншу тему
             </p>
             <DndContext
               sensors={sensors}
@@ -425,6 +434,7 @@ export function CoursePage() {
                           classes={classes}
                           year={year}
                           schedules={scheduleById}
+                          today={today}
                           files={materials.filter((m) => m.lesson_id === l.id).length}
                           style={gridStyle}
                           autoFocus={l.id === newLessonId}
@@ -451,8 +461,8 @@ export function CoursePage() {
                 )}
               </DragOverlay>
             </DndContext>
-            <button className="btn ghost add-topic" onClick={addTopic}>
-              <Plus size={16} /> Тема
+            <button className="add-topic" onClick={addTopic}>
+              <Plus size={16} /> Нова тема
             </button>
           </>
         )}
@@ -479,8 +489,10 @@ type TopicHeadProps = { block: TopicBlock; warning?: Warning; files: LessonMater
 function TopicHead({ block, warning, files, onMaterials }: TopicHeadProps) {
   return (
     <div className="topic-row">
-      <h2 className="topic-title">{block.topic.title}</h2>
-      {block.topic.planned_hours > 0 && <span className="hours">{block.topic.planned_hours} год</span>}
+      <h2 className="topic-title">
+        {block.topic.title}
+        {block.topic.planned_hours > 0 && <span className="hours"> · {block.topic.planned_hours} год</span>}
+      </h2>
       {warning && (
         <span className="badge warn-badge">
           <TriangleAlert size={12} /> {warning.text}
@@ -505,15 +517,16 @@ type ViewLessonProps = {
   lesson: Lesson
   classes: ClassGroup[]
   schedules: Map<string, LessonSchedule>
+  today: string
   files: LessonMaterial[]
   style?: CSSProperties
   onMaterials: () => void
 }
 
-function ViewLesson({ lesson: l, classes, schedules, files, style, onMaterials }: ViewLessonProps) {
+function ViewLesson({ lesson: l, classes, schedules, today, files, style, onMaterials }: ViewLessonProps) {
   return (
     <div className={l.lesson_type === 'reserve' ? 'lesson-row reserve' : 'lesson-row'} style={style}>
-      <span className="no num" title={l.extra ? 'Не входить у нумерацію' : undefined}>
+      <span className={l.extra ? 'no num extra' : 'no num'} title={l.extra ? 'Не входить у нумерацію' : undefined}>
         {lessonNo(l)}
       </span>
       <div className="l-main">
@@ -536,7 +549,7 @@ function ViewLesson({ lesson: l, classes, schedules, files, style, onMaterials }
           {classes.map((c) => {
             const d = schedules.get(`${l.id}_${c.id}`)?.planned_date
             return (
-              <span key={c.id} className={d ? 'l-date' : 'l-date none'}>
+              <span key={c.id} className={!d ? 'l-date none' : d < today ? 'l-date past' : 'l-date'}>
                 <span className="l-date-class">{c.display_name}</span>
                 <span className="l-date-val num">{d ? shortDate(d) : '—'}</span>
               </span>
@@ -573,6 +586,7 @@ function EditTopic({ block: b, color, warning, files, onMaterials, onRemove, onA
       <div className="topic-row">
         <DragHandle label={`Перемістити тему «${b.topic.title}»`} {...handle} />
         <InlineText
+          fitContent
           className="topic-title"
           label="Назва теми"
           value={b.topic.title}
@@ -625,6 +639,7 @@ type EditLessonProps = {
   classes: ClassGroup[]
   year?: AcademicYear
   schedules: Map<string, LessonSchedule>
+  today: string
   files: number
   style?: CSSProperties
   autoFocus: boolean
@@ -634,7 +649,7 @@ type EditLessonProps = {
 }
 
 function EditLesson(props: EditLessonProps) {
-  const { lesson: l, classes, year, schedules, files, autoFocus, onType, onMaterials, onRemove } = props
+  const { lesson: l, classes, year, schedules, today, files, autoFocus, onType, onMaterials, onRemove } = props
   const { ref: sortRef, style, dragging, handle } = useSortableItem(lessonKey(l.id))
   return (
     <div
@@ -644,7 +659,7 @@ function EditLesson(props: EditLessonProps) {
     >
       <div className="l-lead">
         <DragHandle label={`Перемістити урок ${lessonNo(l)}`} {...handle} />
-        <span className="no num" title={l.extra ? 'Не входить у нумерацію' : undefined}>
+        <span className={l.extra ? 'no num extra' : 'no num'} title={l.extra ? 'Не входить у нумерацію' : undefined}>
           {lessonNo(l)}
         </span>
       </div>
@@ -662,12 +677,19 @@ function EditLesson(props: EditLessonProps) {
       {classes.length > 0 && (
         <div className="l-dates">
           {classes.map((c) => (
-            <DateCell key={c.id} lesson={l} cls={c} year={year} schedule={schedules.get(`${l.id}_${c.id}`)} />
+            <DateCell
+              key={c.id}
+              lesson={l}
+              cls={c}
+              year={year}
+              today={today}
+              schedule={schedules.get(`${l.id}_${c.id}`)}
+            />
           ))}
         </div>
       )}
       <select
-        className="cell l-type"
+        className={`l-type type-pill ${l.lesson_type}`}
         aria-label="Тип уроку"
         value={l.lesson_type}
         onChange={(e) => onType(e.target.value as LessonType)}
@@ -696,10 +718,10 @@ function EditLesson(props: EditLessonProps) {
   )
 }
 
-type DateCellProps = { lesson: Lesson; cls: ClassGroup; year?: AcademicYear; schedule?: LessonSchedule }
+type DateCellProps = { lesson: Lesson; cls: ClassGroup; year?: AcademicYear; today: string; schedule?: LessonSchedule }
 
 /** Дата уроку для одного класу; порожньо — урок цьому класу не призначено. */
-function DateCell({ lesson, cls, year, schedule }: DateCellProps) {
+function DateCell({ lesson, cls, year, today, schedule }: DateCellProps) {
   const stored = schedule?.planned_date ?? null
 
   function save(date: string | null) {
@@ -719,7 +741,7 @@ function DateCell({ lesson, cls, year, schedule }: DateCellProps) {
   }
 
   return (
-    <span className="l-date">
+    <span className={stored && stored < today ? 'l-date past' : 'l-date'}>
       <span className="l-date-class">{cls.display_name}</span>
       <DatePicker
         compact

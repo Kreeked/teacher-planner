@@ -93,11 +93,9 @@ export function AutoDates({ course, topics, lessons, links, classes }: Props) {
 
   return (
     <div className="auto-dates">
-      <span className="form-label">Дні уроків і автодати</span>
       <p className="muted small-text">
-        Дні уроків беруться з тижневого розкладу (здвоєний урок — два уроки КТП в один день). Якщо класу ще немає в
-        розкладі, познач дні тут. «Заповнити» поставить дати урокам, у яких їх ще немає, після останньої вже поставленої
-        дати й лише в межах семестрів. Свята поки не враховуються — їх можна виправити вручну.
+        Дні беруться з розкладу, а якщо класу там немає, познач їх тут. «Заповнити дати» ставить дати порожнім урокам у
+        межах семестрів; свята виправ вручну.
       </p>
       {rows.map(({ link, cls }) => (
         <div key={link.id} className="auto-row">
@@ -129,7 +127,7 @@ export function AutoDates({ course, topics, lessons, links, classes }: Props) {
             disabled={!inTimetable(cls.id) && !link.weekdays.length}
             onClick={() => fill(link, cls)}
           >
-            <CalendarPlus size={14} /> Заповнити
+            <CalendarPlus size={14} /> Заповнити дати
           </button>
           {done[cls.id] && <span className="muted small-text">{done[cls.id]}</span>}
         </div>

@@ -1,3 +1,4 @@
+import { ask } from '../../lib/confirm'
 import { ArrowLeft, Download, FileUp, Plus, Trash2 } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
@@ -51,8 +52,8 @@ export function CourseTests() {
     if (files.length === 1 && last) navigate(`/tests/${last}`)
   }
 
-  function remove(t: Test) {
-    if (confirm(`Видалити тест «${t.title}» (${t.questions.length} ${questionsWord(t.questions.length)})?`))
+  async function remove(t: Test) {
+    if (await ask(`Видалити тест «${t.title}» (${t.questions.length} ${questionsWord(t.questions.length)})?`))
       removeDoc('tests', t.id)
   }
 
@@ -62,15 +63,17 @@ export function CourseTests() {
         <Link to={`/ktp/${courseId}`} className="back">
           <ArrowLeft size={14} /> {courseTitle(course)}
         </Link>
-        <div className="sec-head">
+        <div className="sec-head page-head">
           <h1>Тести</h1>
           <span className="grow" />
-          <button className="chip plain" onClick={() => fileInput.current?.click()}>
-            <FileUp size={14} /> З Excel
-          </button>
-          <button className="chip plain" onClick={() => navigate(`/tests/${create('Новий тест', [])}`)}>
-            <Plus size={14} /> Новий тест
-          </button>
+          <div className="actions">
+            <button className="btn ghost" onClick={() => fileInput.current?.click()}>
+              <FileUp size={15} /> З Excel
+            </button>
+            <button className="btn" onClick={() => navigate(`/tests/${create('Новий тест', [])}`)}>
+              <Plus size={15} /> Новий тест
+            </button>
+          </div>
           <input
             ref={fileInput}
             type="file"

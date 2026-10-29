@@ -1,3 +1,4 @@
+import { ask } from '../../lib/confirm'
 import {
   Cloud,
   File,
@@ -16,6 +17,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { Dialog } from '../../components/Dialog'
 import { DragHandle, SortableList } from '../../components/Sortable'
 import { useSortableItem } from '../../lib/drag'
 import { commit, createDoc, newBatch, removeDoc, updateFields } from '../../data/db'
@@ -230,124 +232,103 @@ export function MaterialsDialog({ course, year, lesson, topic, materials, onClos
     commit(batch)
   }
 
-  function remove(m: LessonMaterial) {
+  async function remove(m: LessonMaterial) {
     const note = m.kind === 'file' ? ' Сам файл залишиться на Google Диску.' : ''
-    if (confirm(`Прибрати «${m.title}»?${note}`)) removeDoc('lesson_materials', m.id)
+    if (await ask(`Прибрати «${m.title}»?${note}`, { ok: 'Прибрати' })) removeDoc('lesson_materials', m.id)
   }
 
   return (
-    <div className="overlay" onClick={onClose}>
-      <div
-        className="dialog materials-dialog"
-        role="dialog"
-        aria-label="Матеріали"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="dialog-head">
-          <div className="grow">
-            <b>Матеріали</b>
-            <span>{heading}</span>
+    <Dialog title="Матеріали" subtitle={heading} onClose={onClose} className="materials-dialog">
+      <div className="material-list">
+        {!own.length && !uploads.length && <p className="muted small-text">Ще нічого не додано.</p>}
+        <SortableList items={own} getId={(m) => m.id} onReorder={reorder}>
+          {(m) => <MaterialRow key={m.id} m={m} onRemove={() => remove(m)} />}
+        </SortableList>
+        {uploads.map((u) => (
+          <div key={u.name} className="material-row uploading">
+            <Upload size={14} />
+            <span className="grow">{u.name}</span>
+            {u.error ? <span className="field-error">{u.error}</span> : <small>{Math.round(u.progress * 100)}%</small>}
+            {u.error && (
+              <button
+                className="icon-btn"
+                onClick={() => setUploads((x) => x.filter((y) => y !== u))}
+                aria-label="Сховати"
+              >
+                <X size={14} />
+              </button>
+            )}
           </div>
-          <button className="icon-btn" onClick={onClose} aria-label="Закрити">
-            <X size={16} />
-          </button>
-        </div>
-
-        <div className="material-list">
-          {!own.length && !uploads.length && <p className="muted small-text">Ще нічого не додано.</p>}
-          <SortableList items={own} getId={(m) => m.id} onReorder={reorder}>
-            {(m) => <MaterialRow key={m.id} m={m} onRemove={() => remove(m)} />}
-          </SortableList>
-          {uploads.map((u) => (
-            <div key={u.name} className="material-row uploading">
-              <Upload size={14} />
-              <span className="grow">{u.name}</span>
-              {u.error ? (
-                <span className="field-error">{u.error}</span>
-              ) : (
-                <small>{Math.round(u.progress * 100)}%</small>
-              )}
-              {u.error && (
-                <button
-                  className="icon-btn"
-                  onClick={() => setUploads((x) => x.filter((y) => y !== u))}
-                  aria-label="Сховати"
-                >
-                  <X size={14} />
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-
-        {shared.length > 0 && (
-          <>
-            <span className="form-label">Спільні для всієї теми</span>
-            <div className="material-list">
-              {shared.map((m) => (
-                <MaterialLink key={m.id} m={m} />
-              ))}
-            </div>
-          </>
-        )}
-
-        <div className="row-actions">
-          <button className="btn ghost small" disabled={!canDrive} onClick={() => fileInput.current?.click()}>
-            <Upload size={14} /> Файл з пристрою
-          </button>
-          <button className="btn ghost small" disabled={!canDrive} onClick={pick}>
-            <Cloud size={14} /> З Google Диска
-          </button>
-          <button className="btn ghost small" onClick={() => setLinkOpen(!linkOpen)} aria-expanded={linkOpen}>
-            <Link2 size={14} /> Посилання
-          </button>
-          <input
-            ref={fileInput}
-            type="file"
-            multiple
-            hidden
-            onChange={(e) => (upload(e.target.files), (e.target.value = ''))}
-          />
-        </div>
-        {!driveConfigured && (
-          <p className="muted small-text">
-            Підключення до Google Диска ще налаштовується, поки можна додавати посилання.
-          </p>
-        )}
-        {driveConfigured && !online && (
-          <p className="muted small-text">Без інтернету файли не завантажуються, посилання додати можна.</p>
-        )}
-
-        {linkOpen && (
-          <form
-            className="link-form"
-            onSubmit={(e) => {
-              e.preventDefault()
-              addLink()
-            }}
-          >
-            <input
-              className="field"
-              autoFocus
-              placeholder="Посилання"
-              aria-label="Посилання"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-            />
-            <input
-              className="field"
-              placeholder="Назва (необов'язково)"
-              aria-label="Назва посилання"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
-            <button className="btn small" type="submit" disabled={!url.trim()}>
-              Додати
-            </button>
-          </form>
-        )}
-        {error && <p className="field-error">{error}</p>}
+        ))}
       </div>
-    </div>
+
+      {shared.length > 0 && (
+        <>
+          <span className="form-label">Спільні для всієї теми</span>
+          <div className="material-list">
+            {shared.map((m) => (
+              <MaterialLink key={m.id} m={m} />
+            ))}
+          </div>
+        </>
+      )}
+
+      <div className="row-actions">
+        <button className="btn ghost" disabled={!canDrive} onClick={() => fileInput.current?.click()}>
+          <Upload size={15} /> Файл з пристрою
+        </button>
+        <button className="btn ghost" disabled={!canDrive} onClick={pick}>
+          <Cloud size={15} /> З Google Диска
+        </button>
+        <button className="btn ghost" onClick={() => setLinkOpen(!linkOpen)} aria-expanded={linkOpen}>
+          <Link2 size={15} /> Посилання
+        </button>
+        <input
+          ref={fileInput}
+          type="file"
+          multiple
+          hidden
+          onChange={(e) => (upload(e.target.files), (e.target.value = ''))}
+        />
+      </div>
+      {!driveConfigured && (
+        <p className="muted small-text">
+          Підключення до Google Диска ще налаштовується, поки можна додавати посилання.
+        </p>
+      )}
+      {driveConfigured && !online && (
+        <p className="muted small-text">Без інтернету файли не завантажуються, посилання додати можна.</p>
+      )}
+
+      {linkOpen && (
+        <form
+          className="link-form"
+          onSubmit={(e) => {
+            e.preventDefault()
+            addLink()
+          }}
+        >
+          <input
+            className="field"
+            autoFocus
+            placeholder="Посилання"
+            aria-label="Посилання"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+          />
+          <input
+            className="field"
+            placeholder="Назва (необов'язково)"
+            aria-label="Назва посилання"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+          />
+          <button className="btn" type="submit" disabled={!url.trim()}>
+            Додати
+          </button>
+        </form>
+      )}
+      {error && <p className="field-error">{error}</p>}
+    </Dialog>
   )
 }

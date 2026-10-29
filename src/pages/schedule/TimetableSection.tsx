@@ -1,3 +1,4 @@
+import { ask } from '../../lib/confirm'
 import { CopyPlus } from 'lucide-react'
 import { useState } from 'react'
 import { DatePicker } from '../../components/DatePicker'
@@ -125,7 +126,7 @@ export function TimetableSection({ year, bells, timetables, entries, courses, cl
   }
 
   async function remove(t: Timetable) {
-    if (!confirm(`Видалити «${t.title}» з усіма клітинками?`)) return
+    if (!(await ask(`Видалити «${t.title}» з усіма клітинками?`))) return
     deleteRefs([ref('timetables', t.id), ...(await refsWhere('timetable_entries', 'timetable_id', t.id))])
     setSelectedId(null)
   }
@@ -218,7 +219,7 @@ export function TimetableSection({ year, bells, timetables, entries, courses, cl
             value={copyFrom || null}
             onChange={(d) => setCopyFrom(d ?? '')}
           />
-          <button className="btn ghost small" disabled={!copyFrom} onClick={copyFromDate}>
+          <button className="btn ghost" disabled={!copyFrom} onClick={copyFromDate}>
             <CopyPlus size={14} /> Новий розклад з цієї дати
           </button>
         </div>

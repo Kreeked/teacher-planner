@@ -1,5 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../auth/context'
+import { ConfirmHost } from '../components/Confirm'
+import { SavedToast } from '../components/Saved'
 import { useOfflineAutoSync } from '../lib/useOfflinePlan'
 import { useOnline } from '../lib/useOnline'
 import { NAV } from './nav'
@@ -43,6 +45,8 @@ export function AppLayout() {
         </header>
         <Outlet />
       </div>
+      <ConfirmHost />
+      <SavedToast />
 
       <nav className="tabbar" aria-label="Розділи">
         {NAV.map(({ to, label, icon: Icon }) => (

@@ -1,9 +1,12 @@
 import { useState } from 'react'
 import { DatePicker } from '../../components/DatePicker'
+import { Dialog } from '../../components/Dialog'
 import { commit, createDoc, newBatch } from '../../data/db'
 import { defaultYear, defaultYearStart, validateYear } from '../../data/year'
 
-export function NewYearForm({ onCreated, makeCurrent }: { onCreated: (id: string) => void; makeCurrent: boolean }) {
+type Props = { onCreated: (id: string) => void; onClose: () => void; makeCurrent: boolean }
+
+export function NewYearForm({ onCreated, onClose, makeCurrent }: Props) {
   const [initial] = useState(() => defaultYear(defaultYearStart(new Date())))
   const [title, setTitle] = useState(initial.title)
   const [start, setStart] = useState(initial.start_date)
@@ -45,35 +48,46 @@ export function NewYearForm({ onCreated, makeCurrent }: { onCreated: (id: string
   }
 
   return (
-    <form className="panel form" onSubmit={submit}>
-      <h3>Новий навчальний рік</h3>
-      <label>
-        Назва
-        <input className="field" value={title} onChange={(e) => setTitle(e.target.value)} />
-      </label>
-      <div className="form-row">
-        <div className="label">
-          Початок
-          <DatePicker label="Початок року" value={start || null} onChange={(d) => setStart(d ?? '')} />
+    <Dialog
+      title="Новий навчальний рік"
+      onClose={onClose}
+      footer={
+        <>
+          <button type="button" className="btn ghost" onClick={onClose}>
+            Скасувати
+          </button>
+          <button className="btn" form="new-year" disabled={!!error || !title.trim()}>
+            Створити рік
+          </button>
+        </>
+      }
+    >
+      <form id="new-year" className="form" onSubmit={submit}>
+        <label>
+          Назва
+          <input className="field" value={title} onChange={(e) => setTitle(e.target.value)} />
+        </label>
+        <div className="form-grid two">
+          <div className="label">
+            Початок
+            <DatePicker label="Початок року" value={start || null} onChange={(d) => setStart(d ?? '')} />
+          </div>
+          <div className="label">
+            Кінець
+            <DatePicker
+              label="Кінець року"
+              value={end || null}
+              min={start || undefined}
+              onChange={(d) => setEnd(d ?? '')}
+            />
+          </div>
         </div>
-        <div className="label">
-          Кінець
-          <DatePicker
-            label="Кінець року"
-            value={end || null}
-            min={start || undefined}
-            onChange={(d) => setEnd(d ?? '')}
-          />
-        </div>
-      </div>
-      <label className="check">
-        <input type="checkbox" checked={withSemesters} onChange={(e) => setWithSemesters(e.target.checked)} />
-        Одразу додати два семестри (дати можна змінити)
-      </label>
-      {error && <p className="field-error">{error}</p>}
-      <button className="btn" disabled={!!error || !title.trim()}>
-        Створити рік
-      </button>
-    </form>
+        <label className="check">
+          <input type="checkbox" checked={withSemesters} onChange={(e) => setWithSemesters(e.target.checked)} />
+          Одразу додати два семестри (дати можна змінити)
+        </label>
+        {error && <p className="field-error">{error}</p>}
+      </form>
+    </Dialog>
   )
 }

@@ -1,3 +1,4 @@
+import { ask } from '../../lib/confirm'
 import { CircleCheck, CloudDownload, CloudOff, Pin, RotateCcw, Trash2 } from 'lucide-react'
 import { OFFLINE_DAYS, OFFLINE_LIMIT, type OfflineItem } from '../../data/offline'
 import { formatSize } from '../../data/materials'
@@ -24,8 +25,8 @@ export function OfflineFilesSection() {
   // Копії, яких план уже не потребує: урок минув або матеріал прибрали.
   const stale = [...files.saved.values()].filter((f) => !planned.has(f.id))
 
-  function clear() {
-    if (confirm('Видалити всі копії з цього пристрою? Нові не зберігатимуться, доки не натиснеш «Зберегти зараз».'))
+  async function clear() {
+    if (await ask('Видалити всі копії з цього пристрою? Нові не зберігатимуться, доки не натиснеш «Зберегти зараз».'))
       clearAll()
   }
 

@@ -1,5 +1,7 @@
+import { ask } from '../../lib/confirm'
 import { Plus } from 'lucide-react'
 import { RangeRow } from '../../components/RangeRow'
+import { notifySaved } from '../../lib/saved'
 import { commit, createDoc, newBatch, ref, updateFields } from '../../data/db'
 import type { AcademicYear, Period } from '../../data/types'
 import { ROMAN, sortPeriods, validatePeriod } from '../../data/year'
@@ -36,10 +38,10 @@ export function PeriodsSection({ year, periods }: { year: AcademicYear; periods:
     })
   }
 
-  function remove(p: Period) {
+  async function remove(p: Period) {
     const children = periods.filter((x) => x.parent_id === p.id)
     const what = children.length ? `${p.title} разом із чвертями (${children.length})` : p.title
-    if (!confirm(`Видалити ${what}?`)) return
+    if (!(await ask(`Видалити ${what}?`))) return
     const batch = newBatch()
     for (const x of [p, ...children]) batch.delete(ref('periods', x.id))
     commit(batch)
@@ -53,7 +55,7 @@ export function PeriodsSection({ year, periods }: { year: AcademicYear; periods:
         titleLabel="Назва періоду"
         value={p}
         validate={(v) => validatePeriod({ ...v, id: p.id, parent_id: p.parent_id }, year, periods)}
-        onSave={(v) => updateFields('periods', p.id, v)}
+        onSave={(v) => (updateFields('periods', p.id, v), notifySaved())}
         onDelete={() => remove(p)}
       />
     )
