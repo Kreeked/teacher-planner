@@ -22,7 +22,7 @@ import {
   Trash2,
   TriangleAlert,
 } from 'lucide-react'
-import { useState, type CSSProperties, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { DatePicker } from '../../components/DatePicker'
 import { toISO } from '../../data/schedule'
@@ -140,7 +140,6 @@ export function CoursePage() {
     .map((l) => yearClasses.find((c) => c.id === l.class_group_id))
     .filter((c): c is ClassGroup => !!c)
   const scheduleById = new Map(schedules.map((s) => [s.id, s]))
-  const gridStyle = classes.length ? ({ '--date-cols': `repeat(${classes.length}, 58px)` } as CSSProperties) : undefined
   const topicFiles = (id: string) =>
     materials.filter((m) => m.topic_id === id && !m.lesson_id).sort((a, b) => a.position - b.position)
 
@@ -303,20 +302,6 @@ export function CoursePage() {
       ? blocks.find((b) => topicKey(b.topic.id) === drag.id)?.topic
       : blocks.flatMap((b) => b.lessons).find((l) => lessonKey(l.id) === drag.id))
 
-  const head = (
-    <div className="ktp-head" style={gridStyle}>
-      <span>№</span>
-      <span>Тема уроку</span>
-      {classes.map((c) => (
-        <span key={c.id} className="date-head">
-          {c.display_name}
-        </span>
-      ))}
-      {editing && <span>Тип</span>}
-      <span>Домашнє завдання</span>
-    </div>
-  )
-
   return (
     <div className="page">
       <main className="main">
@@ -419,14 +404,13 @@ export function CoursePage() {
               onDragCancel={() => setDrag(null)}
             >
               <div className="ktp edit">
-                {head}
                 <SortableContext items={blocks.map((b) => topicKey(b.topic.id))} strategy={verticalListSortingStrategy}>
                   {blocks.map((b) => (
                     <EditTopic
                       key={b.topic.id}
                       block={b}
                       warning={warnings.find((x) => x.topicId === b.topic.id)}
-                      files={topicFiles(b.topic.id).length}
+                      files={topicFiles(b.topic.id)}
                       onMaterials={() => setMaterialsFor({ topicId: b.topic.id })}
                       onRemove={() => removeTopic(b)}
                       onAddLesson={() => addLesson(b.topic)}
@@ -439,8 +423,8 @@ export function CoursePage() {
                           year={year}
                           schedules={scheduleById}
                           today={today}
-                          files={materials.filter((m) => m.lesson_id === l.id).length}
-                          style={gridStyle}
+                          files={materialsOf(materials, l).own}
+                          color={color}
                           autoFocus={l.id === newLessonId}
                           onType={(t) => setType(l, t)}
                           onMaterials={() => setMaterialsFor({ lessonId: l.id })}
@@ -580,7 +564,7 @@ function materialsItem(count: number, onSelect: () => void): MenuItem {
 type EditTopicProps = {
   block: TopicBlock
   warning?: Warning
-  files: number
+  files: LessonMaterial[]
   onMaterials: () => void
   onRemove: () => void
   onAddLesson: () => void
@@ -602,6 +586,7 @@ function EditTopic({ block: b, warning, files, onMaterials, onRemove, onAddLesso
           onSave={(title) => title && updateFields('topics', b.topic.id, { title })}
         />
         <label className="hours" title="Годин за програмою">
+          <span className="num">{countedLessons(b.lessons)}</span> /
           <input
             className="cell num"
             inputMode="numeric"
@@ -625,10 +610,17 @@ function EditTopic({ block: b, warning, files, onMaterials, onRemove, onAddLesso
         <Menu
           label={`Дії з темою «${b.topic.title}»`}
           groups={[
-            [materialsItem(files, onMaterials)],
+            [materialsItem(files.length, onMaterials)],
             [{ label: 'Видалити тему', icon: Trash2, danger: true, onSelect: onRemove }],
           ]}
         />
+        {files.length > 0 && (
+          <div className="l-files topic-files">
+            {files.map((m) => (
+              <MaterialLink key={m.id} m={m} />
+            ))}
+          </div>
+        )}
       </div>
 
       <SortableContext items={b.lessons.map((l) => lessonKey(l.id))} strategy={verticalListSortingStrategy}>
@@ -650,30 +642,34 @@ type EditLessonProps = {
   year?: AcademicYear
   schedules: Map<string, LessonSchedule>
   today: string
-  files: number
-  style?: CSSProperties
+  files: LessonMaterial[]
+  color: string
   autoFocus: boolean
   onType: (t: LessonType) => void
   onMaterials: () => void
   onRemove: () => void
 }
 
+/** Урок у режимі редагування — той самий рядок, що й у перегляді, але з полями. */
 function EditLesson(props: EditLessonProps) {
-  const { lesson: l, classes, year, schedules, today, files, autoFocus, onType, onMaterials, onRemove } = props
+  const { lesson: l, classes, year, schedules, today, files, color, autoFocus, onType, onMaterials, onRemove } = props
   const { ref: sortRef, style, dragging, handle } = useSortableItem(lessonKey(l.id))
+  const cls = ['lesson-item', 'editing', l.lesson_type === 'reserve' && 'reserve', dragging && 'placeholder-row']
   return (
-    <div
-      ref={sortRef}
-      className={dragging ? 'lesson-row placeholder-row' : 'lesson-row'}
-      style={{ ...props.style, ...style }}
-    >
-      <div className="l-lead">
-        <DragHandle label={`Перемістити урок ${lessonNo(l)}`} {...handle} />
-        <span className={l.extra ? 'no num extra' : 'no num'} title={l.extra ? 'Не входить у нумерацію' : undefined}>
-          {lessonNo(l)}
-        </span>
-      </div>
-      <div className="l-main">
+    <div ref={sortRef} className={cls.filter(Boolean).join(' ')} style={style}>
+      {/* Коло з номером — ручка: за нього урок перетягують. */}
+      <button
+        type="button"
+        className="l-no num drag-handle"
+        style={{ background: color }}
+        aria-label={`Перемістити урок ${lessonNo(l)}`}
+        title="Перетягни, щоб змінити порядок"
+        {...handle}
+      >
+        <span className="l-no-n">{lessonNo(l)}</span>
+        <GripVertical className="l-no-grip" size={15} />
+      </button>
+      <div className="l-body">
         <InlineText
           multiline
           autoFocus={autoFocus}
@@ -683,9 +679,39 @@ function EditLesson(props: EditLessonProps) {
           value={l.title}
           onSave={(title) => updateFields('lessons', l.id, { title })}
         />
+        {files.length > 0 && (
+          <div className="l-files">
+            {files.map((m) => (
+              <MaterialLink key={m.id} m={m} />
+            ))}
+          </div>
+        )}
+        <div className="l-meta">
+          <select
+            className={`type-pill ${l.lesson_type}`}
+            aria-label="Тип уроку"
+            value={l.lesson_type}
+            onChange={(e) => onType(e.target.value as LessonType)}
+          >
+            {LESSON_TYPES.map((t) => (
+              <option key={t.value} value={t.value}>
+                {t.label}
+              </option>
+            ))}
+          </select>
+          <span className="l-hw-label">ДЗ:</span>
+          <InlineText
+            multiline
+            className="l-hw"
+            label={`ДЗ до уроку ${lessonNo(l)}`}
+            placeholder="додати"
+            value={l.homework}
+            onSave={(homework) => updateFields('lessons', l.id, { homework })}
+          />
+        </div>
       </div>
       {classes.length > 0 && (
-        <div className="l-dates">
+        <div className="l-pills">
           {classes.map((c) => (
             <DateCell
               key={c.id}
@@ -698,35 +724,13 @@ function EditLesson(props: EditLessonProps) {
           ))}
         </div>
       )}
-      <select
-        className={`l-type type-pill ${l.lesson_type}`}
-        aria-label="Тип уроку"
-        value={l.lesson_type}
-        onChange={(e) => onType(e.target.value as LessonType)}
-      >
-        {LESSON_TYPES.map((t) => (
-          <option key={t.value} value={t.value}>
-            {t.label}
-          </option>
-        ))}
-      </select>
-      <InlineText
-        multiline
-        className="l-hw"
-        label={`ДЗ до уроку ${lessonNo(l)}`}
-        placeholder="ДЗ"
-        value={l.homework}
-        onSave={(homework) => updateFields('lessons', l.id, { homework })}
+      <Menu
+        label={`Дії з уроком ${lessonNo(l)}`}
+        groups={[
+          [materialsItem(files.length, onMaterials)],
+          [{ label: 'Видалити урок', icon: Trash2, danger: true, onSelect: onRemove }],
+        ]}
       />
-      <span className="row-tools">
-        <Menu
-          label={`Дії з уроком ${lessonNo(l)}`}
-          groups={[
-            [materialsItem(files, onMaterials)],
-            [{ label: 'Видалити урок', icon: Trash2, danger: true, onSelect: onRemove }],
-          ]}
-        />
-      </span>
     </div>
   )
 }
@@ -754,8 +758,8 @@ function DateCell({ lesson, cls, year, today, schedule }: DateCellProps) {
   }
 
   return (
-    <span className={stored && stored < today ? 'l-date past' : 'l-date'}>
-      <span className="l-date-class">{cls.display_name}</span>
+    <span className={['date-pill', stored && stored < today && 'past', !stored && 'empty'].filter(Boolean).join(' ')}>
+      <span>{cls.display_name}</span>
       <DatePicker
         compact
         clearable
