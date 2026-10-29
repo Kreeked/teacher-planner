@@ -1243,31 +1243,8 @@ a.chip {
 
 /* ---------- Імпорт ---------- */
 
-/* ---------- Автодати ---------- */
-.auto-dates {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.auto-dates .muted {
-  margin: 0 0 4px;
-}
-
 .small-text {
   font-size: 12px;
-}
-
-.auto-row {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.auto-class {
-  min-width: 44px;
-  font-size: 13px;
 }
 
 .btn.small {

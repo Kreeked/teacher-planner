@@ -116,8 +116,8 @@ export async function applyImport(
   const links = target ? await load('course_classes', 'course_id', courseId) : []
   for (const id of classIds)
     if (!links.some((l) => l.class_group_id === id)) {
-      createDoc('course_classes', { course_id: courseId, class_group_id: id, weekdays: [], position: links.length }, w.batch)
-      links.push({ id: '', owner_id: uid, course_id: courseId, class_group_id: id, weekdays: [], position: links.length })
+      createDoc('course_classes', { course_id: courseId, class_group_id: id, position: links.length }, w.batch)
+      links.push({ id: '', owner_id: uid, course_id: courseId, class_group_id: id, position: links.length })
     }
 
   // ---------- Теми й уроки ----------

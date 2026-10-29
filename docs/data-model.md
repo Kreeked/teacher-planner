@@ -10,8 +10,8 @@ Firestore: кожна колекція лежить у `users/{uid}/<колек�
 | `academic_years` | навчальний рік | title, start_date, end_date, is_current (лише один поточний) |
 | `periods` | семестр / чверть | academic_year_id, parent_id (чверть → семестр), kind, title, дати, position |
 | `class_groups` | клас | academic_year_id, grade, letter, display_name («9-А») |
-| `courses` | КТП предмета для паралелі | academic_year_id, subject, grade, hours_per_week, total_hours, program_ref, status |
-| `course_classes` | клас, що йде за КТП | course_id, class_group_id, weekdays (1 = пн; запасне джерело автодат), position (порядок колонок дат) |
+| `courses` | КТП предмета для паралелі | academic_year_id, subject, grade, hours_per_week (І семестр), hours_per_week_2 (ІІ семестр; немає — як у І), total_hours, program_ref, status |
+| `course_classes` | клас, що йде за КТП | course_id, class_group_id, position (порядок колонок дат) |
 | `topics` | тема (один рівень) | course_id, position, title, planned_hours |
 | `lessons` | урок КТП | course_id, topic_id, period_id, position (у темі), number (наскрізний), title, lesson_type, homework, notes, extra |
 | `lesson_schedules` | дата уроку для класу | id = `${lesson_id}_${class_group_id}`; course_id, planned_date, actual_date (не використовується), status, note |

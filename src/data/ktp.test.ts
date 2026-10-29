@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { groupLessons, hourWarnings, lessonsWord, placeLesson, placeTopic, renumber, typePatch } from './ktp'
+import { groupLessons, hourWarnings, lessonsWord, placeLesson, placeTopic, renumber, typePatch, weeklyHours } from './ktp'
 import type { Lesson, Topic } from './types'
 
 function topic(id: string, position: number, planned_hours = 0): Topic {
@@ -126,5 +126,13 @@ describe('lessonsWord', () => {
       'уроків',
       'уроків',
     ])
+  })
+})
+
+describe('weeklyHours', () => {
+  it('shows one number or both semesters', () => {
+    expect(weeklyHours({ hours_per_week: 1.5 })).toBe('1,5')
+    expect(weeklyHours({ hours_per_week: 2, hours_per_week_2: 2 })).toBe('2')
+    expect(weeklyHours({ hours_per_week: 2, hours_per_week_2: 1 })).toBe('2 / 1')
   })
 })

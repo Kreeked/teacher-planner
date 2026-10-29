@@ -4,14 +4,7 @@ import { Dialog } from '../../components/Dialog'
 import { notifySaved } from '../../lib/saved'
 import { createDoc, deleteRefs, ref, refsWhere, removeDoc, updateFields, useCollection } from '../../data/db'
 import { courseTitle } from '../../data/ktp'
-import type { Course, CourseStatus, Lesson, Topic } from '../../data/types'
-import { AutoDates } from './AutoDates'
-
-const STATUSES: { value: CourseStatus; label: string }[] = [
-  { value: 'draft', label: 'Чернетка' },
-  { value: 'approved', label: 'Затверджено' },
-  { value: 'archived', label: 'В архіві' },
-]
+import type { Course, Lesson, Topic } from '../../data/types'
 
 type Props = { course: Course; topics: Topic[]; lessons: Lesson[]; onDeleted: () => void; onClose: () => void }
 
@@ -25,6 +18,7 @@ export function CourseSettings({ course, topics, lessons, onDeleted, onClose }: 
   const gradeClasses = classes
     .filter((c) => c.grade === course.grade)
     .sort((a, b) => a.letter.localeCompare(b.letter, 'uk'))
+  const second = course.hours_per_week_2 ?? course.hours_per_week
 
   function save(patch: Partial<Course>) {
     updateFields('courses', course.id, patch)
@@ -38,14 +32,14 @@ export function CourseSettings({ course, topics, lessons, onDeleted, onClose }: 
       createDoc('course_classes', {
         course_id: course.id,
         class_group_id: classId,
-        weekdays: [],
         position: links.length,
       })
   }
 
-  function number(field: 'hours_per_week' | 'total_hours', raw: string) {
+  function number(field: 'hours_per_week' | 'hours_per_week_2' | 'total_hours', raw: string) {
     const n = Number(raw.replace(',', '.'))
-    if (n > 0 && n !== course[field]) save({ [field]: field === 'total_hours' ? Math.round(n) : n })
+    const current = field === 'hours_per_week_2' ? second : course[field]
+    if (n > 0 && n !== current) save({ [field]: field === 'total_hours' ? Math.round(n) : n })
   }
 
   async function remove() {
@@ -69,40 +63,39 @@ export function CourseSettings({ course, topics, lessons, onDeleted, onClose }: 
   return (
     <Dialog title="Параметри КТП" subtitle={courseTitle(course)} onClose={onClose} className="settings-dialog">
       <section className="form dialog-sec">
-        <span className="sec-label">Основне</span>
-        <div className="form-grid two">
+        <label>
+          Предмет
+          <input
+            className="field"
+            defaultValue={course.subject}
+            onBlur={(e) => {
+              const v = e.target.value.trim()
+              if (v && v !== course.subject) save({ subject: v })
+            }}
+          />
+        </label>
+      </section>
+
+      <section className="form dialog-sec">
+        <span className="sec-label">Годин на тиждень</span>
+        <div className="form-grid three">
           <label>
-            Предмет
-            <input
-              className="field"
-              defaultValue={course.subject}
-              onBlur={(e) => {
-                const v = e.target.value.trim()
-                if (v && v !== course.subject) save({ subject: v })
-              }}
-            />
-          </label>
-          <label>
-            Статус
-            <select
-              className="field"
-              value={course.status}
-              onChange={(e) => save({ status: e.target.value as CourseStatus })}
-            >
-              {STATUSES.map((s) => (
-                <option key={s.value} value={s.value}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Годин на тиждень
+            І семестр
             <input
               className="field"
               inputMode="decimal"
               defaultValue={course.hours_per_week}
               onBlur={(e) => number('hours_per_week', e.target.value)}
+            />
+          </label>
+          <label>
+            ІІ семестр
+            <input
+              key={second}
+              className="field"
+              inputMode="decimal"
+              defaultValue={second}
+              onBlur={(e) => number('hours_per_week_2', e.target.value)}
             />
           </label>
           <label>
@@ -115,21 +108,10 @@ export function CourseSettings({ course, topics, lessons, onDeleted, onClose }: 
             />
           </label>
         </div>
-        <label>
-          Навчальна програма
-          <input
-            className="field"
-            defaultValue={course.program_ref}
-            onBlur={(e) => {
-              const v = e.target.value.trim()
-              if (v !== course.program_ref) save({ program_ref: v })
-            }}
-          />
-        </label>
       </section>
 
       <section className="form dialog-sec">
-        <span className="sec-label">Класи і дні уроків</span>
+        <span className="sec-label">Класи</span>
         <div className="chips">
           {gradeClasses.map((c) => {
             const on = links.some((l) => l.class_group_id === c.id)
@@ -146,7 +128,6 @@ export function CourseSettings({ course, topics, lessons, onDeleted, onClose }: 
             )
           })}
         </div>
-        <AutoDates course={course} topics={topics} lessons={lessons} links={links} classes={classes} />
       </section>
 
       <section className="dialog-sec danger-zone">

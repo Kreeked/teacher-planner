@@ -8,7 +8,6 @@ import {
   timetableOn,
   validateBells,
   validateTimetable,
-  weekdaysFor,
 } from './timetable'
 
 describe('bells', () => {
@@ -50,6 +49,5 @@ describe('timetable', () => {
     const m = slotsOn(entries, all[0], '2026-09-07') // понеділок
     expect(m.get('9a_k')).toEqual([2, 3])
     expect(m.get('9b_k')).toEqual([5])
-    expect(weekdaysFor(entries, 't1', '9a', 'k')).toEqual([1, 1, 2])
   })
 })

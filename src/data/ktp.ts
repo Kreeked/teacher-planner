@@ -76,6 +76,13 @@ export function courseTitle(c: { subject: string; grade: number }) {
   return `${c.subject}, ${c.grade} клас`
 }
 
+/** Годин на тиждень для показу: «1,5» або «2 / 1», якщо в семестрах різне. */
+export function weeklyHours(c: { hours_per_week: number; hours_per_week_2?: number }) {
+  const fmt = (n: number) => String(n).replace('.', ',')
+  const second = c.hours_per_week_2 ?? c.hours_per_week
+  return second === c.hours_per_week ? fmt(c.hours_per_week) : `${fmt(c.hours_per_week)} / ${fmt(second)}`
+}
+
 /** Ставить урок у тему topicId на місце index (перетягування, зокрема між темами). */
 export function placeLesson(blocks: TopicBlock[], lessonId: string, topicId: string, index: number): TopicBlock[] {
   const lesson = blocks.flatMap((b) => b.lessons).find((l) => l.id === lessonId)
