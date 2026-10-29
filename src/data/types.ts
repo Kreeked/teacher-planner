@@ -127,6 +127,9 @@ export type TimetableEntry = Meta & {
 
 export type MaterialKind = 'file' | 'link'
 
+// Тип файлу уроку («поличка»): презентація, інструкційна картка, завдання для укриття, дистанційне, тест.
+export type MaterialCategory = 'slides' | 'card' | 'shelter' | 'remote' | 'test'
+
 // Матеріал до уроку або до всієї теми (заповнене рівно одне з lesson_id / topic_id).
 // Спільний для всіх класів паралелі; сам файл лежить на Google Диску.
 export type LessonMaterial = Meta & {
@@ -139,29 +142,11 @@ export type LessonMaterial = Meta & {
   url: string | null
   mime_type: string | null
   size_bytes: number | null
+  // Порядок усередині категорії (для матеріалів теми — у списку теми).
   position: number
   keep_offline: boolean
-}
-
-// Тест для Wayground: питання зберігаються в самому документі тесту (зазвичай до 30–50).
-export type QuestionType = 'Multiple Choice' | 'Checkbox' | 'Fill-in-the-Blank' | 'Open-Ended' | 'Poll' | 'Draw'
-
-export type Question = {
-  text: string
-  type: QuestionType
-  options: string[] // до 5
-  correct: number[] // номери правильних варіантів, від 1
-  time: number // секунди, лише значення з QUESTION_TIMES
-  image: string | null
-  explanation: string
-}
-
-export type Test = Meta & {
-  course_id: string
-  topic_id: string | null
-  lesson_id: string | null // тест уроку; інакше — тест теми або курсу
-  title: string
-  questions: Question[]
+  // Лише в матеріалів уроку; null — «Без типу». Старі записи без поля класифікуються один раз.
+  category?: MaterialCategory | null
 }
 
 export type Collections = {
@@ -177,7 +162,6 @@ export type Collections = {
   timetables: Timetable
   timetable_entries: TimetableEntry
   lesson_materials: LessonMaterial
-  tests: Test
 }
 
 export type CollectionName = keyof Collections
@@ -196,7 +180,6 @@ export const COLLECTION_NAMES: CollectionName[] = [
   'timetables',
   'timetable_entries',
   'lesson_materials',
-  'tests',
 ]
 
 export type NewDoc<T extends Meta> = Omit<T, keyof Meta>

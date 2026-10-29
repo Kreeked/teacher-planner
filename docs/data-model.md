@@ -18,10 +18,13 @@ Firestore: кожна колекція лежить у `users/{uid}/<колек�
 | `bell_schedules` | дзвінки року | academic_year_id, first_start, lesson_minutes, `slots[]` {number, start, end, break_after} |
 | `timetables` | тижневий розклад | academic_year_id, title, valid_from, valid_to |
 | `timetable_entries` | клітинка розкладу | timetable_id, weekday, slot_number, class_group_id, course_id |
-| `lesson_materials` | файл / посилання | course_id, lesson_id АБО topic_id (рівно одне), title, kind (file/link), drive_file_id, url, mime_type, size_bytes, position, keep_offline |
-| `tests` | тест Wayground | course_id, topic_id, lesson_id, title, `questions[]` {text, type, options, correct (від 1), time, image, explanation} |
+| `lesson_materials` | файл / посилання | course_id, lesson_id АБО topic_id (рівно одне), title, kind (file/link), drive_file_id, url, mime_type, size_bytes, position (у межах категорії), keep_offline, category |
+| `tests` | **застаріла**, лише для перенесення | старі тести Wayground: course_id, topic_id, lesson_id, title, `questions[]`. Не входить у `COLLECTION_NAMES` і резервну копію; документ видаляється після перенесення у файл |
 
 `lesson_type`: `regular | practical | test | project | reserve`. `status` дати: `planned | done | moved | cancelled`.
+`category` матеріалу уроку: `slides | card | shelter | remote | test`, `null` — «Без типу». У старих записів поля немає:
+при відкритті КТП чи «Сьогодні» вони один раз отримують `slides` (презентації) або `null` (`classifyLegacy` у `data/materials.ts`).
+У матеріалів теми `category` не використовується.
 
 ## Ключові принципи
 
