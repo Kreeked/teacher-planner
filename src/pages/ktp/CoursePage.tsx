@@ -15,6 +15,7 @@ import {
   Check,
   GripVertical,
   ListChecks,
+  Paperclip,
   Pencil,
   Plus,
   Settings2,
@@ -26,6 +27,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { DatePicker } from '../../components/DatePicker'
 import { toISO } from '../../data/schedule'
 import { InlineText } from '../../components/InlineText'
+import { Menu, type MenuItem } from '../../components/Menu'
 import { DragHandle } from '../../components/Sortable'
 import { useDragSensors, useSortableItem } from '../../lib/drag'
 import {
@@ -66,7 +68,7 @@ import type {
 } from '../../data/types'
 import { gradeColor, shortDate } from '../../data/year'
 import { CourseSettings } from './CourseSettings'
-import { MaterialLink, MaterialsButton, MaterialsDialog } from './Materials'
+import { MaterialLink, MaterialsDialog } from './Materials'
 import type { WriteBatch } from 'firebase/firestore'
 
 /** Записує новий порядок: позиції тем і номери/позиції уроків, що змінилися. */
@@ -345,11 +347,15 @@ export function CoursePage() {
           </div>
         </div>
 
-        <div className="chips">
-          <span className="chip plain" style={{ background: color }}>
-            {countedLessons(lessons)} {lessonsWord(countedLessons(lessons))} з {course.total_hours} год
+        <div className="course-progress">
+          <span className="meter" aria-hidden>
+            <i style={{ width: `${Math.min(100, (countedLessons(lessons) / (course.total_hours || 1)) * 100)}%` }} />
           </span>
-          <span className="chip plain">{course.hours_per_week} год/тиж</span>
+          <span>
+            <b className="num">{countedLessons(lessons)}</b> {lessonsWord(countedLessons(lessons))} з{' '}
+            {course.total_hours} год · {course.hours_per_week} год/тиж
+            {classes.length > 0 && ` · ${classes.map((c) => c.display_name).join(', ')}`}
+          </span>
         </div>
 
         {showSettings && (
@@ -370,9 +376,8 @@ export function CoursePage() {
 
         {!editing ? (
           <div className="ktp view">
-            {blocks.length > 0 && head}
             {blocks.map((b) => (
-              <section key={b.topic.id} className="topic" style={{ background: color }}>
+              <section key={b.topic.id} className="topic">
                 <TopicHead
                   block={b}
                   warning={warnings.find((x) => x.topicId === b.topic.id)}
@@ -386,8 +391,8 @@ export function CoursePage() {
                     classes={classes}
                     schedules={scheduleById}
                     today={today}
+                    color={color}
                     files={materialsOf(materials, l).own}
-                    style={gridStyle}
                     onMaterials={() => setMaterialsFor({ lessonId: l.id })}
                   />
                 ))}
@@ -420,7 +425,6 @@ export function CoursePage() {
                     <EditTopic
                       key={b.topic.id}
                       block={b}
-                      color={color}
                       warning={warnings.find((x) => x.topicId === b.topic.id)}
                       files={topicFiles(b.topic.id).length}
                       onMaterials={() => setMaterialsFor({ topicId: b.topic.id })}
@@ -487,11 +491,16 @@ export function CoursePage() {
 type TopicHeadProps = { block: TopicBlock; warning?: Warning; files: LessonMaterial[]; onMaterials: () => void }
 
 function TopicHead({ block, warning, files, onMaterials }: TopicHeadProps) {
+  const count = countedLessons(block.lessons)
   return (
     <div className="topic-row">
       <h2 className="topic-title">
         {block.topic.title}
-        {block.topic.planned_hours > 0 && <span className="hours"> · {block.topic.planned_hours} год</span>}
+        <span className="hours">
+          {block.topic.planned_hours > 0
+            ? `${count} / ${block.topic.planned_hours} год`
+            : `${count} ${lessonsWord(count)}`}
+        </span>
       </h2>
       {warning && (
         <span className="badge warn-badge">
@@ -499,9 +508,7 @@ function TopicHead({ block, warning, files, onMaterials }: TopicHeadProps) {
         </span>
       )}
       <span className="grow" />
-      <span className="row-tools">
-        <MaterialsButton count={files.length} label="Матеріали теми" onClick={onMaterials} />
-      </span>
+      <Menu label={`Дії з темою «${block.topic.title}»`} groups={[[materialsItem(files.length, onMaterials)]]} />
       {files.length > 0 && (
         <div className="l-files topic-files">
           {files.map((m) => (
@@ -518,19 +525,19 @@ type ViewLessonProps = {
   classes: ClassGroup[]
   schedules: Map<string, LessonSchedule>
   today: string
+  color: string
   files: LessonMaterial[]
-  style?: CSSProperties
   onMaterials: () => void
 }
 
-function ViewLesson({ lesson: l, classes, schedules, today, files, style, onMaterials }: ViewLessonProps) {
+function ViewLesson({ lesson: l, classes, schedules, today, color, files, onMaterials }: ViewLessonProps) {
   return (
-    <div className={l.lesson_type === 'reserve' ? 'lesson-row reserve' : 'lesson-row'} style={style}>
-      <span className={l.extra ? 'no num extra' : 'no num'} title={l.extra ? 'Не входить у нумерацію' : undefined}>
+    <div className={l.lesson_type === 'reserve' ? 'lesson-item reserve' : 'lesson-item'}>
+      <span className="l-no num" style={{ background: color }} title={l.extra ? 'Не входить у нумерацію' : undefined}>
         {lessonNo(l)}
       </span>
-      <div className="l-main">
-        <p className="l-text l-title">
+      <div className="l-body">
+        <p className="l-title">
           {l.title || <span className="placeholder">Без теми</span>}
           {l.lesson_type !== 'regular' && (
             <span className={`type-tag ${l.lesson_type}`}>{typeLabel(l.lesson_type)}</span>
@@ -543,33 +550,35 @@ function ViewLesson({ lesson: l, classes, schedules, today, files, style, onMate
             ))}
           </div>
         )}
+        {l.homework && <p className="l-hw">ДЗ: {l.homework}</p>}
       </div>
       {classes.length > 0 && (
-        <div className="l-dates">
+        <div className="l-pills">
           {classes.map((c) => {
             const d = schedules.get(`${l.id}_${c.id}`)?.planned_date
+            if (!d) return null
             return (
-              <span key={c.id} className={!d ? 'l-date none' : d < today ? 'l-date past' : 'l-date'}>
-                <span className="l-date-class">{c.display_name}</span>
-                <span className="l-date-val num">{d ? shortDate(d) : '—'}</span>
+              <span key={c.id} className={d < today ? 'date-pill past' : 'date-pill'}>
+                <span>{c.display_name}</span> <b className="num">{shortDate(d)}</b>
               </span>
             )
           })}
         </div>
       )}
-      <p className="l-text l-hw">{l.homework}</p>
-      <span className="row-tools">
-        <MaterialsButton count={files.length} label={`Матеріали уроку ${lessonNo(l)}`} onClick={onMaterials} />
-      </span>
+      <Menu label={`Дії з уроком ${lessonNo(l)}`} groups={[[materialsItem(files.length, onMaterials)]]} />
     </div>
   )
+}
+
+/** Пункт меню «Матеріали» з кількістю прикріплених файлів і посилань. */
+function materialsItem(count: number, onSelect: () => void): MenuItem {
+  return { label: 'Матеріали', icon: Paperclip, hint: count ? String(count) : undefined, onSelect }
 }
 
 // ---------- Режим редагування ----------
 
 type EditTopicProps = {
   block: TopicBlock
-  color: string
   warning?: Warning
   files: number
   onMaterials: () => void
@@ -578,11 +587,11 @@ type EditTopicProps = {
   children: ReactNode
 }
 
-function EditTopic({ block: b, color, warning, files, onMaterials, onRemove, onAddLesson, children }: EditTopicProps) {
+function EditTopic({ block: b, warning, files, onMaterials, onRemove, onAddLesson, children }: EditTopicProps) {
   const { ref: sortRef, style, dragging, handle } = useSortableItem(topicKey(b.topic.id))
   const { setNodeRef: endRef } = useDroppable({ id: endKey(b.topic.id) })
   return (
-    <section ref={sortRef} className={dragging ? 'topic lifted' : 'topic'} style={{ ...style, background: color }}>
+    <section ref={sortRef} className={dragging ? 'topic lifted' : 'topic'} style={style}>
       <div className="topic-row">
         <DragHandle label={`Перемістити тему «${b.topic.title}»`} {...handle} />
         <InlineText
@@ -613,12 +622,13 @@ function EditTopic({ block: b, color, warning, files, onMaterials, onRemove, onA
           </span>
         )}
         <span className="grow" />
-        <span className="row-tools">
-          <MaterialsButton count={files} label="Матеріали теми" onClick={onMaterials} />
-          <button className="icon-btn del" onClick={onRemove} aria-label="Видалити тему">
-            <Trash2 size={15} />
-          </button>
-        </span>
+        <Menu
+          label={`Дії з темою «${b.topic.title}»`}
+          groups={[
+            [materialsItem(files, onMaterials)],
+            [{ label: 'Видалити тему', icon: Trash2, danger: true, onSelect: onRemove }],
+          ]}
+        />
       </div>
 
       <SortableContext items={b.lessons.map((l) => lessonKey(l.id))} strategy={verticalListSortingStrategy}>
@@ -709,10 +719,13 @@ function EditLesson(props: EditLessonProps) {
         onSave={(homework) => updateFields('lessons', l.id, { homework })}
       />
       <span className="row-tools">
-        <MaterialsButton count={files} label={`Матеріали уроку ${lessonNo(l)}`} onClick={onMaterials} />
-        <button className="icon-btn del" onClick={onRemove} aria-label="Видалити урок">
-          <Trash2 size={15} />
-        </button>
+        <Menu
+          label={`Дії з уроком ${lessonNo(l)}`}
+          groups={[
+            [materialsItem(files, onMaterials)],
+            [{ label: 'Видалити урок', icon: Trash2, danger: true, onSelect: onRemove }],
+          ]}
+        />
       </span>
     </div>
   )
