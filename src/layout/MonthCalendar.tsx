@@ -104,7 +104,7 @@ export function MonthCalendar({ today, selected, onSelect, marked, min, max, col
     <div className={toggle ? 'cal big' : 'cal'}>
       <div className="cal-head">
         <h3>{title}</h3>
-        {onToday && (
+        {onToday && !(selected === today && days.some((date) => toISO(date) === today)) && (
           <button type="button" className="btn ghost small cal-today" onClick={goToday}>
             Сьогодні
           </button>

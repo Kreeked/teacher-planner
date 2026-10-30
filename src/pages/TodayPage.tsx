@@ -1,7 +1,6 @@
 import { ArrowUpRight, CloudDownload } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { useAuth } from '../auth/context'
+import { Link, useSearchParams } from 'react-router-dom'
 import { bellsOfDay, currentAndNext, lessonsOfDay, type DayData, type DayLesson } from '../data/day'
 import { useCollection } from '../data/db'
 import { LESSON_TYPES } from '../data/ktp'
@@ -17,7 +16,7 @@ import { driveConfigured } from '../lib/drive'
 import { syncOffline } from '../lib/offlineFiles'
 import { useOfflinePlan } from '../lib/useOfflinePlan'
 import { useOnline } from '../lib/useOnline'
-import { firstName, formatDayMonth, formatWeekday, greeting } from '../lib/dates'
+import { formatDayMonth, formatWeekday } from '../lib/dates'
 
 function asDate(d: ISODate) {
   const [y, m, day] = d.split('-').map(Number)
@@ -25,11 +24,13 @@ function asDate(d: ISODate) {
 }
 
 export function TodayPage() {
-  const { user } = useAuth()
   const [now, setNow] = useState(() => new Date())
   const today = toISO(now)
-  const [day, setDay] = useState(today)
-  const name = firstName(user?.displayName)
+  // Вибраний день живе в адресі (?d=), тож «Назад» з КТП повертає на той самий день.
+  const [params, setParams] = useSearchParams()
+  const param = params.get('d')
+  const day = param && /^\d{4}-\d{2}-\d{2}$/.test(param) ? param : today
+  const setDay = (d: ISODate) => setParams(d === today ? {} : { d }, { replace: true })
 
   // Поточний урок змінюється з часом — оновлюємо щохвилини.
   useEffect(() => {
@@ -60,10 +61,6 @@ export function TodayPage() {
   return (
     <div className="page home">
       <div className="home-head">
-        <p className="hello">
-          {greeting(now)}
-          {name && `, ${name}`}
-        </p>
         <div className="day-head">
           <h1>
             {day === today ? `Сьогодні, ${weekday}` : weekday[0].toUpperCase() + weekday.slice(1)}{' '}
@@ -81,7 +78,7 @@ export function TodayPage() {
           onToday={() => setDay(today)}
           collapsible
         />
-        {bell && <BellList day={day} bell={bell} list={list} now={day === today ? now : null} />}
+        {bell && <BellList bell={bell} list={list} now={day === today ? now : null} />}
       </aside>
 
       <main className="main home-list">
@@ -186,6 +183,7 @@ function DayView({ list, topics, materials, years, live }: DayViewProps) {
         const { s, lesson: l, course, cls, slot, bell } = x
         const topic = topics.find((t) => t.id === l.topic_id)
         const type = LESSON_TYPES.find((t) => t.value === l.lesson_type)
+        const ktpLink = `/ktp/${course.id}?lesson=${l.id}`
         const isNow = live?.currentId === s.id
         const badge = isNow ? 'Зараз' : live?.nextId === s.id ? 'Далі' : null
         return (
@@ -209,11 +207,13 @@ function DayView({ list, topics, materials, years, live }: DayViewProps) {
                 {type && l.lesson_type !== 'regular' && ` · ${type.label}`}
               </span>
               <span className="grow" />
-              <Link to={`/ktp/${course.id}`} className="arrow" aria-label="Відкрити КТП">
+              <Link to={ktpLink} className="arrow" aria-label="Відкрити КТП">
                 <ArrowUpRight size={15} />
               </Link>
             </div>
-            <h2 className="day-title">{l.title || 'Без теми'}</h2>
+            <h2 className="day-title">
+              <Link to={ktpLink}>{l.title || 'Без теми'}</Link>
+            </h2>
             {topic && <p className="day-topic">{topic.title}</p>}
             <LessonMaterials list={materials} lesson={l} onOpen={() => setOpen(x)} />
           </article>

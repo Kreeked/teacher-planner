@@ -11,7 +11,6 @@ import {
 } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import {
-  ArrowLeft,
   Check,
   ChevronDown,
   GripVertical,
@@ -21,8 +20,9 @@ import {
   Trash2,
   TriangleAlert,
 } from 'lucide-react'
-import { useState, type ReactNode } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { BackLink } from '../../components/BackLink'
 import { DatePicker } from '../../components/DatePicker'
 import { toISO } from '../../data/schedule'
 import { InlineText } from '../../components/InlineText'
@@ -112,6 +112,17 @@ export function CoursePage() {
   const { items: materials } = useCollection('lesson_materials', byCourse)
   // Старі файли уроків без типу розкладаємо по поличках (один раз).
   useClassifyLegacy(materials)
+  // Перехід з головної: прокрутити до потрібного уроку (один раз, коли він з'явиться на сторінці).
+  const [params] = useSearchParams()
+  const focusId = params.get('lesson')
+  const focused = useRef<string | null>(null)
+  useEffect(() => {
+    if (!focusId || focused.current === focusId) return
+    const el = document.getElementById(`lesson-${focusId}`)
+    if (!el) return
+    focused.current = focusId
+    el.scrollIntoView({ block: 'center' })
+  }, [focusId, lessons.length, loading])
   const [showSettings, setShowSettings] = useState(false)
   const [editing, setEditing] = useState(false)
   const [materialsFor, setMaterialsFor] = useState<string | null>(null)
@@ -128,9 +139,7 @@ export function CoursePage() {
     return (
       <div className="page">
         <main className="main">
-          <Link to="/ktp" className="back">
-            <ArrowLeft size={14} /> КТП
-          </Link>
+          <BackLink fallback="/ktp" />
           <h1>КТП не знайдено</h1>
         </main>
       </div>
@@ -303,9 +312,7 @@ export function CoursePage() {
   return (
     <div className="page">
       <main className="main">
-        <Link to="/ktp" className="back">
-          <ArrowLeft size={14} /> КТП
-        </Link>
+        <BackLink fallback="/ktp" />
         <div className="sec-head page-head">
           <h1>{courseTitle(course)}</h1>
           <span className="grow" />
@@ -506,7 +513,7 @@ type ViewLessonProps = {
 function ViewLesson({ lesson: l, classes, schedules, today, color, files, onMaterials }: ViewLessonProps) {
   const label = l.lesson_type !== 'regular' ? typeLabel(l.lesson_type) : ''
   return (
-    <div className={l.lesson_type === 'reserve' ? 'lesson-item reserve' : 'lesson-item'}>
+    <div id={`lesson-${l.id}`} className={l.lesson_type === 'reserve' ? 'lesson-item reserve' : 'lesson-item'}>
       <span className="l-no num" style={{ background: color }} title={l.extra ? 'Не входить у нумерацію' : undefined}>
         {lessonNo(l)}
       </span>
