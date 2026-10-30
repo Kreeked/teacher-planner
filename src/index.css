@@ -312,12 +312,6 @@ h2 {
   padding: 0;
 }
 
-@media (hover: hover) {
-  .d:hover {
-    background: var(--bg);
-  }
-}
-
 .d.today {
   box-shadow: inset 0 0 0 1.5px var(--ink);
 }
@@ -527,20 +521,6 @@ h2 {
 .panel .btn.ghost,
 .dialog .btn.ghost {
   background: var(--bg);
-}
-
-@media (hover: hover) {
-  .btn.ghost:not(:disabled):hover {
-    background: var(--line);
-  }
-
-  .btn:not(.ghost):not(.danger-fill):not(:disabled):hover {
-    background: #3a3a42;
-  }
-
-  .btn.danger-fill:not(:disabled):hover {
-    background: #e65a49;
-  }
 }
 
 .btn.danger-fill {
@@ -786,16 +766,6 @@ h2 {
   color: #fff;
 }
 
-@media (hover: hover) {
-  .chip.plain:not(.on):hover {
-    background: var(--line);
-  }
-
-  .chip.plain.on:hover {
-    background: #3a3a42;
-  }
-}
-
 .chip-x {
   width: 20px;
   height: 20px;
@@ -809,7 +779,6 @@ h2 {
 }
 
 .chip-x:hover {
-  background: var(--surface);
   color: var(--danger);
 }
 
@@ -897,13 +866,6 @@ h2 {
   display: grid;
   place-items: center;
   flex: none;
-}
-
-@media (hover: hover) {
-  .icon-btn:hover {
-    background: var(--bg);
-    color: var(--ink);
-  }
 }
 
 .icon-btn.del:hover {
@@ -1581,11 +1543,6 @@ h2 {
   outline-offset: 2px;
 }
 
-.yp-cell:focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: 2px;
-}
-
 /* Видалити рік */
 .yp-danger {
   display: flex;
@@ -1607,35 +1564,12 @@ h2 {
 
 /* Наведення на всі клікабельні елементи сторінки. */
 @media (hover: hover) {
-  .yp .field:hover {
-    border-color: #cfcfc9;
-  }
 
   .yp .field:focus,
   .yp .date-btn.field[aria-expanded='true'] {
     border-color: var(--ink);
   }
 
-  .yp-year:not(.on):hover {
-    background: var(--line);
-  }
-
-  .yp-break button:not(:disabled):hover {
-    background: var(--surface);
-  }
-
-  .yp-cell:not(.filled):hover {
-    border-color: var(--ink-2);
-    background: var(--bg);
-  }
-
-  .yp-cell.filled:hover {
-    filter: brightness(0.94);
-  }
-
-  .btn.ghost.danger:not(:disabled):hover {
-    background: rgba(242, 107, 91, 0.14);
-  }
 }
 
 @media (max-width: 760px) {
@@ -2075,10 +2009,6 @@ select.cell {
   border-radius: 10px;
 }
 
-.pick:hover {
-  background: var(--bg);
-}
-
 .pick .box {
   width: 18px;
   height: 18px;
@@ -2276,10 +2206,6 @@ a.chip {
   color: var(--ink);
   text-decoration: none;
   font-size: 13px;
-}
-
-.material:hover {
-  background: var(--line);
 }
 
 .material .grow {
@@ -2526,19 +2452,11 @@ a.chip {
   cursor: pointer;
 }
 
-.shelf:hover {
-  background: #3a3a42;
-}
-
 /* «Додати файл» — як .btn.ghost, але на висоту полички. */
 .shelf.add {
   background: var(--surface);
   border-color: var(--line);
   color: var(--ink);
-}
-
-.shelf.add:hover {
-  background: var(--bg);
 }
 
 .day-card .shelves {
@@ -3449,11 +3367,6 @@ h2.topic-title {
   touch-action: none;
 }
 
-.grip:hover {
-  background: var(--bg);
-  color: var(--ink);
-}
-
 .ktp.edit .topic-row > .grip {
   margin-right: 4px;
 }
@@ -3624,12 +3537,6 @@ h2.topic-title {
 .menu-item svg {
   color: var(--ink-2);
   flex: none;
-}
-
-.menu-item:hover,
-.menu-item:focus-visible {
-  background: var(--bg);
-  outline: none;
 }
 
 .menu-item small {
@@ -3878,12 +3785,204 @@ h2.topic-title {
   color: #fff;
 }
 
+.yp-bell-error {
+  margin: -4px 0 10px;
+}
+
+/* ---------- Стани взаємодії ----------
+ * Одна система на весь застосунок. Наведення — легке затемнення поверх будь-якого тла (біле, сіре, пастельне),
+ * натискання — сильніше, а кнопки-пігулки ще й трохи стискаються. На чорному тлі навпаки: наведення світлішає,
+ * натискання темнішає. Поля при наведенні отримують темнішу рамку, а при фокусі — чорну.
+ * Фокус з клавіатури — чорна обвідка. Наведення лише на пристроях із мишею, натискання — всюди. */
+:root {
+  --line-hover: #cfcfc9;
+  --st-hover: inset 0 0 0 999px rgba(31, 31, 36, 0.06);
+  --st-press: inset 0 0 0 999px rgba(31, 31, 36, 0.13);
+  --st-hover-dark: inset 0 0 0 999px rgba(255, 255, 255, 0.16);
+  --st-press-dark: inset 0 0 0 999px rgba(0, 0, 0, 0.4);
+  --st-hover-red: inset 0 0 0 999px rgba(0, 0, 0, 0.1);
+  --st-press-red: inset 0 0 0 999px rgba(0, 0, 0, 0.2);
+}
+
+a,
+select,
+summary,
+label.check {
+  cursor: pointer;
+}
+
+button:disabled,
+select:disabled {
+  cursor: default;
+}
+
+:where(a[href], button, select, summary, [tabindex]:not([tabindex='-1'])):focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.menu-item:focus-visible {
+  outline: none;
+  box-shadow: var(--st-hover);
+}
+
+.btn.ghost,
+.chip.plain:not(.on),
+.yp-year:not(.on),
+.kind-btn,
+.icon-btn:not(.keep.on),
+.chip-x,
+.grip,
+.drag-handle,
+.menu-item,
+.pick,
+.d:not(.sel),
+.fold-toggle,
+.pagebar-back,
+a.arrow,
+a.stat,
+.material,
+.shelf.add,
+.nav-btn:not(.active),
+.tb,
+.time-opt:not(.sel),
+.add-topic,
+.yp-break button,
+.yp-cell,
+.btn:not(.ghost):not(.danger-fill),
+.chip.on,
+.yp-year.on,
+.nav-btn.active,
+.d.sel,
+.shelf:not(.add),
+.icon-btn.keep.on,
+.time-opt.sel,
+.btn.danger-fill {
+  transition:
+    box-shadow 0.12s ease,
+    transform 0.08s ease;
+}
+
 @media (hover: hover) {
-  .time-opt:not(.sel):hover {
-    background: var(--bg);
+  .btn.ghost:not(:disabled):hover,
+  .chip.plain:not(.on):not(:disabled):hover,
+  .yp-year:not(.on):not(:disabled):hover,
+  .kind-btn:not(:disabled):hover,
+  .icon-btn:not(.keep.on):not(:disabled):hover,
+  .chip-x:not(:disabled):hover,
+  .grip:not(:disabled):hover,
+  .drag-handle:not(:disabled):hover,
+  .menu-item:not(:disabled):hover,
+  .pick:not(:disabled):hover,
+  .d:not(.sel):not(:disabled):hover,
+  .fold-toggle:not(:disabled):hover,
+  .pagebar-back:not(:disabled):hover,
+  a.arrow:not(:disabled):hover,
+  a.stat:not(:disabled):hover,
+  .material:not(:disabled):hover,
+  .shelf.add:not(:disabled):hover,
+  .nav-btn:not(.active):not(:disabled):hover,
+  .tb:not(:disabled):hover,
+  .time-opt:not(.sel):not(:disabled):hover,
+  .add-topic:not(:disabled):hover,
+  .yp-break button:not(:disabled):hover,
+  .yp-cell:not(:disabled):hover {
+    box-shadow: var(--st-hover);
+  }
+
+  .btn:not(.ghost):not(.danger-fill):not(:disabled):hover,
+  .chip.on:not(:disabled):hover,
+  .yp-year.on:not(:disabled):hover,
+  .nav-btn.active:not(:disabled):hover,
+  .d.sel:not(:disabled):hover,
+  .shelf:not(.add):not(:disabled):hover,
+  .icon-btn.keep.on:not(:disabled):hover,
+  .time-opt.sel:not(:disabled):hover {
+    box-shadow: var(--st-hover-dark);
+  }
+
+  .btn.danger-fill:not(:disabled):hover {
+    box-shadow: var(--st-hover-red);
+  }
+
+  .field:not(:focus):not(:disabled):hover,
+  .date-btn.field:not([aria-expanded='true']):hover {
+    border-color: var(--line-hover);
+  }
+
+  .add-topic:hover {
+    border-color: var(--ink);
+    color: var(--ink);
   }
 }
 
-.yp-bell-error {
-  margin: -4px 0 10px;
+.btn.ghost:not(:disabled):active,
+.chip.plain:not(.on):not(:disabled):active,
+.yp-year:not(.on):not(:disabled):active,
+.kind-btn:not(:disabled):active,
+.icon-btn:not(.keep.on):not(:disabled):active,
+.chip-x:not(:disabled):active,
+.grip:not(:disabled):active,
+.drag-handle:not(:disabled):active,
+.menu-item:not(:disabled):active,
+.pick:not(:disabled):active,
+.d:not(.sel):not(:disabled):active,
+.fold-toggle:not(:disabled):active,
+.pagebar-back:not(:disabled):active,
+a.arrow:not(:disabled):active,
+a.stat:not(:disabled):active,
+.material:not(:disabled):active,
+.shelf.add:not(:disabled):active,
+.nav-btn:not(.active):not(:disabled):active,
+.tb:not(:disabled):active,
+.time-opt:not(.sel):not(:disabled):active,
+.add-topic:not(:disabled):active,
+.yp-break button:not(:disabled):active,
+.yp-cell:not(:disabled):active {
+  box-shadow: var(--st-press);
+}
+
+.btn:not(.ghost):not(.danger-fill):not(:disabled):active,
+.chip.on:not(:disabled):active,
+.yp-year.on:not(:disabled):active,
+.nav-btn.active:not(:disabled):active,
+.d.sel:not(:disabled):active,
+.shelf:not(.add):not(:disabled):active,
+.icon-btn.keep.on:not(:disabled):active,
+.time-opt.sel:not(:disabled):active {
+  box-shadow: var(--st-press-dark);
+}
+
+.btn.danger-fill:not(:disabled):active {
+  box-shadow: var(--st-press-red);
+}
+
+.btn:not(:disabled):active,
+.chip.plain:not(:disabled):active,
+.yp-year:not(:disabled):active,
+.kind-btn:not(:disabled):active,
+.shelf:not(:disabled):active,
+.tb:not(:disabled):active,
+.nav-btn:not(:disabled):active,
+.icon-btn:not(:disabled):active,
+.chip-x:not(:disabled):active {
+  transform: scale(0.97);
+}
+
+.icon-btn:not(:disabled):active,
+.chip-x:not(:disabled):active {
+  transform: scale(0.9);
+}
+
+.link-btn:active {
+  opacity: 0.6;
+}
+
+/* Текстові посилання без власного вигляду: підкреслення при наведенні, при натисканні тьмяніють. */
+a:not([class]):hover {
+  text-decoration: underline;
+}
+
+a:not([class]):active {
+  opacity: 0.6;
 }
