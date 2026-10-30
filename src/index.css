@@ -1336,7 +1336,7 @@ h2 {
 }
 
 .yp-bell-row .field {
-  width: 88px;
+  width: 104px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -1552,8 +1552,10 @@ h2 {
 }
 
 .yp-cell {
-  appearance: none;
-  -webkit-appearance: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
   min-height: 44px;
   min-width: 0;
   border: 1.5px dashed var(--line);
@@ -1569,15 +1571,14 @@ h2 {
   cursor: pointer;
 }
 
-.yp-cell.on {
+.yp-cell.filled {
   border: 0;
   color: var(--ink);
 }
 
-.yp-cell option,
-.yp-cell optgroup {
-  color: var(--ink);
-  background: var(--surface);
+.yp-cell.on {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
 }
 
 .yp-cell:focus-visible {
@@ -1623,13 +1624,12 @@ h2 {
     background: var(--surface);
   }
 
-  .yp-cell:not(.on):hover {
+  .yp-cell:not(.filled):hover {
     border-color: var(--ink-2);
     background: var(--bg);
-    color: var(--ink-2);
   }
 
-  .yp-cell.on:hover {
+  .yp-cell.filled:hover {
     filter: brightness(0.94);
   }
 
@@ -1965,6 +1965,19 @@ select.cell {
 .confirm-text {
   margin: 0;
   line-height: 1.45;
+}
+
+.confirm-word {
+  margin-top: 14px;
+}
+
+.confirm-word label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-2);
 }
 
 .saved-toast {
@@ -3572,6 +3585,8 @@ h2.topic-title {
 }
 
 .menu-pop {
+  max-height: min(360px, calc(100vh - 16px));
+  overflow-y: auto;
   position: fixed;
   z-index: 60;
   background: var(--surface);
@@ -3803,4 +3818,66 @@ h2.topic-title {
     padding: 0 9px;
     font-size: 13px;
   }
+}
+
+/* ---------- Вибір часу ---------- */
+.time-btn {
+  justify-content: space-between;
+}
+
+.time-pop {
+  position: fixed;
+  z-index: 60;
+  width: 168px;
+  height: 264px;
+  display: flex;
+  gap: 4px;
+  padding: 6px;
+  background: var(--surface);
+  border-radius: var(--r-lg);
+  box-shadow:
+    0 12px 32px rgba(31, 31, 36, 0.16),
+    0 0 0 1px rgba(31, 31, 36, 0.05);
+}
+
+.time-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.time-col::-webkit-scrollbar {
+  display: none;
+}
+
+.time-opt {
+  flex: none;
+  height: 34px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.time-opt.sel {
+  background: var(--ink);
+  color: #fff;
+}
+
+@media (hover: hover) {
+  .time-opt:not(.sel):hover {
+    background: var(--bg);
+  }
+}
+
+.yp-bell-error {
+  margin: -4px 0 10px;
 }

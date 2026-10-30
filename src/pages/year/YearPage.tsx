@@ -46,7 +46,8 @@ export function YearPage() {
   async function removeYear(y: AcademicYear) {
     if (
       !(await ask(
-        `Видалити навчальний рік ${y.title} разом із семестрами, класами, розкладом, дзвінками і всіма КТП цього року?`,
+        `Видалити навчальний рік ${y.title} разом із семестрами, класами, розкладом, дзвінками і всіма КТП цього року? Це незворотно.`,
+        { word: 'видалити' },
       ))
     )
       return
@@ -72,7 +73,7 @@ export function YearPage() {
   return (
     <div className="page yp">
       <main className="main">
-        <h1>Навчальний рік</h1>
+        <h1>Налаштування навчального року</h1>
 
         {creating && (
           <NewYearForm

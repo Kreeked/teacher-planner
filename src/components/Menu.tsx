@@ -16,12 +16,18 @@ export type MenuItem = {
 }
 
 // Групи пунктів розділяються лінією. trigger — власний вміст кнопки (наприклад, «Додати») замість «⋯».
-type Props = { label: string; groups: MenuItem[][]; trigger?: ReactNode; triggerClass?: string }
+type Props = {
+  label: string
+  groups: MenuItem[][]
+  trigger?: ReactNode
+  triggerClass?: string
+  triggerStyle?: CSSProperties
+}
 
 const WIDTH = 220
 
 /** Кнопка «⋯» з випадаючим меню дій у стилі застосунку. */
-export function Menu({ label, groups, trigger, triggerClass = 'icon-btn menu-btn' }: Props) {
+export function Menu({ label, groups, trigger, triggerClass = 'icon-btn menu-btn', triggerStyle }: Props) {
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState<CSSProperties>({ visibility: 'hidden' })
   const button = useRef<HTMLButtonElement>(null)
@@ -87,6 +93,7 @@ export function Menu({ label, groups, trigger, triggerClass = 'icon-btn menu-btn
         ref={button}
         type="button"
         className={open ? `${triggerClass} on` : triggerClass}
+        style={triggerStyle}
         aria-label={label}
         title={trigger ? undefined : label}
         aria-haspopup="menu"

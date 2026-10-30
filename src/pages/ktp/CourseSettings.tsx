@@ -45,7 +45,8 @@ export function CourseSettings({ course, topics, lessons, onDeleted, onClose }: 
   async function remove() {
     if (
       !(await ask(
-        `Видалити КТП «${course.subject}, ${course.grade} клас» з усіма темами, уроками (${lessons.length}) і матеріалами?`,
+        `Видалити КТП «${course.subject}, ${course.grade} клас» з усіма темами, уроками (${lessons.length}) і матеріалами? Це незворотно.`,
+        { word: 'видалити' },
       ))
     )
       return

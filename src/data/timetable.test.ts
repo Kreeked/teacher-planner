@@ -5,7 +5,6 @@ import {
   computeBells,
   defaultSlots,
   minutesBetween,
-  parseTime,
   removeSlot,
   setSlotBreak,
   setSlotEnd,
@@ -35,14 +34,6 @@ describe('bells', () => {
 
 describe('bell editing', () => {
   const slots = computeBells('08:30', 45, [10, 20, 0]) // 08:30–09:15, 09:25–10:10, 10:30–11:15
-
-  it('reads times typed by hand', () => {
-    expect(parseTime('8:30')).toBe('08:30')
-    expect(parseTime('0830')).toBe('08:30')
-    expect(parseTime('14.05')).toBe('14:05')
-    expect(parseTime('25:00')).toBeNull()
-    expect(parseTime('abc')).toBeNull()
-  })
 
   it('moves a lesson with its length and recounts the breaks around it', () => {
     const next = setSlotStart(slots, 1, '09:30')!

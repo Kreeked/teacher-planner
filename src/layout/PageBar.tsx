@@ -48,7 +48,8 @@ export function PageBar({ tab, child }: Props) {
     else navigate(-1)
   }
 
-  const showTitle = scrolled && !!title
+  // Заголовок при прокрутці лише на вкладених сторінках; на сторінках розділів меню (Сьогодні, КТП, Налаштування) його немає.
+  const showTitle = child && scrolled && !!title
   if (!child && !showTitle) return <div className="pagebar flat" />
 
   return (

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Minus, Plus, Trash2 } from 'lucide-react'
 import { commit, createDoc, newBatch, ref, updateFields } from '../../data/db'
 import {
@@ -5,7 +6,6 @@ import {
   defaultSlots,
   entryShift,
   minutesBetween,
-  parseTime,
   removeSlot,
   setSlotBreak,
   setSlotEnd,
@@ -16,6 +16,7 @@ import {
 import type { AcademicYear, BellSchedule, BellSlot, TimetableEntry } from '../../data/types'
 import { ask } from '../../lib/confirm'
 import { useNarrow } from '../../lib/useNarrow'
+import { TimePicker } from '../../components/TimePicker'
 import { ShiftPills } from './ShiftPills'
 
 type Props = {
@@ -29,25 +30,6 @@ type Props = {
 
 function Num({ n }: { n: number }) {
   return <span className="yp-num">{n}</span>
-}
-
-/** Час уроку: пишеться вручну («8:30», «0830»); некоректний чи такий, що ламає порядок уроків, повертається назад. */
-function TimeField({ label, value, onSave }: { label: string; value: string; onSave: (v: string) => boolean }) {
-  return (
-    <input
-      className="field num"
-      aria-label={label}
-      autoComplete="off"
-      defaultValue={value}
-      key={value}
-      onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
-      onBlur={(e) => {
-        const t = parseTime(e.target.value)
-        if (t === value) e.target.value = value
-        else if (!t || !onSave(t)) e.target.value = value
-      }}
-    />
-  )
 }
 
 /** Перерва після уроку: «−», число й «+» кроком 5 хв. */
@@ -93,9 +75,14 @@ function BreakStepper({
 export function BellsSection({ year, bells, entries, shift, onShift }: Props) {
   const narrow = useNarrow()
   const slots = shiftSlots(bells, shift)
+  const [error, setError] = useState('')
 
   function save(next: BellSlot[] | null) {
-    if (!next) return false
+    if (!next) {
+      setError('Такий час не підходить: уроки мають іти по черзі й не перетинатися.')
+      return false
+    }
+    setError('')
     const field = shift === 2 ? 'second_shift' : 'slots'
     if (bells) updateFields('bell_schedules', bells.id, { [field]: next })
     else
@@ -122,16 +109,23 @@ export function BellsSection({ year, bells, entries, shift, onShift }: Props) {
   }
 
   const timeFields = (s: BellSlot, i: number) => [
-    <TimeField key="s" label={`Початок уроку ${s.number}`} value={s.start} onSave={(v) => save(setSlotStart(slots, i, v))} />,
-    <TimeField key="e" label={`Кінець уроку ${s.number}`} value={s.end} onSave={(v) => save(setSlotEnd(slots, i, v))} />,
+    <TimePicker key="s" label={`Початок уроку ${s.number}`} value={s.start} onChange={(v) => save(setSlotStart(slots, i, v))} />,
+    <TimePicker key="e" label={`Кінець уроку ${s.number}`} value={s.end} onChange={(v) => save(setSlotEnd(slots, i, v))} />,
   ]
 
   return (
     <section className="panel yp-block" aria-labelledby="yp-bells">
       <div className="yp-head stack">
         <h2 id="yp-bells">Дзвінки</h2>
-        <ShiftPills value={shift} onChange={onShift} />
+        <ShiftPills
+          value={shift}
+          onChange={(s) => {
+            setError('')
+            onShift(s)
+          }}
+        />
       </div>
+      {error && <p className="field-error yp-bell-error">{error}</p>}
 
       {narrow ? (
         <div className="yp-bell-cards">
