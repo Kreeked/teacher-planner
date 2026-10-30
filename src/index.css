@@ -888,6 +888,10 @@ h2 {
   color: var(--ink);
 }
 
+.link-btn:disabled {
+  opacity: 0.45;
+}
+
 .pagebar {
   position: sticky;
   top: 8px;
@@ -1831,7 +1835,7 @@ select.cell {
 }
 
 .icon-btn:disabled {
-  opacity: 0.25;
+  opacity: 0.45;
   pointer-events: none;
 }
 
@@ -2227,7 +2231,7 @@ a.chip {
 }
 
 .dropzone {
-  border: 1.5px dashed #c4c4cc;
+  border: 1.5px dashed var(--line-hover);
   border-radius: var(--r-lg);
   background: #fafaf8;
   padding: 22px 16px 18px;
@@ -2274,7 +2278,7 @@ a.chip {
   margin-top: 8px;
 }
 
-.dz-actions .btn.small.on {
+.btn.ghost.on {
   background: var(--line);
 }
 
@@ -2382,7 +2386,7 @@ a.chip {
 .kind-btn {
   justify-self: start;
   max-width: 100%;
-  height: 28px;
+  height: 30px;
   border: 0;
   border-radius: 999px;
   padding: 0 8px 0 9px;
@@ -2492,15 +2496,6 @@ a.chip {
 .material .saved-mark {
   flex: none;
   color: var(--ink-2);
-}
-
-.icon-btn.pin {
-  color: var(--ink-2);
-}
-
-.icon-btn.pin.on {
-  color: var(--ink);
-  background: var(--line);
 }
 
 .offline-note {
@@ -3068,7 +3063,7 @@ h2.topic-title {
 .add-topic {
   width: 100%;
   height: 44px;
-  border: 1.5px dashed #c4c4cc;
+  border: 1.5px dashed var(--line-hover);
   border-radius: var(--r-lg);
   background: transparent;
   color: var(--ink-2);

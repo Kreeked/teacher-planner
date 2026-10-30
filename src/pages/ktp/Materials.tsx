@@ -441,7 +441,7 @@ export function MaterialsDialog({ course, year, lesson, materials, onClose }: Di
               onChange={(e) => setTitle(e.target.value)}
             />
             <button className="btn" type="submit" disabled={!url.trim()}>
-              <Plus size={15} /> Додати
+              <Plus size={16} /> Додати
             </button>
           </form>
         )}

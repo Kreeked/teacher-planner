@@ -41,10 +41,10 @@ export function KtpPage() {
           {year && (
             <div className="actions">
               <button className="btn ghost" onClick={() => fileInput.current?.click()}>
-                <FileUp size={15} /> Імпорт з Word
+                <FileUp size={16} /> Імпорт з Word
               </button>
               <button className="btn" onClick={() => setCreating(true)}>
-                <Plus size={15} /> Нове КТП
+                <Plus size={16} /> Нове КТП
               </button>
               <input
                 ref={fileInput}
