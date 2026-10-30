@@ -3854,8 +3854,11 @@ a.stat,
 .time-opt.sel,
 .btn.danger-fill {
   transition:
-    box-shadow 0.12s ease,
-    transform 0.08s ease;
+    box-shadow var(--dur-fast) var(--ease-out),
+    transform 0.32s var(--ease-spring),
+    background-color var(--dur) var(--ease-out),
+    color var(--dur) var(--ease-out),
+    border-color var(--dur) var(--ease-out);
 }
 
 @media (hover: hover) {
@@ -3980,4 +3983,139 @@ a:not([class]):hover {
 
 a:not([class]):active {
   opacity: 0.6;
+}
+
+/* ---------- Рух ---------- */
+/* Принципи (за мотивом Apple HIG): рух має сенс, не блокує дію й переривається; поява — з гальмуванням
+   (ease-out), зникнення швидше за появу; натискання відпускається пружиною; без руху — при reduced-motion. */
+:root {
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.45, 0.64, 1);
+  --dur-fast: 0.14s;
+  --dur: 0.24s;
+  --dur-slow: 0.36s;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(-4px);
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(8px);
+  }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 12px) scale(0.96);
+  }
+}
+
+@keyframes slide-in-x {
+  from {
+    opacity: 0;
+    transform: translateX(var(--dx, 0));
+  }
+}
+
+/* Вікна: фон проявляється, вікно виринає; закриття — швидше. */
+.overlay {
+  animation: fade-in var(--dur) var(--ease-out);
+}
+
+.dialog {
+  animation: dialog-in var(--dur-slow) var(--ease-out);
+}
+
+.overlay.closing {
+  opacity: 0;
+  transition: opacity var(--dur-fast) ease-in;
+  pointer-events: none;
+}
+
+.overlay.closing .dialog {
+  transform: scale(0.97);
+  transition: transform var(--dur-fast) ease-in;
+}
+
+/* Спливні списки й вибірки. */
+.menu-pop,
+.date-pop,
+.time-pop {
+  transform-origin: top center;
+  animation: pop-in var(--dur) var(--ease-out);
+}
+
+.saved-toast {
+  animation: toast-in var(--dur-slow) var(--ease-spring);
+}
+
+/* Сторінки: розділ меню і нова сторінка всередині розділу з'являються плавно (лише прозорість,
+   щоб не ламати липкі елементи й прокрутку до уроку). */
+.tab-pane > * {
+  animation: fade-in var(--dur-slow) var(--ease-out);
+}
+
+/* Картки на сторінці виникають по черзі. */
+.course-card,
+.day-card,
+.panel,
+.empty {
+  animation: rise-in var(--dur-slow) var(--ease-out) backwards;
+}
+
+:is(.course-card, .day-card, .panel):nth-child(2) {
+  animation-delay: 40ms;
+}
+
+:is(.course-card, .day-card, .panel):nth-child(3) {
+  animation-delay: 80ms;
+}
+
+:is(.course-card, .day-card, .panel):nth-child(4) {
+  animation-delay: 120ms;
+}
+
+:is(.course-card, .day-card, .panel):nth-child(n + 5) {
+  animation-delay: 160ms;
+}
+
+/* Сітка календаря при гортанні й розгортанні. */
+.cal-in {
+  animation: slide-in-x var(--dur) var(--ease-out);
+}
+
+/* Натискання швидке (відпускання — пружне, у списку станів вище). */
+:is(button, a):not(:disabled):active {
+  transition-duration: 0.06s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

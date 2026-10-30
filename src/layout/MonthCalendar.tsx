@@ -1,5 +1,5 @@
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from 'lucide-react'
-import { useRef, useState, type MouseEvent, type PointerEvent } from 'react'
+import { useRef, useState, type MouseEvent, type PointerEvent, type CSSProperties } from 'react'
 import { mondayOf } from '../data/day'
 import { addDays, toISO } from '../data/schedule'
 import type { ISODate } from '../data/types'
@@ -61,7 +61,10 @@ export function MonthCalendar({ today, selected, onSelect, marked, min, max, col
   let title = monthTitle.format(weekMode ? days[3] : first).replace(' р.', '')
   title = title[0].toUpperCase() + title.slice(1)
 
+  // Напрямок останнього гортання: нова сітка виїжджає з того боку, куди гортають.
+  const [dir, setDir] = useState(0)
   function shift(n: number) {
+    setDir(n)
     setAnchor(weekMode ? addDays(anchor, 7 * n) : toISO(new Date(y, m - 1 + n, 1)))
   }
   const unit = weekMode ? 'тиждень' : 'місяць'
@@ -117,11 +120,12 @@ export function MonthCalendar({ today, selected, onSelect, marked, min, max, col
         </button>
       </div>
       <div
-        className="grid7 num"
+        key={`${weekMode ? 'w' : 'm'}${toISO(days[0])}`}
+        className="grid7 num cal-in"
         onPointerDown={swipeStart}
         onPointerUp={swipeEnd}
         onClickCapture={swipeClick}
-        style={toggle ? { touchAction: 'pan-y' } : undefined}
+        style={{ ...(toggle ? { touchAction: 'pan-y' } : null), '--dx': `${dir * 14}px` } as CSSProperties}
       >
         {DOW.map((d) => (
           <span key={d} className="dow">
