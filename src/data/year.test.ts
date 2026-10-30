@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import type { Period } from './types'
-import { defaultYear, defaultYearStart, parseLetters, parseShortDate, shortDate, validatePeriod, validateYear } from './year'
+import type { AcademicYear, Period } from './types'
+import {
+  defaultYear,
+  defaultYearStart,
+  isCurrentYear,
+  parseLetters,
+  pickCurrentYear,
+  parseShortDate,
+  shortDate,
+  validatePeriod,
+  validateYear,
+} from './year'
 
 const year = { start_date: '2026-09-01', end_date: '2027-06-30' }
 
@@ -20,8 +30,21 @@ function period(p: Partial<Period>): Period {
 }
 
 const sem1 = period({ id: 's1' })
-const sem2 = period({ id: 's2', title: 'ІІ семестр', start_date: '2027-01-12', end_date: '2027-06-30', position: 1 })
-const q1 = period({ id: 'q1', parent_id: 's1', kind: 'quarter', title: '1 чверть', start_date: '2026-09-01', end_date: '2026-10-24' })
+const sem2 = period({
+  id: 's2',
+  title: 'ІІ семестр',
+  start_date: '2027-01-12',
+  end_date: '2027-06-30',
+  position: 1,
+})
+const q1 = period({
+  id: 'q1',
+  parent_id: 's1',
+  kind: 'quarter',
+  title: '1 чверть',
+  start_date: '2026-09-01',
+  end_date: '2026-10-24',
+})
 
 describe('defaultYearStart', () => {
   it('counts the new school year from July', () => {
@@ -41,14 +64,16 @@ describe('validatePeriod', () => {
   const all = [sem1, sem2, q1]
 
   it('accepts a quarter inside its semester', () => {
-    const q2 = { parent_id: 's1', start_date: '2026-11-02', end_date: '2026-12-26' }
+    const q2 = {
+      parent_id: 's1',
+      start_date: '2026-11-02',
+      end_date: '2026-12-26',
+    }
     expect(validatePeriod(q2, year, all)).toBeNull()
   })
 
   it('rejects reversed dates', () => {
-    expect(validatePeriod({ parent_id: null, start_date: '2026-12-01', end_date: '2026-11-01' }, year, all)).toMatch(
-      'пізніше',
-    )
+    expect(validatePeriod({ parent_id: null, start_date: '2026-12-01', end_date: '2026-11-01' }, year, all)).toMatch('пізніше')
   })
 
   it('rejects dates outside the year', () => {
@@ -58,12 +83,20 @@ describe('validatePeriod', () => {
   })
 
   it('rejects a quarter outside its semester', () => {
-    const q = { parent_id: 's1', start_date: '2026-12-01', end_date: '2027-01-20' }
+    const q = {
+      parent_id: 's1',
+      start_date: '2026-12-01',
+      end_date: '2027-01-20',
+    }
     expect(validatePeriod(q, year, all)).toMatch('І семестр')
   })
 
   it('rejects overlapping quarters of one semester', () => {
-    const q = { parent_id: 's1', start_date: '2026-10-20', end_date: '2026-12-20' }
+    const q = {
+      parent_id: 's1',
+      start_date: '2026-10-20',
+      end_date: '2026-12-20',
+    }
     expect(validatePeriod(q, year, all)).toMatch('1 чверть')
   })
 
@@ -103,5 +136,24 @@ describe('parseShortDate', () => {
     expect(parseShortDate('31.02', year)).toBeUndefined()
     expect(parseShortDate('15.07', year)).toBeUndefined()
     expect(parseShortDate('abc', year)).toBeUndefined()
+  })
+})
+
+describe('pickCurrentYear', () => {
+  const y = (id: string, from: string, to: string) => ({ id, start_date: from, end_date: to }) as AcademicYear
+  const years = [y('a', '2025-09-01', '2026-05-31'), y('b', '2026-09-01', '2027-05-31')]
+
+  it('takes the year that contains today', () => {
+    expect(pickCurrentYear(years, '2026-10-31')?.id).toBe('b')
+    expect(pickCurrentYear(years, '2026-03-01')?.id).toBe('a')
+    expect(isCurrentYear(years[1], '2026-10-31')).toBe(true)
+    expect(isCurrentYear(years[0], '2026-10-31')).toBe(false)
+  })
+
+  it('between years takes the next one, and after the last year the last one', () => {
+    expect(pickCurrentYear(years, '2026-07-15')?.id).toBe('b')
+    expect(pickCurrentYear(years, '2027-07-15')?.id).toBe('b')
+    expect(pickCurrentYear(years, '2025-06-01')?.id).toBe('a')
+    expect(pickCurrentYear([], '2026-07-15')).toBeUndefined()
   })
 })

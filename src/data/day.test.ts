@@ -3,7 +3,12 @@ import { bellsOfDay, currentAndNext, lessonsOfDay, mondayOf, slotAt, type DayDat
 import { computeBells } from './timetable'
 import type { AcademicYear, ClassGroup, Course, Lesson, LessonSchedule, Timetable, TimetableEntry } from './types'
 
-const course = { id: 'k', academic_year_id: 'y', subject: 'Інформатика', grade: 9 } as Course
+const course = {
+  id: 'k',
+  academic_year_id: 'y',
+  subject: 'Інформатика',
+  grade: 9,
+} as Course
 const cls = (id: string, letter: string) => ({ id, grade: 9, letter, display_name: `9-${letter}` }) as ClassGroup
 const lesson = (id: string, number: number) => ({ id, number, course_id: 'k' }) as Lesson
 const sched = (lessonId: string, classId: string, date: string) =>
@@ -16,7 +21,13 @@ const sched = (lessonId: string, classId: string, date: string) =>
     status: 'planned',
   }) as LessonSchedule
 const entry = (weekday: number, slot: number, classId: string) =>
-  ({ timetable_id: 't', weekday, slot_number: slot, class_group_id: classId, course_id: 'k' }) as TimetableEntry
+  ({
+    timetable_id: 't',
+    weekday,
+    slot_number: slot,
+    class_group_id: classId,
+    course_id: 'k',
+  }) as TimetableEntry
 
 const data: DayData = {
   courses: [course],
@@ -26,7 +37,12 @@ const data: DayData = {
   schedules: [sched('l1', 'a', '2026-09-07'), sched('l2', 'a', '2026-09-07'), sched('l1', 'b', '2026-09-07')],
   timetables: [{ id: 't', valid_from: '2026-09-01', valid_to: '2026-12-31' } as Timetable],
   entries: [entry(1, 1, 'b'), entry(1, 3, 'a'), entry(1, 2, 'a')],
-  bells: [{ academic_year_id: 'y', slots: computeBells('08:30', 45, [10, 10, 10]) } as never],
+  bells: [
+    {
+      academic_year_id: 'y',
+      slots: computeBells('08:30', 45, [10, 10, 10]),
+    } as never,
+  ],
 }
 
 describe('lessonsOfDay', () => {
@@ -39,11 +55,40 @@ describe('lessonsOfDay', () => {
     ])
   })
 
+  it('puts second-shift lessons after the first shift, with their own bell times', () => {
+    const second = {
+      ...data,
+      bells: [
+        {
+          academic_year_id: 'y',
+          slots: computeBells('08:30', 45, [10, 10, 10]),
+          second_shift: computeBells('14:10', 45, [10]),
+        } as never,
+      ],
+      entries: [entry(1, 1, 'b'), { ...entry(1, 1, 'a'), shift: 2 }, entry(1, 2, 'a')] as TimetableEntry[],
+    }
+    const list = lessonsOfDay('2026-09-07', second)
+    expect(list.map((x) => `${x.shift}/${x.slot} ${x.cls.display_name} ${x.bell?.start}`)).toEqual([
+      '1/1 9-Б 08:30',
+      '1/2 9-А 09:25',
+      '2/1 9-А 14:10',
+    ])
+  })
+
   it('finds the current and next lesson', () => {
     const list = lessonsOfDay('2026-09-07', data)
-    expect(currentAndNext(list, new Date(2026, 8, 7, 9, 30))).toEqual({ currentId: 'l1_a', nextId: 'l2_a' })
-    expect(currentAndNext(list, new Date(2026, 8, 7, 9, 20))).toEqual({ currentId: null, nextId: 'l1_a' })
-    expect(currentAndNext(list, new Date(2026, 8, 7, 12, 0))).toEqual({ currentId: null, nextId: null })
+    expect(currentAndNext(list, new Date(2026, 8, 7, 9, 30))).toEqual({
+      currentId: 'l1_a',
+      nextId: 'l2_a',
+    })
+    expect(currentAndNext(list, new Date(2026, 8, 7, 9, 20))).toEqual({
+      currentId: null,
+      nextId: 'l1_a',
+    })
+    expect(currentAndNext(list, new Date(2026, 8, 7, 12, 0))).toEqual({
+      currentId: null,
+      nextId: null,
+    })
   })
 
   it('finds the monday of a week', () => {
@@ -63,8 +108,16 @@ describe('slotAt', () => {
 
 describe('bellsOfDay', () => {
   const years = [
-    { id: 'y', start_date: '2026-09-01', end_date: '2027-05-31', is_current: true } as AcademicYear,
-    { id: 'z', start_date: '2025-09-01', end_date: '2026-05-31', is_current: false } as AcademicYear,
+    {
+      id: 'y',
+      start_date: '2026-09-01',
+      end_date: '2027-05-31',
+    } as AcademicYear,
+    {
+      id: 'z',
+      start_date: '2025-09-01',
+      end_date: '2026-05-31',
+    } as AcademicYear,
   ]
   const bells = [
     { academic_year_id: 'z', slots: [] },

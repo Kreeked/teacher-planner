@@ -14,7 +14,6 @@ export type AcademicYear = Meta & {
   title: string
   start_date: ISODate
   end_date: ISODate
-  is_current: boolean
 }
 
 export type PeriodKind = 'semester' | 'quarter' | 'other'
@@ -93,7 +92,7 @@ export type LessonSchedule = Meta & {
   note: string
 }
 
-// Розклад дзвінків року: однаковий для всіх днів. Час уроку береться за номером уроку в дні.
+// Розклад дзвінків року: однаковий для всіх днів, дві зміни. Час уроку береться за зміною й номером уроку в дні.
 export type BellSlot = {
   number: number
   start: string // «08:30»
@@ -103,12 +102,12 @@ export type BellSlot = {
 
 export type BellSchedule = Meta & {
   academic_year_id: string
-  first_start: string
-  lesson_minutes: number
-  slots: BellSlot[]
+  slots: BellSlot[] // перша зміна
+  second_shift?: BellSlot[] // друга зміна; у старих записів немає
 }
 
-// Тижневий шаблон розкладу; щотижня однаковий. Новий розклад серед року — новий запис.
+// Тижневий шаблон розкладу; щотижня однаковий. Сторінка року редагує один шаблон;
+// старі шаблони з іншими датами лишаються й діють у свої дати.
 export type Timetable = Meta & {
   academic_year_id: string
   title: string
@@ -121,6 +120,7 @@ export type TimetableEntry = Meta & {
   timetable_id: string
   weekday: number // 1 = пн
   slot_number: number
+  shift?: 1 | 2 // зміна; у старих записів немає — перша
   class_group_id: string
   course_id: string
 }

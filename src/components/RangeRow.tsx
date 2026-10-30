@@ -1,67 +1,41 @@
 import { Trash2 } from 'lucide-react'
-import { useState } from 'react'
-import type { ISODate } from '../data/types'
 import { DatePicker } from './DatePicker'
+import { useRangeDraft, type Options } from './useRangeDraft'
 
-export type RangeValue = { title: string; start_date: ISODate; end_date: ISODate }
-
-type Props = {
-  value: RangeValue
-  validate: (v: RangeValue) => string | null
-  onSave: (v: RangeValue) => void
-  onDelete?: () => void
+type Props = Options & {
+  onDelete: () => void
   titleLabel: string
-  className?: string
+  deleteLabel: string
+  nested?: boolean
 }
 
-/**
- * Рядок «назва + дата початку + дата кінця». Зберігає лише коректні значення:
- * поки є помилка, показує її і не записує (жорсткі правила з розділу 4).
- */
-export function RangeRow({ value, validate, onSave, onDelete, titleLabel, className }: Props) {
-  const [draft, setDraft] = useState(value)
-  const [seen, setSeen] = useState(value)
-  // Зміни, що прийшли ззовні (з іншого пристрою), підтягуємо в чернетку.
-  if (seen.title !== value.title || seen.start_date !== value.start_date || seen.end_date !== value.end_date) {
-    setSeen(value)
-    setDraft(value)
-  }
-
-  const error = validate(draft)
-
-  function change(patch: Partial<RangeValue>, save: boolean) {
-    const next = { ...draft, ...patch }
-    setDraft(next)
-    if (save && !validate(next) && next.title.trim()) onSave({ ...next, title: next.title.trim() })
-  }
-
+/** Рядок семестру чи чверті: назва, початок — кінець, кошик. */
+export function RangeRow({ onDelete, titleLabel, deleteLabel, nested, ...options }: Props) {
+  const r = useRangeDraft(options)
   return (
-    <div className={`range-row ${className ?? ''}`}>
+    <div className={nested ? 'yp-range nested' : 'yp-range'}>
       <input
-        className="field title"
+        className="field yp-range-title"
         aria-label={titleLabel}
-        value={draft.title}
-        onChange={(e) => change({ title: e.target.value }, false)}
-        onBlur={() => change({}, draft.title !== value.title)}
+        value={r.draft.title}
+        onChange={(e) => r.setTitle(e.target.value)}
+        onBlur={r.saveTitle}
       />
-      <DatePicker
-        label="Початок"
-        value={draft.start_date || null}
-        onChange={(d) => change({ start_date: d ?? '' }, true)}
-      />
-      <span className="dash">—</span>
-      <DatePicker
-        label="Кінець"
-        value={draft.end_date || null}
-        min={draft.start_date || undefined}
-        onChange={(d) => change({ end_date: d ?? '' }, true)}
-      />
-      {onDelete && (
-        <button className="icon-btn del" onClick={onDelete} aria-label="Видалити" title="Видалити">
-          <Trash2 size={15} />
-        </button>
-      )}
-      {error && <p className="field-error">{error}</p>}
+      <div className="yp-range-dates">
+        <DatePicker numeric label="Початок" value={r.draft.start_date || null} onChange={r.setStart} />
+        <span className="yp-dash">–</span>
+        <DatePicker
+          numeric
+          label="Кінець"
+          value={r.draft.end_date || null}
+          min={r.draft.start_date || undefined}
+          onChange={r.setEnd}
+        />
+      </div>
+      <button type="button" className="icon-btn del" onClick={onDelete} aria-label={deleteLabel} title={deleteLabel}>
+        <Trash2 size={16} />
+      </button>
+      {r.error && <p className="field-error">{r.error}</p>}
     </div>
   )
 }

@@ -1,5 +1,5 @@
 import { addDays, weekday } from './schedule'
-import { slotsOn, timetableOn } from './timetable'
+import { shiftSlots, slotsOn, timetableOn, type Shift } from './timetable'
 import type {
   AcademicYear,
   BellSchedule,
@@ -12,6 +12,7 @@ import type {
   Timetable,
   TimetableEntry,
 } from './types'
+import { pickCurrentYear } from './year'
 
 export type DayData = {
   schedules: LessonSchedule[]
@@ -29,6 +30,7 @@ export type DayLesson = {
   course: Course
   cls: ClassGroup
   slot: number | null
+  shift: Shift
   bell?: BellSlot
 }
 
@@ -54,15 +56,18 @@ export function lessonsOfDay(day: ISODate, d: DayData): DayLesson[] {
       const key = `${x.s.class_group_id}_${x.s.course_id}`
       const i = taken.get(key) ?? 0
       taken.set(key, i + 1)
-      const slot = slots.get(key)?.[i] ?? null
-      const bell = d.bells
-        .find((b) => b.academic_year_id === x.course.academic_year_id)
-        ?.slots.find((b) => b.number === slot)
-      return { ...x, slot, bell }
+      const placed = slots.get(key)?.[i]
+      const slot = placed?.slot ?? null
+      const shift = placed?.shift ?? 1
+      const bell = shiftSlots(
+        d.bells.find((b) => b.academic_year_id === x.course.academic_year_id),
+        shift,
+      ).find((b) => b.number === slot)
+      return { ...x, slot, shift, bell }
     })
     .sort(
       (a, b) =>
-        (a.slot ?? 99) - (b.slot ?? 99) ||
+        (a.slot === null ? 1000 : a.shift * 100 + a.slot) - (b.slot === null ? 1000 : b.shift * 100 + b.slot) ||
         a.cls.grade - b.cls.grade ||
         a.cls.letter.localeCompare(b.cls.letter, 'uk') ||
         a.course.subject.localeCompare(b.course.subject, 'uk'),
@@ -92,7 +97,7 @@ export function mondayOf(day: ISODate) {
 export function bellsOfDay(day: ISODate, list: DayLesson[], bells: BellSchedule[], years: AcademicYear[]) {
   const yearId =
     list[0]?.course.academic_year_id ??
-    (years.find((y) => y.start_date <= day && day <= y.end_date) ?? years.find((y) => y.is_current))?.id
+    (years.find((y) => y.start_date <= day && day <= y.end_date) ?? pickCurrentYear(years, day))?.id
   return bells.find((b) => b.academic_year_id === yearId) ?? null
 }
 

@@ -1,0 +1,153 @@
+import { useState } from 'react'
+import { commit, createDoc, newBatch, removeDoc, updateFields } from '../../data/db'
+import { WORKDAYS as DAYS, toISO, weekday } from '../../data/schedule'
+import { entryShift, shiftSlots, timetableOn, type Shift } from '../../data/timetable'
+import type { AcademicYear, BellSchedule, ClassGroup, Course, CourseClass, Timetable, TimetableEntry } from '../../data/types'
+import { gradeColor } from '../../data/year'
+import { ShiftPills } from './ShiftPills'
+
+type Props = {
+  year: AcademicYear
+  bells?: BellSchedule
+  timetables: Timetable[]
+  entries: TimetableEntry[]
+  courses: Course[]
+  classes: ClassGroup[]
+  links: CourseClass[]
+  shift: Shift
+  onShift: (s: Shift) => void
+}
+
+/** Тижневий розклад: день × номер уроку → клас і КТП. Час уроку береться з дзвінків вибраної зміни. */
+export function ScheduleSection({ year, bells, timetables, entries, courses, classes, links, shift, onShift }: Props) {
+  const [today] = useState(() => toISO(new Date()))
+  const sorted = [...timetables].sort((a, b) => a.valid_from.localeCompare(b.valid_from))
+  // Сторінка редагує один шаблон: чинний сьогодні, а коли такого немає — останній.
+  const current = timetableOn(sorted, today) ?? sorted[sorted.length - 1]
+  const own = current ? entries.filter((e) => e.timetable_id === current.id) : []
+  const ofShift = own.filter((e) => entryShift(e) === shift)
+  const slots = shiftSlots(bells, shift)
+  const rowCount = Math.max(slots.length, ...ofShift.map((e) => e.slot_number))
+  const rows = Array.from({ length: rowCount }, (_, i) => i + 1)
+
+  const options = [...courses]
+    .sort((a, b) => a.grade - b.grade || a.subject.localeCompare(b.subject, 'uk'))
+    .map((c) => ({
+      course: c,
+      classes: links
+        .filter((l) => l.course_id === c.id)
+        .map((l) => classes.find((x) => x.id === l.class_group_id))
+        .filter((x): x is ClassGroup => !!x)
+        .sort((a, b) => a.letter.localeCompare(b.letter, 'uk')),
+    }))
+    .filter((o) => o.classes.length)
+  const manySubjects = new Set(courses.map((c) => c.subject.toLowerCase())).size > 1
+
+  function setCell(day: number, slot: number, value: string) {
+    const existing = ofShift.find((e) => e.weekday === day && e.slot_number === slot)
+    if (!value) {
+      if (existing) removeDoc('timetable_entries', existing.id)
+      return
+    }
+    const [class_group_id, course_id] = value.split('|')
+    if (existing)
+      return updateFields('timetable_entries', existing.id, {
+        class_group_id,
+        course_id,
+      })
+    // Перша клітинка року створює і сам шаблон розкладу.
+    const batch = newBatch()
+    const timetable_id =
+      current?.id ??
+      createDoc(
+        'timetables',
+        {
+          academic_year_id: year.id,
+          title: 'Розклад',
+          valid_from: year.start_date,
+          valid_to: year.end_date,
+        },
+        batch,
+      )
+    createDoc(
+      'timetable_entries',
+      {
+        timetable_id,
+        weekday: day,
+        slot_number: slot,
+        shift,
+        class_group_id,
+        course_id,
+      },
+      batch,
+    )
+    commit(batch)
+  }
+
+  return (
+    <section className="panel yp-block yp-sched" aria-labelledby="yp-tt">
+      <div className="yp-head stack">
+        <h2 id="yp-tt">
+          Розклад <span className="yp-count">{own.length}</span>
+        </h2>
+        <ShiftPills value={shift} onChange={onShift} />
+      </div>
+
+      {!options.length && (
+        <p className="warn">Спершу створи КТП і прив'яжи до нього класи: тоді їх можна буде ставити в розклад.</p>
+      )}
+
+      {rows.length === 0 ? (
+        <p className="yp-empty">Додай уроки в «Дзвінках» цієї зміни: тоді їх можна буде поставити в розклад.</p>
+      ) : (
+        <div className="yp-tt">
+          <span />
+          {DAYS.map((d) => (
+            <span key={d.value} className={d.value === weekday(today) ? 'yp-day today' : 'yp-day'}>
+              {d.label}
+            </span>
+          ))}
+          {rows.map((n) => {
+            const bell = slots.find((s) => s.number === n)
+            return [
+              <span key={`h${n}`} className="yp-slot">
+                <span className="yp-num">{n}</span>
+                {bell && (
+                  <span className="yp-slot-time num">
+                    <span>{bell.start}</span>
+                    <span>{bell.end}</span>
+                  </span>
+                )}
+              </span>,
+              ...DAYS.map((d) => {
+                const e = ofShift.find((x) => x.weekday === d.value && x.slot_number === n)
+                const course = e && courses.find((c) => c.id === e.course_id)
+                return (
+                  <select
+                    key={`${d.value}-${n}`}
+                    className={e ? 'yp-cell on' : 'yp-cell'}
+                    style={course ? { background: gradeColor(course.grade) } : undefined}
+                    aria-label={`${d.label}, урок ${n}`}
+                    value={e ? `${e.class_group_id}|${e.course_id}` : ''}
+                    onChange={(ev) => setCell(d.value, n, ev.target.value)}
+                  >
+                    <option value="">—</option>
+                    {options.map(({ course: c, classes: cs }) => (
+                      <optgroup key={c.id} label={`${c.subject}, ${c.grade} клас`}>
+                        {cs.map((x) => (
+                          <option key={x.id} value={`${x.id}|${c.id}`}>
+                            {manySubjects ? `${x.display_name} · ${c.subject}` : x.display_name}
+                          </option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
+                )
+              }),
+            ]
+          })}
+        </div>
+      )}
+    </section>
+  )
+}

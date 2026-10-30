@@ -1,11 +1,12 @@
-import { ask } from '../../lib/confirm'
 import { Plus } from 'lucide-react'
 import { RangeRow } from '../../components/RangeRow'
-import { notifySaved } from '../../lib/saved'
 import { commit, createDoc, newBatch, ref, updateFields } from '../../data/db'
 import type { AcademicYear, Period } from '../../data/types'
 import { ROMAN, sortPeriods, validatePeriod } from '../../data/year'
+import { ask } from '../../lib/confirm'
+import { notifySaved } from '../../lib/saved'
 
+/** Семестри з чвертями всередині: усе редагується одразу, без окремого вікна. */
 export function PeriodsSection({ year, periods }: { year: AcademicYear; periods: Period[] }) {
   const semesters = sortPeriods(periods.filter((p) => !p.parent_id))
   const quarterCount = periods.filter((p) => p.kind === 'quarter').length
@@ -47,14 +48,30 @@ export function PeriodsSection({ year, periods }: { year: AcademicYear; periods:
     commit(batch)
   }
 
-  function row(p: Period, cls?: string) {
+  function row(p: Period, nested: boolean) {
     return (
       <RangeRow
         key={p.id}
-        className={cls}
-        titleLabel="Назва періоду"
-        value={p}
-        validate={(v) => validatePeriod({ ...v, id: p.id, parent_id: p.parent_id }, year, periods)}
+        nested={nested}
+        titleLabel={nested ? 'Назва чверті' : 'Назва семестру'}
+        deleteLabel={nested ? 'Видалити чверть' : 'Видалити семестр'}
+        value={{
+          title: p.title,
+          start_date: p.start_date,
+          end_date: p.end_date,
+        }}
+        validate={(v) =>
+          validatePeriod(
+            {
+              start_date: v.start_date,
+              end_date: v.end_date,
+              id: p.id,
+              parent_id: p.parent_id,
+            },
+            year,
+            periods,
+          )
+        }
         onSave={(v) => (updateFields('periods', p.id, v), notifySaved())}
         onDelete={() => remove(p)}
       />
@@ -62,21 +79,25 @@ export function PeriodsSection({ year, periods }: { year: AcademicYear; periods:
   }
 
   return (
-    <div className="form">
+    <>
       {semesters.length === 0 && <p className="muted">Періодів ще немає.</p>}
-      {semesters.map((sem) => (
-        <div key={sem.id} className="period-group">
-          {row(sem)}
-          {sortPeriods(periods.filter((p) => p.parent_id === sem.id)).map((q) => row(q, 'nested'))}
-          <button className="link-btn nested" onClick={() => addQuarter(sem)}>
-            <Plus size={14} /> Чверть
-          </button>
-        </div>
-      ))}
-      <button className="btn ghost" onClick={addSemester}>
+      <div className="yp-groups">
+        {semesters.map((sem) => (
+          <div key={sem.id} className="yp-group">
+            {row(sem, false)}
+            {sortPeriods(periods.filter((p) => p.parent_id === sem.id)).map((q) => row(q, true))}
+            <div className="yp-nested-add">
+              <button type="button" className="link-btn" onClick={() => addQuarter(sem)}>
+                <Plus size={14} /> Чверть
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+      <button type="button" className="btn ghost yp-add" onClick={addSemester}>
         <Plus size={16} /> Семестр
       </button>
-    </div>
+    </>
   )
 }
 

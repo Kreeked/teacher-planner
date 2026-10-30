@@ -3,7 +3,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from
 import { createPortal } from 'react-dom'
 import { toISO } from '../data/schedule'
 import type { ISODate } from '../data/types'
-import { shortDate } from '../data/year'
+import { formatDate, shortDate } from '../data/year'
 import { MonthCalendar } from '../layout/MonthCalendar'
 
 const longDate = new Intl.DateTimeFormat('uk-UA', { day: 'numeric', month: 'long', year: 'numeric' })
@@ -21,6 +21,8 @@ type Props = {
   max?: ISODate
   // Коротко «дд.мм» — для клітинок таблиці.
   compact?: boolean
+  // Числами «01.09.2026» і без значка календаря — для полів, що стоять поруч із текстовими.
+  numeric?: boolean
   clearable?: boolean
   placeholder?: string
   className?: string
@@ -30,7 +32,7 @@ const POP_W = 272
 const POP_H = 330
 
 /** Поле дати з календарем у стилі застосунку замість системного вікна браузера. */
-export function DatePicker({ value, onChange, label, min, max, compact, clearable, placeholder, className }: Props) {
+export function DatePicker({ value, onChange, label, min, max, compact, numeric, clearable, placeholder, className }: Props) {
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState<CSSProperties>({})
   const button = useRef<HTMLButtonElement>(null)
@@ -82,7 +84,9 @@ export function DatePicker({ value, onChange, label, min, max, compact, clearabl
   const text = value
     ? compact
       ? shortDate(value)
-      : formatLong(value)
+      : numeric
+        ? formatDate(value)
+        : formatLong(value)
     : (placeholder ?? (compact ? '—' : 'Обрати дату'))
   const todayAllowed = (!min || today >= min) && (!max || today <= max)
 
@@ -91,15 +95,13 @@ export function DatePicker({ value, onChange, label, min, max, compact, clearabl
       <button
         ref={button}
         type="button"
-        className={['date-btn', compact ? 'compact' : 'field', value ? '' : 'empty', className]
-          .filter(Boolean)
-          .join(' ')}
+        className={['date-btn', compact ? 'compact' : 'field', value ? '' : 'empty', className].filter(Boolean).join(' ')}
         aria-label={value ? `${label}: ${formatLong(value)}` : label}
         aria-haspopup="dialog"
         aria-expanded={open}
         onClick={() => setOpen(!open)}
       >
-        {!compact && <CalendarDays size={14} />}
+        {!compact && !numeric && <CalendarDays size={14} />}
         <span>{text}</span>
       </button>
       {open &&
