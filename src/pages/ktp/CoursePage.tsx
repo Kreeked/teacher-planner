@@ -21,7 +21,7 @@ import {
   TriangleAlert,
 } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { BackLink } from '../../components/BackLink'
 import { DatePicker } from '../../components/DatePicker'
 import { toISO } from '../../data/schedule'
@@ -115,14 +115,15 @@ export function CoursePage() {
   // Перехід з головної: прокрутити до потрібного уроку (один раз, коли він з'явиться на сторінці).
   const [params] = useSearchParams()
   const focusId = params.get('lesson')
+  const { key: visit } = useLocation()
   const focused = useRef<string | null>(null)
   useEffect(() => {
-    if (!focusId || focused.current === focusId) return
+    if (!focusId || focused.current === visit) return
     const el = document.getElementById(`lesson-${focusId}`)
     if (!el) return
-    focused.current = focusId
+    focused.current = visit
     el.scrollIntoView({ block: 'center' })
-  }, [focusId, lessons.length, loading])
+  }, [focusId, visit, lessons.length, loading])
   const [showSettings, setShowSettings] = useState(false)
   const [editing, setEditing] = useState(false)
   const [materialsFor, setMaterialsFor] = useState<string | null>(null)
