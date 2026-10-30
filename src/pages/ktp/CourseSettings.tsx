@@ -133,7 +133,7 @@ export function CourseSettings({ course, topics, lessons, onDeleted, onClose }: 
 
       <section className="dialog-sec danger-zone">
         <button type="button" className="btn ghost danger" onClick={remove}>
-          <Trash2 size={15} /> Видалити КТП
+          <Trash2 size={16} /> Видалити КТП
         </button>
       </section>
     </Dialog>

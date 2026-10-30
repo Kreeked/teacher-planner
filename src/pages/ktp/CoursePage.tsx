@@ -335,16 +335,16 @@ export function CoursePage() {
           <div className="actions">
             {editing && (
               <button className="btn ghost" onClick={addTopic}>
-                <Plus size={15} /> Нова тема
+                <Plus size={16} /> Нова тема
               </button>
             )}
             <button className="btn ghost" onClick={() => setShowSettings(true)} aria-haspopup="dialog">
-              <Settings2 size={15} /> Параметри
+              <Settings2 size={16} /> Параметри
             </button>
             <button className={editing ? 'btn' : 'btn ghost'} onClick={() => setEditing(!editing)}>
               {editing ? (
                 <>
-                  <Check size={15} /> Готово
+                  <Check size={16} /> Готово
                 </>
               ) : (
                 <>

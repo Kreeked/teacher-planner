@@ -85,7 +85,7 @@ function Preview({ ktp, file, year, courses, classes, onClose, onDone }: Props &
             Скасувати
           </button>
           <button className="btn" onClick={run} disabled={busy}>
-            <FileUp size={15} /> {busy ? 'Імпортую…' : `Імпортувати ${lessons.length} ${lessonsWord(lessons.length)}`}
+            <FileUp size={16} /> {busy ? 'Імпортую…' : `Імпортувати ${lessons.length} ${lessonsWord(lessons.length)}`}
           </button>
         </>
       }

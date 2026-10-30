@@ -92,7 +92,7 @@ export function YearPage() {
               <p>Створи рік, і до нього одразу додадуться два семестри. Потім додай класи.</p>
             </div>
             <button className="btn" onClick={() => setCreating(true)}>
-              <Plus size={15} /> Створити рік
+              <Plus size={16} /> Створити рік
             </button>
           </section>
         )}
