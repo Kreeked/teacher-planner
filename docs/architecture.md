@@ -34,12 +34,17 @@
 | `lib/` | `firebase.ts`, `drive.ts`, `offlineFiles.ts`, `useOfflinePlan.ts`, `useOnline.ts`, `confirm.ts`, `saved.ts`, `drag.ts`, `dates.ts`, `useClassifyLegacy.ts` |
 | `components/` | `Dialog`, `Confirm`, `Menu`, `Sortable`, `DatePicker`, `InlineText`, `RangeRow`, `Saved` |
 | `pages/` | `TodayPage`, `schedule/`, `ktp/` (зокрема `Materials` — вікно й полички), `year/`, `settings/`, `LoginPage`, `SettingsPage` |
-| `layout/` | `AppLayout`, `nav.ts` (меню), `MonthCalendar` |
+| `layout/` | `AppLayout`, `TabPanes` (сторінки розділів), `nav.ts` (меню), `MonthCalendar`, `BellList` |
 | `index.css` | усі стилі, токени дизайну як CSS-змінні |
 
 ## Маршрути
 
 `/` Сьогодні · `/schedule` · `/ktp` · `/ktp/year` · `/ktp/:courseId` · `/settings`
+
+Розділи меню не розмонтовуються: `AppLayout` тримає відкриті розділи в `TabPanes` одночасно, неактивні лише `hidden`,
+кожен зі своїм останнім `Location` (`<Routes location>`). Тому перемикання вкладок не скидає стан сторінок (відкритий курс,
+режим редагування, вибраний розклад), а меню веде туди, де розділ зупинився; повторний дотик до активного розділу — на його початок.
+Прокрутка запам'ятовується для кожного розділу окремо.
 
 ## Офлайн
 
