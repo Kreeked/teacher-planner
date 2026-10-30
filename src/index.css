@@ -1276,7 +1276,7 @@ h2 {
 
 .yp-bell-row {
   display: grid;
-  grid-template-columns: 64px 112px 112px 1fr 168px 48px;
+  grid-template-columns: 64px 128px 128px 1fr 168px 48px;
   align-items: center;
   min-height: 52px;
   background: var(--surface);
@@ -1301,8 +1301,8 @@ h2 {
   padding-left: 16px;
 }
 
-.yp-bell-row .field {
-  width: 104px;
+.yp .yp-bell-row .field {
+  width: calc(100% - 12px);
   font-variant-numeric: tabular-nums;
 }
 
