@@ -1,4 +1,4 @@
-export type Ask = { text: string; ok: string; danger: boolean; resolve: (yes: boolean) => void }
+export type Ask = { text: string; ok: string; danger: boolean; word?: string; resolve: (yes: boolean) => void }
 
 let show: ((a: Ask) => void) | null = null
 
@@ -12,11 +12,12 @@ export function registerConfirm(fn: (a: Ask) => void) {
 
 /**
  * Питання «так/ні» у вікні застосунку замість системного confirm().
- * ok — напис головної кнопки; danger — червона кнопка для видалення.
+ * ok — напис головної кнопки; danger — червона кнопка для видалення;
+ * word — слово, яке треба вписати, щоб підтвердити (для незворотних видалень року чи КТП).
  */
-export function ask(text: string, { ok = 'Видалити', danger = true } = {}): Promise<boolean> {
+export function ask(text: string, { ok = 'Видалити', danger = true, word }: { ok?: string; danger?: boolean; word?: string } = {}): Promise<boolean> {
   return new Promise((resolve) => {
-    if (show) show({ text, ok, danger, resolve })
+    if (show) show({ text, ok, danger, word, resolve })
     else resolve(confirm(text))
   })
 }

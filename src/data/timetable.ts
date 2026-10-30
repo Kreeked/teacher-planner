@@ -77,14 +77,6 @@ export function timetableOn(timetables: Timetable[], date: ISODate) {
   return timetables.find((t) => t.valid_from <= date && date <= t.valid_to)
 }
 
-/** Час із тексту: «8:30», «08.30», «830» → «08:30»; не час — null. */
-export function parseTime(text: string) {
-  const m = text.trim().match(/^(\d{1,2})(?:[:.\-\s]?(\d{2}))$/)
-  if (!m) return null
-  const [h, min] = [Number(m[1]), Number(m[2])]
-  return h < 24 && min < 60 ? toTime(h * 60 + min) : null
-}
-
 /** Номери по черзі, а перерва після уроку — проміжок до наступного (після останнього — 0). */
 function relink(slots: BellSlot[]): BellSlot[] {
   return slots.map((s, i) => ({

@@ -1,0 +1,129 @@
+import { Clock } from 'lucide-react'
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
+import { createPortal } from 'react-dom'
+
+type Props = {
+  // «08:30»
+  value: string
+  label: string
+  // Повертає false, коли час не підходить (наприклад, ламає порядок уроків).
+  onChange: (time: string) => boolean | void
+}
+
+const HOURS = Array.from({ length: 24 }, (_, i) => i)
+const MINUTES = Array.from({ length: 60 }, (_, i) => i)
+const POP_W = 168
+const POP_H = 264
+
+const two = (n: number) => String(n).padStart(2, '0')
+
+/** Поле часу з випадаючим вибором години й хвилини в стилі застосунку замість системного вікна. */
+export function TimePicker({ value, label, onChange }: Props) {
+  const [open, setOpen] = useState(false)
+  const [hour, setHour] = useState(0)
+  const [pos, setPos] = useState<CSSProperties>({})
+  const button = useRef<HTMLButtonElement>(null)
+  const pop = useRef<HTMLDivElement>(null)
+  const [h, m] = value.split(':').map(Number)
+
+  // Список під полем, а якщо внизу мало місця — над ним; не виходить за край екрана.
+  useLayoutEffect(() => {
+    if (!open || !button.current) return
+    const r = button.current.getBoundingClientRect()
+    const below = r.bottom + 4 + POP_H <= window.innerHeight - 8
+    setPos({
+      top: below ? r.bottom + 4 : Math.max(8, r.top - 4 - POP_H),
+      left: Math.max(8, Math.min(r.left, window.innerWidth - POP_W - 8)),
+    })
+    // Вибрані година й хвилина одразу видно.
+    pop.current?.querySelectorAll('.time-opt.sel').forEach((el) => el.scrollIntoView({ block: 'center' }))
+  }, [open])
+
+  useEffect(() => {
+    if (!open) return
+    const close = (e: Event) => {
+      const t = e.target as Node
+      if (pop.current?.contains(t) || button.current?.contains(t)) return
+      setOpen(false)
+    }
+    const key = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      e.preventDefault()
+      setOpen(false)
+      button.current?.focus()
+    }
+    const scroll = (e: Event) => !pop.current?.contains(e.target as Node) && setOpen(false)
+    document.addEventListener('pointerdown', close)
+    // Раніше за вікно, щоб Escape закривав лише список.
+    document.addEventListener('keydown', key, true)
+    window.addEventListener('scroll', scroll, true)
+    window.addEventListener('resize', scroll)
+    return () => {
+      document.removeEventListener('pointerdown', close)
+      document.removeEventListener('keydown', key, true)
+      window.removeEventListener('scroll', scroll, true)
+      window.removeEventListener('resize', scroll)
+    }
+  }, [open])
+
+  function pickMinute(min: number) {
+    setOpen(false)
+    const next = `${two(hour)}:${two(min)}`
+    if (next !== value) onChange(next)
+    button.current?.focus()
+  }
+
+  return (
+    <>
+      <button
+        ref={button}
+        type="button"
+        className="date-btn field time-btn"
+        aria-label={`${label}: ${value}`}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        onClick={() => {
+          setHour(h)
+          setOpen(!open)
+        }}
+      >
+        <span>{value}</span>
+        <Clock size={14} />
+      </button>
+      {open &&
+        createPortal(
+          <div ref={pop} className="time-pop" role="dialog" aria-label={label} style={pos}>
+            <div className="time-col" role="listbox" aria-label="Година">
+              {HOURS.map((x) => (
+                <button
+                  key={x}
+                  type="button"
+                  role="option"
+                  aria-selected={x === hour}
+                  className={x === hour ? 'time-opt sel' : 'time-opt'}
+                  onClick={() => setHour(x)}
+                >
+                  {two(x)}
+                </button>
+              ))}
+            </div>
+            <div className="time-col" role="listbox" aria-label="Хвилини">
+              {MINUTES.map((x) => (
+                <button
+                  key={x}
+                  type="button"
+                  role="option"
+                  aria-selected={x === m && hour === h}
+                  className={x === m && hour === h ? 'time-opt sel' : 'time-opt'}
+                  onClick={() => pickMinute(x)}
+                >
+                  {two(x)}
+                </button>
+              ))}
+            </div>
+          </div>,
+          document.body,
+        )}
+    </>
+  )
+}

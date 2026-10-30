@@ -1,9 +1,11 @@
+import { X } from 'lucide-react'
 import { useState } from 'react'
 import { commit, createDoc, newBatch, removeDoc, updateFields } from '../../data/db'
 import { WORKDAYS as DAYS, toISO, weekday } from '../../data/schedule'
 import { entryShift, shiftSlots, timetableOn, type Shift } from '../../data/timetable'
 import type { AcademicYear, BellSchedule, ClassGroup, Course, CourseClass, Timetable, TimetableEntry } from '../../data/types'
 import { gradeColor } from '../../data/year'
+import { Menu } from '../../components/Menu'
 import { ShiftPills } from './ShiftPills'
 
 type Props = {
@@ -122,26 +124,27 @@ export function ScheduleSection({ year, bells, timetables, entries, courses, cla
               ...DAYS.map((d) => {
                 const e = ofShift.find((x) => x.weekday === d.value && x.slot_number === n)
                 const course = e && courses.find((c) => c.id === e.course_id)
+                const value = e ? `${e.class_group_id}|${e.course_id}` : ''
+                const cls = e && classes.find((c) => c.id === e.class_group_id)
                 return (
-                  <select
+                  <Menu
                     key={`${d.value}-${n}`}
-                    className={e ? 'yp-cell on' : 'yp-cell'}
-                    style={course ? { background: gradeColor(course.grade) } : undefined}
-                    aria-label={`${d.label}, урок ${n}`}
-                    value={e ? `${e.class_group_id}|${e.course_id}` : ''}
-                    onChange={(ev) => setCell(d.value, n, ev.target.value)}
-                  >
-                    <option value="">—</option>
-                    {options.map(({ course: c, classes: cs }) => (
-                      <optgroup key={c.id} label={`${c.subject}, ${c.grade} клас`}>
-                        {cs.map((x) => (
-                          <option key={x.id} value={`${x.id}|${c.id}`}>
-                            {manySubjects ? `${x.display_name} · ${c.subject}` : x.display_name}
-                          </option>
-                        ))}
-                      </optgroup>
-                    ))}
-                  </select>
+                    label={`${d.label}, урок ${n}`}
+                    triggerClass={e ? 'yp-cell filled' : 'yp-cell'}
+                    triggerStyle={course ? { background: gradeColor(course.grade) } : undefined}
+                    trigger={cls ? (manySubjects && course ? `${cls.display_name} · ${course.subject}` : cls.display_name) : ''}
+                    groups={[
+                      ...(e ? [[{ label: 'Вільно', icon: X, onSelect: () => setCell(d.value, n, '') }]] : []),
+                      ...options.map(({ course: c, classes: cs }) =>
+                        cs.map((x) => ({
+                          label: manySubjects ? `${x.display_name} · ${c.subject}` : x.display_name,
+                          swatch: gradeColor(c.grade),
+                          checked: value === `${x.id}|${c.id}`,
+                          onSelect: () => setCell(d.value, n, `${x.id}|${c.id}`),
+                        })),
+                      ),
+                    ]}
+                  />
                 )
               }),
             ]
