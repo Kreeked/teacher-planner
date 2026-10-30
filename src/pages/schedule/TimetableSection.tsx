@@ -4,11 +4,12 @@ import { useState } from 'react'
 import { DatePicker } from '../../components/DatePicker'
 import { RangeRow } from '../../components/RangeRow'
 import { commit, createDoc, deleteRefs, newBatch, ref, refsWhere, removeDoc, updateFields } from '../../data/db'
-import { WEEKDAYS, addDays } from '../../data/schedule'
+import { WORKDAYS as DAYS, addDays } from '../../data/schedule'
 import { validateTimetable } from '../../data/timetable'
 import type {
   AcademicYear,
   BellSchedule,
+  BellSlot,
   ClassGroup,
   Course,
   CourseClass,
@@ -27,7 +28,19 @@ type Props = {
   links: CourseClass[]
 }
 
-const DAYS = WEEKDAYS.slice(0, 5)
+/** Номер уроку з часом початку й кінця за дзвінками. */
+export function SlotLabel({ n, bell }: { n: number; bell?: BellSlot }) {
+  return (
+    <span className="tt-slot">
+      <b>{n}</b>
+      {bell && (
+        <small className="num">
+          {bell.start}–{bell.end}
+        </small>
+      )}
+    </span>
+  )
+}
 
 /** Тижневий шаблон: день × номер уроку → клас і КТП. */
 export function TimetableSection({ year, bells, timetables, entries, courses, classes, links }: Props) {
@@ -38,8 +51,7 @@ export function TimetableSection({ year, bells, timetables, entries, courses, cl
 
   if (!current)
     return (
-      <section className="panel form">
-        <h3>Тижневий розклад</h3>
+      <div className="form">
         <p className="muted">
           Розклад однаковий щотижня. У кожну клітинку «день × урок» постав клас, у якого в тебе урок.
         </p>
@@ -56,7 +68,7 @@ export function TimetableSection({ year, bells, timetables, entries, courses, cl
         >
           Створити розклад
         </button>
-      </section>
+      </div>
     )
 
   const own = entries.filter((e) => e.timetable_id === current.id)
@@ -132,8 +144,7 @@ export function TimetableSection({ year, bells, timetables, entries, courses, cl
   }
 
   return (
-    <section className="panel form timetable">
-      <h3>Тижневий розклад</h3>
+    <div className="form timetable">
       {sorted.length > 1 && (
         <div className="chips">
           {sorted.map((t) => (
@@ -175,10 +186,7 @@ export function TimetableSection({ year, bells, timetables, entries, courses, cl
           {slots.map((n) => {
             const bell = bells?.slots.find((s) => s.number === n)
             return [
-              <span key={`h${n}`} className="tt-slot">
-                <b>{n}</b>
-                {bell && <small>{bell.start}</small>}
-              </span>,
+              <SlotLabel key={`h${n}`} n={n} bell={bell} />,
               ...DAYS.map((d) => {
                 const e = own.find((x) => x.weekday === d.value && x.slot_number === n)
                 const course = e && courses.find((c) => c.id === e.course_id)
@@ -224,6 +232,6 @@ export function TimetableSection({ year, bells, timetables, entries, courses, cl
           </button>
         </div>
       </div>
-    </section>
+    </div>
   )
 }
