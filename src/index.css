@@ -902,6 +902,8 @@ h2 {
 @media (pointer: coarse) {
   .back {
     height: 40px;
+    /* iOS розмиває верхню смугу під рядком стану й панеллю браузера — тримаємо кнопку нижче неї. */
+    top: calc(env(safe-area-inset-top) + 64px);
   }
 }
 
