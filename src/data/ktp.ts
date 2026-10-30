@@ -51,7 +51,7 @@ export function lessonsWord(n: number) {
 export type Warning = { topicId?: string; text: string }
 
 /** М'які перевірки: кількість уроків теми й курсу проти запланованих годин. */
-export function hourWarnings(blocks: TopicBlock[], totalHours: number): Warning[] {
+export function hourWarnings(blocks: TopicBlock[]): Warning[] {
   const w: Warning[] = []
   // Додаткові уроки («*») не входять у години за планом.
   const counted = (ls: Lesson[]) => ls.filter((l) => !l.extra).length
@@ -61,8 +61,6 @@ export function hourWarnings(blocks: TopicBlock[], totalHours: number): Warning[
     if (topic.planned_hours > 0 && n > 0 && n !== topic.planned_hours)
       w.push({ topicId: topic.id, text: `${n} ${lessonsWord(n)} із ${topic.planned_hours} год` })
   }
-  const total = blocks.reduce((n, b) => n + counted(b.lessons), 0)
-  if (totalHours > 0 && total !== totalHours) w.push({ text: `У КТП ${total} ${lessonsWord(total)}, а за планом ${totalHours} год` })
   return w
 }
 

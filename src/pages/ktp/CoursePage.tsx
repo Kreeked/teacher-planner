@@ -1,4 +1,5 @@
 import { ask } from '../../lib/confirm'
+import { flash } from '../../lib/flash'
 import {
   DndContext,
   DragOverlay,
@@ -122,7 +123,18 @@ export function CoursePage() {
     if (!el) return
     focused.current = visit
     el.scrollIntoView({ block: 'center' })
+    flash(el)
   }, [focusId, visit, lessons.length, loading])
+  // Нова тема: прокрутити до неї й підсвітити, щойно вона з'явиться на сторінці.
+  const newTopic = useRef<string | null>(null)
+  useEffect(() => {
+    if (!newTopic.current) return
+    const el = document.getElementById(`topic-${newTopic.current}`)
+    if (!el) return
+    newTopic.current = null
+    el.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    flash(el)
+  }, [topics.length])
   const [showSettings, setShowSettings] = useState(false)
   const [editing, setEditing] = useState(false)
   const [materialsFor, setMaterialsFor] = useState<string | null>(null)
@@ -146,8 +158,7 @@ export function CoursePage() {
 
   const saved = groupLessons(topics, lessons)
   const blocks = drag?.blocks ?? saved
-  const warnings = hourWarnings(saved, course.total_hours)
-  const courseWarning = warnings.find((w) => !w.topicId)
+  const warnings = hourWarnings(saved)
   const color = gradeColor(course.grade)
   const year = years.find((y) => y.id === course.academic_year_id)
   // Колонки дат — класи курсу в порядку прив'язки.
@@ -157,12 +168,13 @@ export function CoursePage() {
     .filter((c): c is ClassGroup => !!c)
   const scheduleById = new Map(schedules.map((s) => [s.id, s]))
   function addTopic() {
-    createDoc('topics', {
+    const id = createDoc('topics', {
       course_id: courseId,
       position: saved.length,
       title: `Тема ${saved.length + 1}`,
       planned_hours: 0,
     })
+    newTopic.current = id
   }
 
   function addLesson(topic: Topic) {
@@ -341,11 +353,15 @@ export function CoursePage() {
           <span className="meter" aria-hidden>
             <i style={{ width: `${Math.min(100, (countedLessons(lessons) / (course.total_hours || 1)) * 100)}%` }} />
           </span>
-          <span>
-            <b className="num">{countedLessons(lessons)}</b> {lessonsWord(countedLessons(lessons))} з{' '}
-            {course.total_hours} год · {weeklyHours(course)} год/тиж
-            {classes.length > 0 && ` · ${classes.map((c) => c.display_name).join(', ')}`}
+          <span className="pill">
+            <b className="num">{countedLessons(lessons)}</b>&nbsp;{lessonsWord(countedLessons(lessons))} з {course.total_hours} год
           </span>
+          <span className="pill">{weeklyHours(course)} год/тиж</span>
+          {classes.map((c) => (
+            <span key={c.id} className="pill" style={{ background: color }}>
+              {c.display_name}
+            </span>
+          ))}
         </div>
 
         {showSettings && (
@@ -358,16 +374,10 @@ export function CoursePage() {
           />
         )}
 
-        {courseWarning && (
-          <p className="warn">
-            <TriangleAlert size={14} /> {courseWarning.text}
-          </p>
-        )}
-
         {!editing ? (
           <div className="ktp view">
             {blocks.map((b) => (
-              <section key={b.topic.id} className="topic">
+              <section key={b.topic.id} id={`topic-${b.topic.id}`} className="topic">
                 <TopicHead block={b} warning={warnings.find((x) => x.topicId === b.topic.id)} />
                 {b.lessons.map((l) => (
                   <ViewLesson
@@ -575,7 +585,7 @@ function EditTopic({ block: b, warning, onRemove, onAddLesson, children }: EditT
   const { ref: sortRef, style, dragging, handle } = useSortableItem(topicKey(b.topic.id))
   const { setNodeRef: endRef } = useDroppable({ id: endKey(b.topic.id) })
   return (
-    <section ref={sortRef} className={dragging ? 'topic lifted' : 'topic'} style={style}>
+    <section id={`topic-${b.topic.id}`} ref={sortRef} className={dragging ? 'topic lifted' : 'topic'} style={style}>
       <div className="topic-row">
         <Grip label={`Перемістити тему «${b.topic.title}»`} handle={handle} />
         <InlineText

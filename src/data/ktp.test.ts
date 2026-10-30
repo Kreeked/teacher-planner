@@ -56,7 +56,7 @@ describe('extra lessons', () => {
       { id: 'b', topic_id: 'T1', position: 2, number: 2 },
       { id: 'c', topic_id: 'T2', position: 0, number: 3 },
     ])
-    expect(hourWarnings(blocks, 3).map((w) => w.text)).toEqual(['1 урок із 2 год'])
+    expect(hourWarnings(blocks).map((w) => w.text)).toEqual(['1 урок із 2 год'])
   })
 })
 
@@ -104,12 +104,9 @@ describe('typePatch', () => {
 })
 
 describe('hourWarnings', () => {
-  it('flags topics and the course whose lesson count differs from the plan', () => {
-    const w = hourWarnings(groupLessons(topics, lessons), 4)
-    expect(w).toEqual([
-      { topicId: 'T2', text: '1 урок із 2 год' },
-      { text: 'У КТП 3 уроки, а за планом 4 год' },
-    ])
+  it('flags topics whose lesson count differs from the plan', () => {
+    const w = hourWarnings(groupLessons(topics, lessons))
+    expect(w).toEqual([{ topicId: 'T2', text: '1 урок із 2 год' }])
   })
 })
 

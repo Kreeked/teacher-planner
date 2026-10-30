@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from '../auth/context'
+import { Logo } from '../components/Logo'
 
 export function LoginPage() {
   const { signIn } = useAuth()
@@ -24,7 +25,9 @@ export function LoginPage() {
   return (
     <div className="login">
       <div className="login-card">
-        <div className="logo">П</div>
+        <div className="logo">
+          <Logo />
+        </div>
         <h1>Планер для вчителя</h1>
         <p>КТП, розклад і підготовка уроків в одному місці. На ПК і телефоні, навіть без інтернету.</p>
         <button className="btn" onClick={handleClick} disabled={busy}>
