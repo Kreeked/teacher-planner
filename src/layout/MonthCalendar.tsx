@@ -20,6 +20,8 @@ type Props = {
   max?: ISODate
   // На телефоні показує лише тиждень вибраного дня, а місяць розгортається кнопкою.
   collapsible?: boolean
+  // Якщо задано — у шапці з'являється кнопка «Сьогодні».
+  onToday?: () => void
 }
 
 function monthOf(d: ISODate) {
@@ -31,7 +33,7 @@ function asDate(d: ISODate) {
   return new Date(y, m - 1, day)
 }
 
-export function MonthCalendar({ today, selected, onSelect, marked, min, max, collapsible }: Props) {
+export function MonthCalendar({ today, selected, onSelect, marked, min, max, collapsible, onToday }: Props) {
   // День, чий місяць (або тиждень) зараз показано.
   const [anchor, setAnchor] = useState<ISODate>(selected || today)
   // Вибір дня в іншому місяці (стрілками над списком) перемикає й календар.
@@ -77,6 +79,11 @@ export function MonthCalendar({ today, selected, onSelect, marked, min, max, col
     <div className={toggle ? 'cal big' : 'cal'}>
       <div className="cal-head">
         <h3>{title}</h3>
+        {onToday && (
+          <button type="button" className="btn ghost small cal-today" onClick={onToday} disabled={selected === today}>
+            Сьогодні
+          </button>
+        )}
         <button type="button" className="icon-btn" onClick={() => shift(-1)} aria-label={`Попередній ${unit}`}>
           <ChevronLeft size={16} />
         </button>
