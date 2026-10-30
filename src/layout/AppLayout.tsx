@@ -116,12 +116,17 @@ export function AppLayout() {
       <SavedToast />
 
       <nav className="tabbar" aria-label="Розділи">
-        {NAV.map(({ to, label, icon: Icon }) => (
-          <NavLink key={to} {...tabProps(to)} end={to === '/'} className="tb" aria-label={label}>
-            <Icon size={18} strokeWidth={1.8} />
-            <span>{label}</span>
-          </NavLink>
-        ))}
+        <div className="tb-group">
+          {NAV.slice(0, -1).map(({ to, label, icon: Icon }) => (
+            <NavLink key={to} {...tabProps(to)} end={to === '/'} className="tb" aria-label={label}>
+              <Icon size={20} strokeWidth={1.8} />
+              <span>{label}</span>
+            </NavLink>
+          ))}
+        </div>
+        <NavLink {...tabProps(SETTINGS.to)} className="tb tb-solo" aria-label={SETTINGS.label}>
+          <SETTINGS.icon size={20} strokeWidth={1.8} />
+        </NavLink>
       </nav>
     </div>
   )

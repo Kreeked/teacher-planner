@@ -633,48 +633,69 @@ h2 {
     padding: 6px 8px;
   }
 
+  /* Як у галереї iOS: група розділів ліворуч і окрема кругла кнопка праворуч, у стилі пігулки «Назад». */
   .tabbar {
     position: fixed;
     left: 12px;
     right: 12px;
     bottom: max(14px, env(safe-area-inset-bottom));
-    height: 64px;
-    border-radius: 32px;
-    background: var(--surface);
-    border: 1px solid var(--line);
-    box-shadow: 0 8px 20px rgba(31, 31, 36, 0.05);
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 8px;
     z-index: 10;
   }
 
-  .tabbar .tb {
-    min-width: 48px;
-    height: 48px;
-    border-radius: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    color: var(--ink-2);
-    font-size: 14px;
-    font-weight: 600;
+  .tabbar .tb-group,
+  .tabbar .tb-solo {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    box-shadow: 0 4px 12px rgba(31, 31, 36, 0.06);
   }
 
-  .tabbar .tb span {
-    display: none;
+  .tabbar .tb-group {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    height: 58px;
+    padding: 3px;
+    border-radius: 29px;
+  }
+
+  .tabbar .tb {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    color: var(--ink-2);
+    font-size: 11px;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .tabbar .tb-group .tb {
+    min-width: 84px;
+    height: 50px;
+    padding: 0 12px;
+    border-radius: 25px;
+  }
+
+  .tabbar .tb-solo {
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
   }
 
   .tabbar .tb.active {
-    background: var(--ink);
-    color: #fff;
-    padding: 0 18px;
+    color: var(--ink);
   }
 
-  .tabbar .tb.active span {
-    display: inline;
+  .tabbar .tb-group .tb.active {
+    background: var(--bg);
+  }
+
+  .tabbar .tb-solo.active {
+    background: var(--bg);
   }
 }
 
