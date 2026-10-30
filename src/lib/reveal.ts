@@ -26,7 +26,8 @@ export function reveal(el: HTMLElement) {
   const end = performance.now() + SETTLE_MS
   const hold = () => {
     if (done) return
-    if (!el.isConnected || performance.now() > end) return stop()
+    // Розділ приховано (перейшли в інший): тримати нічого, інакше прокрутка поїде за нульовим прямокутником.
+    if (!el.isConnected || el.offsetParent === null || performance.now() > end) return stop()
     const d = offset()
     if (Math.abs(d) > 1) window.scrollBy(0, d)
     requestAnimationFrame(hold)

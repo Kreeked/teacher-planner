@@ -3,5 +3,15 @@ export function flash(el: HTMLElement) {
   el.classList.remove('flash')
   void el.offsetWidth
   el.classList.add('flash')
-  el.addEventListener('animationend', () => el.classList.remove('flash'), { once: true })
+  // Прибираємо клас у будь-якому разі: якщо сторінку приховано посеред анімації (перемикання розділу),
+  // animationend не настане, і підсвітка спалахнула б знову, коли розділ покажуть.
+  const off = () => {
+    el.classList.remove('flash')
+    el.removeEventListener('animationend', off)
+    el.removeEventListener('animationcancel', off)
+    clearTimeout(timer)
+  }
+  const timer = setTimeout(off, 2500)
+  el.addEventListener('animationend', off)
+  el.addEventListener('animationcancel', off)
 }
