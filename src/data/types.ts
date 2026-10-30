@@ -80,7 +80,7 @@ export type Lesson = Meta & {
   extra?: boolean
 }
 
-export type LessonStatus = 'planned' | 'done' | 'moved' | 'cancelled'
+export type LessonStatus = 'planned' | 'moved' | 'cancelled'
 
 // Дата уроку для класу. id документа = `${lesson_id}_${class_group_id}`.
 export type LessonSchedule = Meta & {

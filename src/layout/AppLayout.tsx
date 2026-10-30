@@ -52,6 +52,7 @@ export function AppLayout() {
         {NAV.map(({ to, label, icon: Icon }) => (
           <NavLink key={to} to={to} end={to === '/'} className="tb" aria-label={label}>
             <Icon size={18} strokeWidth={1.8} />
+            <span>{label}</span>
           </NavLink>
         ))}
       </nav>
