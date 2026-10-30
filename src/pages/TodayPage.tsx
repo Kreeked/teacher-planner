@@ -1,11 +1,11 @@
-import { ArrowUpRight, ChevronLeft, ChevronRight, CloudDownload } from 'lucide-react'
+import { ArrowUpRight, CloudDownload } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/context'
 import { bellsOfDay, currentAndNext, lessonsOfDay, type DayData, type DayLesson } from '../data/day'
 import { useCollection } from '../data/db'
 import { LESSON_TYPES } from '../data/ktp'
-import { addDays, toISO } from '../data/schedule'
+import { toISO } from '../data/schedule'
 import { materialsOf } from '../data/materials'
 import type { AcademicYear, ISODate, LessonMaterial, Topic } from '../data/types'
 import { LessonShelves, MaterialsDialog } from './ktp/Materials'
@@ -69,25 +69,18 @@ export function TodayPage() {
             {day === today ? `Сьогодні, ${weekday}` : weekday[0].toUpperCase() + weekday.slice(1)}{' '}
             <span className="cnt">{formatDayMonth(date)}</span>
           </h1>
-          <span className="grow" />
-          <div className="day-nav">
-            <button className="icon-btn" onClick={() => setDay(addDays(day, -1))} aria-label="Попередній день">
-              <ChevronLeft size={18} />
-            </button>
-            {day !== today && (
-              <button className="btn ghost small" onClick={() => setDay(today)}>
-                Сьогодні
-              </button>
-            )}
-            <button className="icon-btn" onClick={() => setDay(addDays(day, 1))} aria-label="Наступний день">
-              <ChevronRight size={18} />
-            </button>
-          </div>
         </div>
       </div>
 
       <aside className="rail">
-        <MonthCalendar today={today} selected={day} onSelect={setDay} marked={marked} collapsible />
+        <MonthCalendar
+          today={today}
+          selected={day}
+          onSelect={setDay}
+          marked={marked}
+          onToday={() => setDay(today)}
+          collapsible
+        />
         {bell && <BellList day={day} bell={bell} list={list} now={day === today ? now : null} />}
       </aside>
 

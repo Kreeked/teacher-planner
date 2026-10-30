@@ -14,6 +14,8 @@ type Props = {
 /** Розклад дзвінків і клас на кожному уроці вибраного дня. */
 export function BellList({ day, bell, list, now }: Props) {
   const current = now ? slotAt(bell.slots, now) : null
+  // Урок без номера в дні: на цю дату немає чинного тижневого розкладу або в ньому немає цього класу.
+  const unplaced = list.some((x) => x.slot === null)
   return (
     <section className="panel bells">
       <h3>
@@ -43,6 +45,7 @@ export function BellList({ day, bell, list, now }: Props) {
           )
         })}
       </div>
+      {unplaced && <p className="bell-note">Для цієї дати немає розкладу уроків, тому класи не прив'язано до дзвінків.</p>}
     </section>
   )
 }

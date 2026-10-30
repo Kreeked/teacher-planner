@@ -339,6 +339,10 @@ h2 {
   margin: 0;
 }
 
+.cal-today {
+  margin-right: 4px;
+}
+
 .d.out {
   color: #c2c2c8;
 }
@@ -438,6 +442,13 @@ h2 {
 .bell-cls .class-badge {
   font-size: 12px;
   padding: 2px 10px;
+}
+
+.bell-note {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ink-2);
 }
 
 .bell-free {
@@ -598,18 +609,8 @@ h2 {
     max-width: none;
   }
 
-  .bell-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .bell-row {
-    gap: 6px;
     padding: 6px 8px;
-  }
-
-  .bell-time {
-    font-size: 12px;
   }
 
   .tabbar {
@@ -1399,12 +1400,6 @@ a.chip {
 
 .day-head h1 {
   margin-right: 8px;
-}
-
-.day-nav {
-  display: flex;
-  align-items: center;
-  gap: 4px;
 }
 
 .day-list {
