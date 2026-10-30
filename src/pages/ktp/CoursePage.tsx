@@ -112,10 +112,11 @@ export function CoursePage() {
   const { items: materials } = useCollection('lesson_materials', byCourse)
   // Старі файли уроків без типу розкладаємо по поличках (один раз).
   useClassifyLegacy(materials)
-  // Перехід з головної: прокрутити до потрібного уроку (один раз, коли він з'явиться на сторінці).
-  const [params] = useSearchParams()
+  // Перехід з головної: прокрутити до потрібного уроку (один раз, коли він з'явиться на сторінці),
+  // а потім прибрати ?lesson з адреси, щоб повернення в розділ через меню не прокручувало й не підсвічувало знову.
+  const [params, setParams] = useSearchParams()
   const focusId = params.get('lesson')
-  const { key: visit } = useLocation()
+  const { key: visit, state } = useLocation()
   const focused = useRef<string | null>(null)
   useLayoutEffect(() => {
     if (!focusId || focused.current === visit) return
@@ -123,7 +124,14 @@ export function CoursePage() {
     if (!el) return
     focused.current = visit
     reveal(el)
-  }, [focusId, visit, lessons.length, loading])
+    setParams(
+      (p) => {
+        p.delete('lesson')
+        return p
+      },
+      { replace: true, state },
+    )
+  }, [focusId, visit, state, setParams, lessons.length, loading])
   // Нова тема: прокрутити до неї й підсвітити, щойно вона з'явиться на сторінці.
   const newTopic = useRef<string | null>(null)
   useLayoutEffect(() => {
