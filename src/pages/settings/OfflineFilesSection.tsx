@@ -31,8 +31,8 @@ export function OfflineFilesSection() {
   }
 
   return (
-    <section className="panel offline-files">
-      <h3>Офлайн-файли</h3>
+    <section className="panel yp-block offline-files" aria-labelledby="st-offline">
+      <h2 id="st-offline">Офлайн-файли</h2>
       <p className="muted">
         Файли до уроків на найближчі {OFFLINE_DAYS} днів і позначені кнопкою <Download size={12} /> «Завжди на пристрої» зберігаються на цьому
         пристрої, тож відкриваються і без інтернету. Копії минулих уроків видаляються самі, а окремий файл можна
@@ -118,7 +118,7 @@ export function OfflineFilesSection() {
 
       <div className="row-actions">
         <button
-          className="btn"
+          className="btn ghost"
           disabled={!driveConfigured || !online || files.running || loading || (!missing.length && !files.paused)}
           onClick={() => syncOffline(wanted, true)}
         >
