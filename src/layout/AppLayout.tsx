@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import { Navigate, NavLink, useLocation, useNavigationType, type Location } from 'react-router-dom'
 import { useAuth } from '../auth/context'
+import { Logo } from '../components/Logo'
 import { ConfirmHost } from '../components/Confirm'
 import { SavedToast } from '../components/Saved'
 import { useOfflineAutoSync } from '../lib/useOfflinePlan'
@@ -82,7 +83,7 @@ export function AppLayout() {
     <div className="shell">
       <nav className="side" aria-label="Розділи">
         <div className="logo" aria-hidden>
-          П
+          <Logo />
         </div>
         {NAV.slice(0, -1).map(({ to, label, icon: Icon }) => (
           <NavLink key={to} {...tabProps(to)} end={to === '/'} className="nav-btn" title={label} aria-label={label}>

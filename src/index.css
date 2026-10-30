@@ -192,9 +192,9 @@ h2 {
 }
 
 .page.home {
-  grid-template-columns: minmax(0, 1fr) 288px;
+  grid-template-columns: minmax(0, 1fr) 340px;
   grid-template-areas:
-    'head rail'
+    'head .'
     'list rail';
   grid-template-rows: auto 1fr;
   gap: 14px 16px;
@@ -2651,6 +2651,40 @@ h2.topic-title {
   width: 160px;
   height: 6px;
   background: #e2e2dc;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 11px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.pill b {
+  font-weight: 700;
+}
+
+/* Підсвітка елемента після прокрутки до нього: тримається, далі згасає. */
+@keyframes flash {
+  0%,
+  45% {
+    background-color: var(--butter);
+  }
+}
+
+.flash {
+  animation: flash 1s ease-out;
+}
+
+.lesson-item.flash {
+  border-radius: 12px;
 }
 
 .course-progress b {
