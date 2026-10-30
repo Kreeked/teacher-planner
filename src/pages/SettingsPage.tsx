@@ -2,6 +2,7 @@ import { ask } from '../lib/confirm'
 import { Download, LogOut, Upload } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useAuth } from '../auth/context'
+import { BellsSettings } from './settings/BellsSection'
 import { OfflineFilesSection } from './settings/OfflineFilesSection'
 import { BackupError, countDocs, downloadJson, exportBackup, parseBackup, restoreBackup } from '../data/backup'
 
@@ -56,6 +57,8 @@ export function SettingsPage() {
             Вийти
           </button>
         </section>
+
+        <BellsSettings />
 
         <OfflineFilesSection />
 

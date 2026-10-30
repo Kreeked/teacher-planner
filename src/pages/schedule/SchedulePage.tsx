@@ -2,7 +2,6 @@ import { ArrowUpRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useCollection } from '../../data/db'
 import { pickCurrentYear } from '../../data/year'
-import { BellsSection } from './BellsSection'
 import { TimetableSection } from './TimetableSection'
 
 export function SchedulePage() {
@@ -34,7 +33,6 @@ export function SchedulePage() {
           </section>
         ) : (
           <>
-            <BellsSection year={year} bells={bells[0]} />
             <TimetableSection
               year={year}
               bells={bells[0]}
