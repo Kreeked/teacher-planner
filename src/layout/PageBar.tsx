@@ -25,12 +25,18 @@ export function PageBar({ tab, child }: Props) {
       setTitle(h1?.textContent?.trim() ?? '')
       setScrolled(!!h1 && h1.getBoundingClientRect().bottom < BAR)
     }
+    // Не частіше разу за кадр: вимірювання під час прокрутки не має гальмувати її.
+    let frame = 0
+    const schedule = () => {
+      if (!frame) frame = requestAnimationFrame(() => ((frame = 0), update()))
+    }
     update()
-    window.addEventListener('scroll', update, { passive: true })
-    window.addEventListener('resize', update)
+    window.addEventListener('scroll', schedule, { passive: true })
+    window.addEventListener('resize', schedule)
     return () => {
-      window.removeEventListener('scroll', update)
-      window.removeEventListener('resize', update)
+      cancelAnimationFrame(frame)
+      window.removeEventListener('scroll', schedule)
+      window.removeEventListener('resize', schedule)
     }
   }, [key, tab])
 
