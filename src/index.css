@@ -213,6 +213,16 @@ h2 {
   grid-area: list;
 }
 
+/* На ПК права колонка лишається на місці, поки гортаєш довгий список уроків. */
+@media (min-width: 1101px) {
+  .home .rail {
+    position: sticky;
+    top: 16px;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+  }
+}
+
 .main {
   min-width: 0;
   display: flex;
@@ -308,8 +318,10 @@ h2 {
   padding: 0;
 }
 
-.d:hover {
-  background: var(--bg);
+@media (hover: hover) {
+  .d:hover {
+    background: var(--bg);
+  }
 }
 
 .d.today {
@@ -336,7 +348,11 @@ h2 {
 
 .cal-head h3 {
   flex: 1;
+  min-width: 0;
   margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .cal-today {
@@ -380,7 +396,7 @@ h2 {
   height: 40px;
 }
 
-.cal-toggle {
+.fold-toggle {
   display: flex;
   align-items: center;
   justify-content: center;
