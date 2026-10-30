@@ -3,7 +3,7 @@ import { useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useCollection } from '../../data/db'
 import { toISO } from '../../data/schedule'
-import { countedLessons, courseTitle, lessonsWord } from '../../data/ktp'
+import { courseTitle } from '../../data/ktp'
 import type { ClassGroup, Course } from '../../data/types'
 import { formatDate, gradeColor, pickCurrentYear } from '../../data/year'
 import { ImportDialog } from './ImportDialog'
@@ -120,8 +120,6 @@ export function KtpPage() {
 
 function CourseCard({ course, classes }: { course: Course; classes: ClassGroup[] }) {
   const { items: links } = useCollection('course_classes', { field: 'course_id', value: course.id })
-  const { items: lessons } = useCollection('lessons', { field: 'course_id', value: course.id })
-  const count = countedLessons(lessons)
   const names = [...links]
     .sort((a, b) => a.position - b.position)
     .map((l) => classes.find((c) => c.id === l.class_group_id)?.display_name)
@@ -130,12 +128,6 @@ function CourseCard({ course, classes }: { course: Course; classes: ClassGroup[]
   return (
     <Link to={`/ktp/${course.id}`} className="stat course-card" style={{ background: gradeColor(course.grade) }}>
       <span className="lab">{courseTitle(course)}</span>
-      <span className="big num">
-        {count} <small>/ {course.total_hours} год</small>
-      </span>
-      <span className="meter" aria-label={`${count} ${lessonsWord(count)} з ${course.total_hours} год`}>
-        <i style={{ width: `${Math.min(100, (count / (course.total_hours || 1)) * 100)}%` }} />
-      </span>
       <span className="card-classes">
         {names.length ? (
           names.map((n) => (
