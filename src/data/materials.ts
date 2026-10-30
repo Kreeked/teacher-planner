@@ -35,6 +35,22 @@ export const CATEGORIES: { value: MaterialCategory; label: string; short: string
   { value: 'test', label: 'Тест', short: 'Тест' },
 ]
 
+/**
+ * Тип файлу за назвою — за схемою назв уроку («Презентація_9_…», «Практична робота_9_…»,
+ * «Робота в зошитах_9_…», «Дистанційне завдання_9_…»), а також за розширенням презентації і словом «тест».
+ * null — не вдалося визначити, тип обирають вручну.
+ */
+export function guessCategory(name: string): MaterialCategory | null {
+  const n = name.toLowerCase().replace(/[_\-–]+/g, ' ')
+  if (/^\s*презентаці/.test(n)) return 'slides'
+  if (/^\s*(практична|інструкційна|лабораторна)/.test(n)) return 'card'
+  if (/^\s*(робота в зошит|укриття|на тривогу)/.test(n)) return 'shelter'
+  if (/^\s*дистанційн/.test(n)) return 'remote'
+  if (/^\s*тест|wayground|quizizz/.test(n)) return 'test'
+  if (/\.(pptx?|odp|key)$/.test(n)) return 'slides'
+  return null
+}
+
 /** Ключ розділу: категорія або «none» — «Без типу». */
 export type Shelf = MaterialCategory | 'none'
 

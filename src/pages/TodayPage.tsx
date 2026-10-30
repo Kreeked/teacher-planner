@@ -1,4 +1,4 @@
-import { ArrowUpRight, Check, ChevronLeft, ChevronRight, CloudDownload, Paperclip } from 'lucide-react'
+import { ArrowUpRight, Check, ChevronLeft, ChevronRight, CloudDownload, Upload } from 'lucide-react'
 import { useEffect, useState, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/context'
@@ -8,7 +8,7 @@ import { LESSON_TYPES } from '../data/ktp'
 import { addDays, toISO, WEEKDAYS } from '../data/schedule'
 import { materialsOf } from '../data/materials'
 import type { AcademicYear, ISODate, LessonMaterial, Topic } from '../data/types'
-import { LessonShelves, MaterialLink, MaterialsDialog } from './ktp/Materials'
+import { LessonShelves, MaterialsDialog } from './ktp/Materials'
 import { useClassifyLegacy } from '../lib/useClassifyLegacy'
 import { gradeColor, shortDate } from '../data/year'
 import { MonthCalendar } from '../layout/MonthCalendar'
@@ -298,7 +298,7 @@ function DayView({ list, topics, materials, years, live }: DayViewProps) {
                 <Check size={14} /> {done ? 'Проведено' : 'Позначити проведеним'}
               </button>
               <button className="btn ghost small" onClick={() => setOpen(x)}>
-                <Paperclip size={14} /> Матеріали
+                <Upload size={14} /> Матеріали
               </button>
             </div>
           </article>
@@ -318,19 +318,8 @@ function LessonMaterials({
   lesson: DayLesson['lesson']
   onOpen: () => void
 }) {
-  const { own, topic } = materialsOf(list, lesson)
-  return (
-    <>
-      <LessonShelves own={own} onOpen={onOpen} />
-      {topic.length > 0 && (
-        <div className="day-materials">
-          {topic.map((m) => (
-            <MaterialLink key={m.id} m={m} />
-          ))}
-        </div>
-      )}
-    </>
-  )
+  const { own } = materialsOf(list, lesson)
+  return <LessonShelves own={own} onOpen={onOpen} />
 }
 
 type WeekProps = { monday: ISODate; today: ISODate; data: DayData; now: Date; onOpen: (d: ISODate) => void }

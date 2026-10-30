@@ -1,5 +1,5 @@
 import { ask } from '../../lib/confirm'
-import { CircleCheck, CloudDownload, CloudOff, Pin, RotateCcw, Trash2 } from 'lucide-react'
+import { CircleCheck, CloudDownload, CloudOff, Download, RotateCcw, Trash2 } from 'lucide-react'
 import { OFFLINE_DAYS, OFFLINE_LIMIT, type OfflineItem } from '../../data/offline'
 import { formatSize } from '../../data/materials'
 import { WEEKDAYS, weekday } from '../../data/schedule'
@@ -34,7 +34,7 @@ export function OfflineFilesSection() {
     <section className="panel offline-files">
       <h3>Офлайн-файли</h3>
       <p className="muted">
-        Файли до уроків на найближчі {OFFLINE_DAYS} днів і позначені шпилькою <Pin size={12} /> зберігаються на цьому
+        Файли до уроків на найближчі {OFFLINE_DAYS} днів і позначені кнопкою <Download size={12} /> «Завжди на пристрої» зберігаються на цьому
         пристрої, тож відкриваються і без інтернету. Копії минулих уроків видаляються самі, а окремий файл можна
         прибрати вручну. Посилання на сайти без інтернету не працюють.
       </p>

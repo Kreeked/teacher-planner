@@ -5,6 +5,7 @@ import {
   driveFolder,
   formatSize,
   groupByCategory,
+  guessCategory,
   linkTitle,
   materialType,
   materialsOf,
@@ -135,5 +136,20 @@ describe('materials', () => {
     ])
     // Нічого не змінилося — нічого не пишемо.
     expect(shelfPatches(g)).toEqual([])
+  })
+})
+
+describe('guessCategory', () => {
+  it('визначає тип за схемою назв файлів уроку', () => {
+    expect(guessCategory('Презентація_9_Формули й функції.pptx')).toBe('slides')
+    expect(guessCategory('Практична робота_9_Формули й функції.pdf')).toBe('card')
+    expect(guessCategory('Робота в зошитах_9_Формули й функції.pdf')).toBe('shelter')
+    expect(guessCategory('Дистанційне завдання_9_Формули й функції.pdf')).toBe('remote')
+    expect(guessCategory('Тест_9_Бази даних.xlsx')).toBe('test')
+  })
+
+  it('презентацію впізнає й за розширенням, решту лишає без типу', () => {
+    expect(guessCategory('урок 5.pptx')).toBe('slides')
+    expect(guessCategory('Скріншот таблиці.png')).toBeNull()
   })
 })

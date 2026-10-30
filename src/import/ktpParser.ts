@@ -88,7 +88,6 @@ export function guessLessonType(title: string): LessonType {
   const t = title.toLowerCase()
   if (/підсумкова робота за|контрольна робота|тематичне оцінювання/.test(t)) return 'test'
   if (/практична|лабораторна/.test(t)) return 'practical'
-  if (/проєкт|проект/.test(t) && /захист|презентація/.test(t)) return 'project'
   return 'regular'
 }
 

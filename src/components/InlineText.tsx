@@ -50,12 +50,21 @@ export function InlineText({ value, onSave, placeholder, label, className, multi
         }}
       />
     )
-  return (
+  const input = (
     <input
       {...common}
-      style={fitContent ? { width: `${Math.max(10, draft.length + 3)}ch` } : undefined}
       onChange={(e) => setDraft(e.target.value)}
       onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
     />
+  )
+  if (!fitContent) return input
+  // Ширина — рівно як у тексту: невидима копія тексту з тим самим шрифтом задає розмір, поле лягає поверх.
+  return (
+    <span className="fit">
+      <span className={`${common.className} fit-sizer`} aria-hidden>
+        {draft || placeholder || ' '}
+      </span>
+      {input}
+    </span>
   )
 }

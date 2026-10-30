@@ -1,17 +1,9 @@
 import { ask } from '../../lib/confirm'
 import {
-  DndContext,
-  closestCenter,
-  pointerWithin,
-  useDroppable,
-  type CollisionDetection,
-  type DragEndEvent,
-  type DragOverEvent,
-} from '@dnd-kit/core'
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
-import {
+  ChevronDown,
   ClipboardList,
   Cloud,
+  Download,
   File,
   FileSpreadsheet,
   FileText,
@@ -22,7 +14,6 @@ import {
   Inbox,
   Link2,
   ListChecks,
-  Pin,
   Plus,
   Presentation,
   Shield,
@@ -32,31 +23,25 @@ import {
   X,
   type LucideIcon,
 } from 'lucide-react'
-import { useEffect, useRef, useState, type DragEvent, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type DragEvent } from 'react'
 import { Dialog } from '../../components/Dialog'
 import { Menu } from '../../components/Menu'
-import { DragHandle } from '../../components/Sortable'
-import { useDragSensors, useSortableItem } from '../../lib/drag'
-import { BatchWriter, createDoc, removeDoc, updateFields } from '../../data/db'
+import { createDoc, removeDoc, updateFields } from '../../data/db'
 import {
   CATEGORIES,
   driveFolder,
   filledShelves,
   formatSize,
-  groupByCategory,
+  guessCategory,
   linkTitle,
   materialType,
   materialUrl,
   materialsOf,
   normalizeUrl,
-  placeMaterial,
-  shelfPatches,
-  SHELVES,
   type MaterialType,
   type Shelf,
-  type Shelves,
 } from '../../data/materials'
-import type { AcademicYear, Course, Lesson, LessonMaterial, Topic } from '../../data/types'
+import type { AcademicYear, Course, Lesson, LessonMaterial, MaterialCategory } from '../../data/types'
 import { DriveError, driveConfigured, pickFiles, preloadDrive, uploadFile, type DriveFile } from '../../lib/drive'
 import { openMaterial, useOfflineFiles } from '../../lib/offlineFiles'
 
@@ -79,6 +64,7 @@ const SHELF_ICONS: Record<Shelf, LucideIcon> = {
   test: ListChecks,
   none: Inbox,
 }
+
 
 /** Матеріал одним рядком-посиланням: іконка, назва, розмір. Без інтернету відкриває копію з пристрою. */
 export function MaterialLink({ m }: { m: LessonMaterial }) {
@@ -161,16 +147,53 @@ export function LessonShelves({ own, onOpen }: { own: LessonMaterial[]; onOpen: 
   )
 }
 
-/** Рядок матеріалу в діалозі: ручка для перетягування, шпилька, видалення. */
-function MaterialRow({ m, onRemove }: { m: LessonMaterial; onRemove: () => void }) {
-  const { ref, style, handle } = useSortableItem(m.id)
+
+/** Вибір типу файлу: пігулка з іконкою типу; без типу — обведена «Обрати тип». */
+function KindPicker({ value, onChange }: { value: MaterialCategory | null; onChange: (c: MaterialCategory) => void }) {
+  const current = CATEGORIES.find((c) => c.value === value)
+  const Icon = current ? SHELF_ICONS[current.value] : null
   return (
-    <div ref={ref} style={style} className="material-row">
-      <DragHandle label={`Перемістити ${m.title}`} {...handle} />
-      <MaterialLink m={m} />
-      {m.kind === 'file' && (
+    <Menu
+      label={current ? `Тип: ${current.label}` : 'Обрати тип'}
+      triggerClass={current ? 'kind-btn' : 'kind-btn need'}
+      trigger={
+        <>
+          {Icon && <Icon size={14} />}
+          <span className="grow">{current?.short ?? 'Обрати тип'}</span>
+          <ChevronDown size={12} className="chev" />
+        </>
+      }
+      groups={[
+        CATEGORIES.map((c) => ({
+          label: c.label,
+          icon: SHELF_ICONS[c.value],
+          checked: c.value === value,
+          onSelect: () => c.value !== value && onChange(c.value),
+        })),
+      ]}
+    />
+  )
+}
+
+type RowProps = {
+  m: LessonMaterial
+  onKind: (c: MaterialCategory) => void
+  onRemove: () => void
+}
+
+/** Рядок матеріалу: тип, назва-посилання, «завжди на пристрої», прибрати. */
+function MaterialRow({ m, onKind, onRemove }: RowProps) {
+  const fresh = !m.category
+  return (
+    <div className={fresh ? 'mrow new' : 'mrow'}>
+      <KindPicker value={m.category ?? null} onChange={onKind} />
+      <div className="mname">
+        <MaterialLink m={m} />
+        {fresh && <small className="hint">Обери тип — і файл стане на свою поличку</small>}
+      </div>
+      {m.kind === 'file' ? (
         <button
-          className={m.keep_offline ? 'icon-btn pin on' : 'icon-btn pin'}
+          className={m.keep_offline ? 'icon-btn keep on' : 'icon-btn keep'}
           aria-pressed={m.keep_offline}
           onClick={() => updateFields('lesson_materials', m.id, { keep_offline: !m.keep_offline })}
           aria-label="Завжди мати на пристрої"
@@ -180,10 +203,12 @@ function MaterialRow({ m, onRemove }: { m: LessonMaterial; onRemove: () => void 
               : 'Завжди мати на пристрої, не лише в тиждень уроку'
           }
         >
-          <Pin size={14} />
+          <Download size={15} />
         </button>
+      ) : (
+        <span />
       )}
-      <button className="icon-btn del" onClick={onRemove} aria-label={`Прибрати ${m.title}`}>
+      <button className="icon-btn del" onClick={onRemove} aria-label={`Прибрати ${m.title}`} title="Прибрати">
         <Trash2 size={15} />
       </button>
     </div>
@@ -193,43 +218,30 @@ function MaterialRow({ m, onRemove }: { m: LessonMaterial; onRemove: () => void 
 type DialogProps = {
   course: Course
   year?: AcademicYear
-  lesson?: Lesson
-  topic?: Topic
+  lesson: Lesson
   materials: LessonMaterial[] // усі матеріали курсу
   onClose: () => void
 }
 
-type UploadItem = { key: number; shelf: Shelf; name: string; progress: number; error?: string }
-
-const shelfId = (s: Shelf) => `shelf:${s}`
-
-// Спершу — рядок або розділ під пальцем/мишею (рядки важливіші), інакше найближчий.
-const collide: CollisionDetection = (args) => {
-  const hits = pointerWithin(args)
-  const rows = hits.filter((h) => !String(h.id).startsWith('shelf:'))
-  if (rows.length) return rows
-  if (hits.length) return hits
-  return closestCenter(args)
-}
+type UploadItem = { key: number; name: string; progress: number; category: MaterialCategory | null; error?: string }
 
 let uploadKey = 0
 
 /**
- * Матеріали уроку — п'ять розділів за типами (+ тимчасовий «Без типу»),
- * матеріали теми — один список. Файли з пристрою на Диск, файли з Диска, посилання.
+ * Матеріали уроку: велике поле для файлів, «Щойно додані» (завантаження й файли без типу)
+ * і один список матеріалів уроку, впорядкований за типами. Тип визначається за назвою файлу або обирається вручну.
  */
-export function MaterialsDialog({ course, year, lesson, topic, materials, onClose }: DialogProps) {
+export function MaterialsDialog({ course, year, lesson, materials, onClose }: DialogProps) {
   const [uploads, setUploads] = useState<UploadItem[]>([])
   const [error, setError] = useState('')
-  const [linkFor, setLinkFor] = useState<Shelf | null>(null)
+  const [linkOpen, setLinkOpen] = useState(false)
   const [url, setUrl] = useState('')
   const [title, setTitle] = useState('')
   const [online, setOnline] = useState(() => navigator.onLine)
-  const [preview, setPreview] = useState<Shelves | null>(null)
-  const [dropOn, setDropOn] = useState<Shelf | null>(null)
+  const [over, setOver] = useState(false)
   const fileInput = useRef<HTMLInputElement>(null)
-  const fileShelf = useRef<Shelf>('none')
-  const sensors = useDragSensors()
+  // Тип, обраний під час завантаження, — щоб записати файл одразу на потрібну поличку.
+  const chosen = useRef(new Map<number, MaterialCategory | null>())
 
   useEffect(() => {
     preloadDrive()
@@ -242,93 +254,80 @@ export function MaterialsDialog({ course, year, lesson, topic, materials, onClos
     }
   }, [])
 
-  const { own, topic: shared } = lesson
-    ? materialsOf(materials, lesson)
-    : {
-        own: materials.filter((m) => m.topic_id === topic!.id && !m.lesson_id).sort((a, b) => a.position - b.position),
-        topic: [],
-      }
-  // Матеріали теми — один список у розділі «none» (без типів).
-  const saved: Shelves = lesson ? groupByCategory(own) : { ...groupByCategory([]), none: own }
-  const groups = preview ?? saved
-  const heading = lesson
-    ? `${lesson.extra ? 'Урок *' : `Урок ${lesson.number}`}${lesson.title ? ` «${lesson.title}»` : ''}`
-    : `Тема «${topic!.title}»`
-  const target = { lesson_id: lesson?.id ?? null, topic_id: lesson ? null : topic!.id }
+  const { own } = materialsOf(materials, lesson)
+  const unsorted = own.filter((m) => !m.category)
+  const sorted = CATEGORIES.flatMap((c) => own.filter((m) => m.category === c.value))
+  const count = (c: MaterialCategory | null) => own.filter((m) => (m.category ?? null) === c).length
+  const heading = `${lesson.extra ? 'Урок *' : `Урок ${lesson.number}`}${lesson.title ? ` «${lesson.title}»` : ''}`
   const canDrive = driveConfigured && online
   const driveProblem = !driveConfigured
     ? 'Підключення до Google Диска ще налаштовується, поки можна додавати посилання.'
     : 'Без інтернету файли не завантажуються, посилання додати можна.'
 
-  const sections: { key: Shelf; title: string }[] = lesson
-    ? [
-        ...CATEGORIES.map((c) => ({ key: c.value as Shelf, title: c.label })),
-        ...(groups.none.length ? [{ key: 'none' as Shelf, title: 'Без типу' }] : []),
-      ]
-    : [{ key: 'none', title: 'Спільні файли теми' }]
-
   function add(
     data: Pick<LessonMaterial, 'title' | 'kind' | 'drive_file_id' | 'url' | 'mime_type' | 'size_bytes'>,
-    shelf: Shelf,
+    category: MaterialCategory | null,
     i = 0,
   ) {
     createDoc('lesson_materials', {
       course_id: course.id,
-      ...target,
+      lesson_id: lesson.id,
+      topic_id: null,
       ...data,
-      position: groups[shelf].length + i,
+      position: count(category) + i,
       keep_offline: false,
-      category: lesson && shelf !== 'none' ? shelf : null,
+      category,
     })
   }
 
-  function addDriveFile(f: DriveFile, shelf: Shelf, i = 0) {
+  function addDriveFile(f: DriveFile, category: MaterialCategory | null, i = 0) {
     add(
       { title: f.name, kind: 'file', drive_file_id: f.id, url: null, mime_type: f.mimeType, size_bytes: f.size },
-      shelf,
+      category,
       i,
     )
   }
 
-  function addLink(shelf: Shelf) {
+  /** Новий тип — файл стає в кінець своєї полички. */
+  function setKind(m: LessonMaterial, category: MaterialCategory) {
+    updateFields('lesson_materials', m.id, { category, position: count(category) })
+  }
+
+  function addLink() {
     const u = normalizeUrl(url)
     if (!u) {
       setError('Це не схоже на посилання. Приклад: wayground.com/join')
       return
     }
+    const name = title.trim() || linkTitle(u)
     add(
-      {
-        title: title.trim() || linkTitle(u),
-        kind: 'link',
-        drive_file_id: null,
-        url: u,
-        mime_type: null,
-        size_bytes: null,
-      },
-      shelf,
+      { title: name, kind: 'link', drive_file_id: null, url: u, mime_type: null, size_bytes: null },
+      guessCategory(`${name} ${u}`),
     )
     setUrl('')
     setTitle('')
-    setLinkFor(null)
+    setLinkOpen(false)
     setError('')
   }
 
-  async function upload(files: FileList | File[] | null, shelf: Shelf) {
+  async function upload(files: FileList | File[] | null) {
     if (!files?.length) return
     if (!canDrive) {
       setError(driveProblem)
       return
     }
     setError('')
-    const list = [...files].map((f) => ({ file: f, key: ++uploadKey }))
-    setUploads((u) => [...u, ...list.map(({ file, key }) => ({ key, shelf, name: file.name, progress: 0 }))])
-    const folder = driveFolder(year, course, { lesson, topic })
+    const list = [...files].map((f) => ({ file: f, key: ++uploadKey, category: guessCategory(f.name) }))
+    for (const x of list) chosen.current.set(x.key, x.category)
+    setUploads((u) => [...u, ...list.map(({ file, key, category }) => ({ key, name: file.name, progress: 0, category }))])
+    const folder = driveFolder(year, course, { lesson })
     for (const [i, { file, key }] of list.entries()) {
       const set = (patch: Partial<UploadItem>) =>
         setUploads((u) => u.map((x) => (x.key === key ? { ...x, ...patch } : x)))
       try {
         const d = await uploadFile(file, folder, (progress) => set({ progress }))
-        addDriveFile(d, shelf, i)
+        addDriveFile(d, chosen.current.get(key) ?? null, i)
+        chosen.current.delete(key)
         setUploads((u) => u.filter((x) => x.key !== key))
       } catch (e) {
         console.error(e)
@@ -337,7 +336,12 @@ export function MaterialsDialog({ course, year, lesson, topic, materials, onClos
     }
   }
 
-  async function pick(shelf: Shelf) {
+  function chooseForUpload(key: number, category: MaterialCategory) {
+    chosen.current.set(key, category)
+    setUploads((u) => u.map((x) => (x.key === key ? { ...x, category } : x)))
+  }
+
+  async function pick() {
     setError('')
     if (!canDrive) {
       setError(driveProblem)
@@ -345,7 +349,7 @@ export function MaterialsDialog({ course, year, lesson, topic, materials, onClos
     }
     try {
       const files = await pickFiles()
-      files.forEach((f, i) => addDriveFile(f, shelf, i))
+      files.forEach((f, i) => addDriveFile(f, guessCategory(f.name), i))
     } catch (e) {
       console.error(e)
       setError(e instanceof DriveError ? e.message : 'Не вдалося відкрити Google Диск.')
@@ -357,172 +361,147 @@ export function MaterialsDialog({ course, year, lesson, topic, materials, onClos
     if (await ask(`Прибрати «${m.title}»?${note}`, { ok: 'Прибрати' })) removeDoc('lesson_materials', m.id)
   }
 
-  // ---------- Перетягування між розділами ----------
-
-  const shelfWith = (g: Shelves, id: string) =>
-    id.startsWith('shelf:') ? (id.slice(6) as Shelf) : SHELVES.find((s) => g[s].some((m) => m.id === id))
-
-  // Рядок перейшов в інший розділ — переносимо одразу, щоб там розсунулося місце.
-  function dragOver({ active, over }: DragOverEvent) {
-    if (!preview || !over) return
-    const id = String(active.id)
-    const from = shelfWith(preview, id)
-    const to = shelfWith(preview, String(over.id))
-    if (!from || !to || from === to) return
-    const index = String(over.id).startsWith('shelf:')
-      ? preview[to].length
-      : preview[to].findIndex((m) => m.id === over.id)
-    setPreview(placeMaterial(preview, id, to, index))
-  }
-
-  function dragEnd({ active, over }: DragEndEvent) {
-    const current = preview
-    setPreview(null)
-    if (!current || !over) return
-    const id = String(active.id)
-    const to = shelfWith(current, String(over.id))
-    if (!to) return
-    const index = String(over.id).startsWith('shelf:')
-      ? current[to].filter((m) => m.id !== id).length
-      : current[to].findIndex((m) => m.id === over.id)
-    const next = placeMaterial(current, id, to, index)
-    const writer = new BatchWriter()
-    if (lesson)
-      for (const { id: mid, ...patch } of shelfPatches(next)) updateFields('lesson_materials', mid, patch, writer.batch)
-    else
-      next.none.forEach(
-        (m, i) => m.position !== i && updateFields('lesson_materials', m.id, { position: i }, writer.batch),
-      )
-    writer.commit()
-  }
-
-  // ---------- Файли з пристрою, кинуті на розділ ----------
+  // ---------- Файли з пристрою, кинуті в поле ----------
 
   const hasFiles = (e: DragEvent) => e.dataTransfer.types.includes('Files')
 
-  function fileDragOver(e: DragEvent, shelf: Shelf) {
+  function dragOver(e: DragEvent) {
     if (!hasFiles(e)) return
     e.preventDefault()
     e.dataTransfer.dropEffect = 'copy'
-    if (dropOn !== shelf) setDropOn(shelf)
+    if (!over) setOver(true)
   }
 
-  function fileDragLeave(e: DragEvent, shelf: Shelf) {
+  function dragLeave(e: DragEvent) {
     if (e.currentTarget.contains(e.relatedTarget as Node | null)) return
-    if (dropOn === shelf) setDropOn(null)
+    setOver(false)
   }
 
-  function fileDrop(e: DragEvent, shelf: Shelf) {
+  function drop(e: DragEvent) {
     if (!hasFiles(e)) return
     e.preventDefault()
-    setDropOn(null)
-    upload([...e.dataTransfer.files], shelf)
+    setOver(false)
+    upload([...e.dataTransfer.files])
   }
+
+  const freshCount = uploads.length + unsorted.length
 
   return (
     <Dialog title="Матеріали" subtitle={heading} onClose={onClose} className="materials-dialog">
-      <DndContext
-        sensors={sensors}
-        collisionDetection={collide}
-        onDragStart={() => setPreview(saved)}
-        onDragOver={dragOver}
-        onDragEnd={dragEnd}
-        onDragCancel={() => setPreview(null)}
-      >
-        {sections.map(({ key, title: name }) => (
-          <Section
-            key={key}
-            shelf={key}
-            title={name}
-            icon={lesson ? SHELF_ICONS[key] : FolderOpen}
-            items={groups[key]}
-            dropping={dropOn === key}
-            muted={!!lesson && key === 'none'}
-            onDragOver={(e) => fileDragOver(e, key)}
-            onDragLeave={(e) => fileDragLeave(e, key)}
-            onDrop={(e) => fileDrop(e, key)}
-            onDevice={() => {
-              if (!canDrive) return setError(driveProblem)
-              fileShelf.current = key
-              fileInput.current?.click()
-            }}
-            onDrive={() => pick(key)}
-            onLink={() => {
-              setLinkFor(linkFor === key ? null : key)
+      <div className={over ? 'dropzone over' : 'dropzone'} onDragOver={dragOver} onDragLeave={dragLeave} onDrop={drop}>
+        <span className="dz-icon">
+          <Upload size={20} />
+        </span>
+        <p className="dz-title">Перетягни файли сюди</p>
+        <p className="dz-sub">Тип визначиться за назвою файлу, а якщо ні — обереш його сам</p>
+        <div className="dz-actions">
+          <button
+            type="button"
+            className="btn ghost small"
+            onClick={() => (canDrive ? fileInput.current?.click() : setError(driveProblem))}
+          >
+            <FolderOpen size={14} /> З пристрою
+          </button>
+          <button type="button" className="btn ghost small" onClick={pick}>
+            <Cloud size={14} /> З Google Диска
+          </button>
+          <button
+            type="button"
+            className={linkOpen ? 'btn ghost small on' : 'btn ghost small'}
+            aria-expanded={linkOpen}
+            onClick={() => {
+              setLinkOpen(!linkOpen)
               setError('')
             }}
-            onRemove={remove}
           >
-            {uploads
-              .filter((u) => u.shelf === key)
-              .map((u) => (
-                <div key={u.key} className="material-row uploading">
-                  <Upload size={14} />
-                  <span className="grow">{u.name}</span>
-                  {u.error ? (
-                    <span className="field-error">{u.error}</span>
-                  ) : (
-                    <small>{Math.round(u.progress * 100)}%</small>
-                  )}
-                  {u.error && (
-                    <button
-                      className="icon-btn"
-                      onClick={() => setUploads((x) => x.filter((y) => y !== u))}
-                      aria-label="Сховати"
-                    >
-                      <X size={14} />
-                    </button>
-                  )}
-                </div>
-              ))}
-            {!groups[key].length && !uploads.some((u) => u.shelf === key) && (
-              <p className="m-drop">Перетягни файл сюди або натисни «Додати»</p>
-            )}
-            {linkFor === key && (
-              <form
-                className="link-form"
-                onSubmit={(e) => {
-                  e.preventDefault()
-                  addLink(key)
-                }}
-              >
-                <input
-                  className="field"
-                  autoFocus
-                  placeholder="Посилання"
-                  aria-label="Посилання"
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                />
-                <input
-                  className="field"
-                  placeholder="Назва (необов'язково)"
-                  aria-label="Назва посилання"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                />
-                <button className="btn" type="submit" disabled={!url.trim()}>
-                  <Plus size={15} /> Додати
-                </button>
-              </form>
-            )}
-          </Section>
-        ))}
-      </DndContext>
+            <Link2 size={14} /> Посилання
+          </button>
+        </div>
+        {linkOpen && (
+          <form
+            className="link-form"
+            onSubmit={(e) => {
+              e.preventDefault()
+              addLink()
+            }}
+          >
+            <input
+              className="field"
+              autoFocus
+              placeholder="Посилання"
+              aria-label="Посилання"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+            />
+            <input
+              className="field"
+              placeholder="Назва (необов'язково)"
+              aria-label="Назва посилання"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+            />
+            <button className="btn" type="submit" disabled={!url.trim()}>
+              <Plus size={15} /> Додати
+            </button>
+          </form>
+        )}
+      </div>
       <input
         ref={fileInput}
         type="file"
         multiple
         hidden
-        onChange={(e) => (upload(e.target.files, fileShelf.current), (e.target.value = ''))}
+        onChange={(e) => (upload(e.target.files), (e.target.value = ''))}
       />
 
-      {shared.length > 0 && (
+      {freshCount > 0 && (
         <>
-          <span className="form-label">Спільні для всієї теми</span>
-          <div className="material-list">
-            {shared.map((m) => (
-              <MaterialLink key={m.id} m={m} />
+          <div className="list-label">
+            Щойно додані <span className="cnt">{freshCount}</span>
+          </div>
+          <div className="mlist">
+            {uploads.map((u) => (
+              <div key={u.key} className="mrow new">
+                <KindPicker value={u.category} onChange={(c) => chooseForUpload(u.key, c)} />
+                <div className="mname">
+                  <span className="mtitle">{u.name}</span>
+                  {u.error ? (
+                    <small className="field-error">{u.error}</small>
+                  ) : (
+                    <span className="bar" aria-label={`Завантаження ${Math.round(u.progress * 100)}%`}>
+                      <i style={{ width: `${Math.round(u.progress * 100)}%` }} />
+                    </span>
+                  )}
+                </div>
+                <small className="msize num">{u.error ? '' : `${Math.round(u.progress * 100)}%`}</small>
+                {u.error ? (
+                  <button
+                    className="icon-btn"
+                    onClick={() => setUploads((x) => x.filter((y) => y !== u))}
+                    aria-label="Сховати"
+                  >
+                    <X size={15} />
+                  </button>
+                ) : (
+                  <span />
+                )}
+              </div>
+            ))}
+            {unsorted.map((m) => (
+              <MaterialRow key={m.id} m={m} onKind={(c) => setKind(m, c)} onRemove={() => remove(m)} />
+            ))}
+          </div>
+        </>
+      )}
+
+      {sorted.length > 0 && (
+        <>
+          <div className="list-label">
+            Матеріали уроку <span className="cnt">{sorted.length}</span>
+          </div>
+          <div className="mlist">
+            {sorted.map((m) => (
+              <MaterialRow key={m.id} m={m} onKind={(c) => setKind(m, c)} onRemove={() => remove(m)} />
             ))}
           </div>
         </>
@@ -531,72 +510,5 @@ export function MaterialsDialog({ course, year, lesson, topic, materials, onClos
       {!canDrive && <p className="muted small-text">{driveProblem}</p>}
       {error && <p className="field-error">{error}</p>}
     </Dialog>
-  )
-}
-
-type SectionProps = {
-  shelf: Shelf
-  title: string
-  icon: LucideIcon
-  items: LessonMaterial[]
-  dropping: boolean
-  muted: boolean // тимчасовий розділ «Без типу»
-  onDragOver: (e: DragEvent) => void
-  onDragLeave: (e: DragEvent) => void
-  onDrop: (e: DragEvent) => void
-  onDevice: () => void
-  onDrive: () => void
-  onLink: () => void
-  onRemove: (m: LessonMaterial) => void
-  children: ReactNode
-}
-
-/** Розділ вікна матеріалів: заголовок із «Додати», рядки, що перетягуються, зона для файлів. */
-function Section(props: SectionProps) {
-  const { shelf, title, icon: Icon, items, dropping, muted, onRemove, children } = props
-  const { setNodeRef, isOver } = useDroppable({ id: shelfId(shelf) })
-  const cls = ['m-sec', (dropping || (isOver && !items.length)) && 'drop', muted && 'other']
-  return (
-    <section
-      ref={setNodeRef}
-      className={cls.filter(Boolean).join(' ')}
-      onDragOver={props.onDragOver}
-      onDragLeave={props.onDragLeave}
-      onDrop={props.onDrop}
-      aria-label={title}
-    >
-      <div className="m-sec-head">
-        <Icon size={16} aria-hidden />
-        <b>{title}</b>
-        <span className="cnt">{items.length}</span>
-        <span className="grow" />
-        <Menu
-          label={`Додати: ${title}`}
-          trigger={
-            <>
-              <Plus size={15} /> Додати
-            </>
-          }
-          triggerClass="btn ghost small"
-          groups={[
-            [
-              { label: 'З пристрою', icon: Upload, onSelect: props.onDevice },
-              { label: 'З Google Диска', icon: Cloud, onSelect: props.onDrive },
-              { label: 'Посилання', icon: Link2, onSelect: props.onLink },
-            ],
-          ]}
-        />
-      </div>
-      <SortableContext items={items.map((m) => m.id)} strategy={verticalListSortingStrategy}>
-        {items.length > 0 && (
-          <div className="material-list">
-            {items.map((m) => (
-              <MaterialRow key={m.id} m={m} onRemove={() => onRemove(m)} />
-            ))}
-          </div>
-        )}
-      </SortableContext>
-      {children}
-    </section>
   )
 }
