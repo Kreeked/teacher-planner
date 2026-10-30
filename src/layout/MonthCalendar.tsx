@@ -1,9 +1,8 @@
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from 'lucide-react'
-import { useState } from 'react'
+import { useRef, useState, type MouseEvent, type PointerEvent } from 'react'
 import { mondayOf } from '../data/day'
 import { addDays, toISO } from '../data/schedule'
 import type { ISODate } from '../data/types'
-import { formatDayMonth } from '../lib/dates'
 import { useNarrow } from '../lib/useNarrow'
 
 const DOW = ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'НД']
@@ -58,29 +57,55 @@ export function MonthCalendar({ today, selected, onSelect, marked, min, max, col
     d.setDate(start.getDate() + i)
     return d
   })
-  let title: string
-  if (weekMode) {
-    const end = days[6]
-    title =
-      start.getMonth() === end.getMonth()
-        ? `${start.getDate()} – ${formatDayMonth(end)}`
-        : `${formatDayMonth(start)} – ${formatDayMonth(end)}`
-  } else {
-    title = monthTitle.format(first).replace(' р.', '')
-    title = title[0].toUpperCase() + title.slice(1)
-  }
+  // Заголовок завжди «Місяць рік» — однакової довжини, шапка не стрибає при листанні тижнів.
+  let title = monthTitle.format(weekMode ? days[3] : first).replace(' р.', '')
+  title = title[0].toUpperCase() + title.slice(1)
 
   function shift(n: number) {
     setAnchor(weekMode ? addDays(anchor, 7 * n) : toISO(new Date(y, m - 1 + n, 1)))
   }
   const unit = weekMode ? 'тиждень' : 'місяць'
 
+  function goToday() {
+    setAnchor(today)
+    onToday?.()
+  }
+
+  // Горизонтальний свайп по сітці гортає тиждень або місяць.
+  const swipe = useRef<{ x: number; y: number; moved: boolean } | null>(null)
+  function swipeStart(e: PointerEvent) {
+    if (toggle) swipe.current = { x: e.clientX, y: e.clientY, moved: false }
+  }
+  function swipeEnd(e: PointerEvent) {
+    const s = swipe.current
+    if (!s) return
+    const dx = e.clientX - s.x
+    const dy = e.clientY - s.y
+    if (Math.abs(dx) > 40 && Math.abs(dx) > 1.5 * Math.abs(dy)) {
+      s.moved = true
+      shift(dx < 0 ? 1 : -1)
+    }
+  }
+  // Після свайпу браузер ще надсилає click на день під пальцем — гасимо його.
+  function swipeClick(e: MouseEvent) {
+    if (swipe.current?.moved) {
+      e.stopPropagation()
+      e.preventDefault()
+    }
+    swipe.current = null
+  }
+  // Згортання повертає тиждень до вибраного дня.
+  function toggleOpen() {
+    if (open && selected) setAnchor(selected)
+    setOpen(!open)
+  }
+
   return (
     <div className={toggle ? 'cal big' : 'cal'}>
       <div className="cal-head">
         <h3>{title}</h3>
         {onToday && (
-          <button type="button" className="btn ghost small cal-today" onClick={onToday} disabled={selected === today}>
+          <button type="button" className="btn ghost small cal-today" onClick={goToday}>
             Сьогодні
           </button>
         )}
@@ -91,7 +116,13 @@ export function MonthCalendar({ today, selected, onSelect, marked, min, max, col
           <ChevronRight size={16} />
         </button>
       </div>
-      <div className="grid7 num">
+      <div
+        className="grid7 num"
+        onPointerDown={swipeStart}
+        onPointerUp={swipeEnd}
+        onClickCapture={swipeClick}
+        style={toggle ? { touchAction: 'pan-y' } : undefined}
+      >
         {DOW.map((d) => (
           <span key={d} className="dow">
             {d}
@@ -122,7 +153,7 @@ export function MonthCalendar({ today, selected, onSelect, marked, min, max, col
         })}
       </div>
       {toggle && (
-        <button type="button" className="cal-toggle" aria-expanded={open} onClick={() => setOpen(!open)}>
+        <button type="button" className="fold-toggle" aria-expanded={open} onClick={toggleOpen}>
           {open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           {open ? 'Згорнути до тижня' : 'Показати місяць'}
         </button>
