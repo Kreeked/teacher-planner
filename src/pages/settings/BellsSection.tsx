@@ -1,14 +1,35 @@
-import { Bell } from 'lucide-react'
-import { createDoc, updateFields } from '../../data/db'
+import { ArrowUpRight, Bell } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { createDoc, updateFields, useCollection } from '../../data/db'
 import { DEFAULT_BELLS, computeBells, minutesBetween, shiftTime, validateBells } from '../../data/timetable'
+import { pickCurrentYear } from '../../data/year'
 import type { AcademicYear, BellSchedule, BellSlot } from '../../data/types'
 
+/** Дзвінки поточного навчального року для налаштувань застосунку. */
+export function BellsSettings() {
+  const { items: years, loading } = useCollection('academic_years')
+  const year = pickCurrentYear(years)
+  const { items: bells } = useCollection('bell_schedules', year ? { field: 'academic_year_id', value: year.id } : null)
+  if (loading) return null
+  if (!year)
+    return (
+      <section className="panel form">
+        <h3>Розклад дзвінків</h3>
+        <p className="muted">Дзвінки прив'язані до навчального року — спершу створи його.</p>
+        <Link to="/ktp/year" className="btn ghost">
+          <ArrowUpRight size={15} /> До навчального року
+        </Link>
+      </section>
+    )
+  return <BellsSection year={year} bells={bells[0]} />
+}
+
 /** Дзвінки: початок дня, тривалість уроку й перерв; час кожного уроку можна підправити вручну. */
-export function BellsSection({ year, bells }: { year: AcademicYear; bells?: BellSchedule }) {
+function BellsSection({ year, bells }: { year: AcademicYear; bells?: BellSchedule }) {
   if (!bells)
     return (
       <section className="panel form">
-        <h3>Дзвінки</h3>
+        <h3>Розклад дзвінків</h3>
         <p className="muted">
           Задай початок першого уроку, тривалість уроку й перерв — час усіх уроків порахується сам.
         </p>
@@ -56,7 +77,7 @@ export function BellsSection({ year, bells }: { year: AcademicYear; bells?: Bell
 
   return (
     <section className="panel form bells">
-      <h3>Дзвінки</h3>
+      <h3>Розклад дзвінків</h3>
       <div className="form-row">
         <label>
           Початок першого уроку

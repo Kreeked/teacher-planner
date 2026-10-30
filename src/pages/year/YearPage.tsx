@@ -1,7 +1,6 @@
 import { ask } from '../../lib/confirm'
 import { Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
-import { BackLink } from '../../components/BackLink'
 import { RangeRow } from '../../components/RangeRow'
 import { notifySaved } from '../../lib/saved'
 import { commit, deleteRefs, newBatch, ref, refsWhere, updateFields, useCollection } from '../../data/db'
@@ -56,7 +55,6 @@ export function YearPage() {
   return (
     <div className="page">
       <main className="main">
-        <BackLink fallback="/ktp" />
         <div className="sec-head page-head">
           <h1>Навчальний рік</h1>
           <span className="grow" />

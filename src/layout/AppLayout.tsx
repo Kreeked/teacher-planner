@@ -6,6 +6,7 @@ import { SavedToast } from '../components/Saved'
 import { useOfflineAutoSync } from '../lib/useOfflinePlan'
 import { useOnline } from '../lib/useOnline'
 import { NAV } from './nav'
+import { PageBar } from './PageBar'
 import { TabPanes } from './TabPanes'
 
 const SETTINGS = NAV[NAV.length - 1]
@@ -23,10 +24,11 @@ export function AppLayout() {
   const [tabs, setTabs] = useState<Record<string, Location>>({})
   const scrolls = useRef<Record<string, number>>({})
   const shown = useRef<string | undefined>(undefined)
-  // Прокрутка кожного запису історії: «Назад» і «Вперед» повертають туди, де були.
+  // Прокрутка запису історії: «Назад» повертає на те саме місце, а нова сторінка відкривається з початку.
   const navType = useNavigationType()
   const byKey = useRef<Record<string, number>>({})
   const key = useRef(location.key)
+  const path = useRef(location.pathname)
   if (active && tabs[active] !== location) setTabs({ ...tabs, [active]: location })
 
   useLayoutEffect(() => {
@@ -42,10 +44,17 @@ export function AppLayout() {
         if (Math.abs(window.scrollY - saved) > 2 && tries++ < 20) frame = requestAnimationFrame(restore)
       }
       restore()
-    } else if (active && active !== shown.current) window.scrollTo(0, scrolls.current[active] ?? 0)
+    } else if (active && active !== shown.current) {
+      // Перемикання між розділами меню повертає прокрутку розділу.
+      window.scrollTo(0, scrolls.current[active] ?? 0)
+    } else if (location.pathname !== path.current) {
+      // Нова сторінка всередині розділу (наприклад, курс КТП) відкривається з початку.
+      window.scrollTo(0, 0)
+    }
+    path.current = location.pathname
     shown.current = active
     return () => cancelAnimationFrame(frame)
-  }, [location.key, active, navType])
+  }, [location.key, location.pathname, active, navType])
   useLayoutEffect(() => {
     const onScroll = () => {
       byKey.current[key.current] = window.scrollY
@@ -96,6 +105,7 @@ export function AppLayout() {
             <span className="avatar">{user?.displayName?.[0] ?? '?'}</span>
           )}
         </header>
+        <PageBar tab={active} child={location.pathname !== active} />
         <TabPanes tabs={tabs} active={active} />
       </div>
       <ConfirmHost />

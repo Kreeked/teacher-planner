@@ -22,7 +22,6 @@ import {
 } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { BackLink } from '../../components/BackLink'
 import { DatePicker } from '../../components/DatePicker'
 import { toISO } from '../../data/schedule'
 import { InlineText } from '../../components/InlineText'
@@ -140,7 +139,6 @@ export function CoursePage() {
     return (
       <div className="page">
         <main className="main">
-          <BackLink fallback="/ktp" />
           <h1>КТП не знайдено</h1>
         </main>
       </div>
@@ -313,7 +311,6 @@ export function CoursePage() {
   return (
     <div className="page">
       <main className="main">
-        <BackLink fallback="/ktp" />
         <div className="sec-head page-head">
           <h1>{courseTitle(course)}</h1>
           <span className="grow" />
