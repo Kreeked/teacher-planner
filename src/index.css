@@ -886,6 +886,23 @@ h2 {
   align-items: center;
   gap: 4px;
   margin-bottom: -8px;
+  /* Липка пігулка: «Назад» під рукою і посеред довгої сторінки. */
+  position: sticky;
+  top: max(8px, env(safe-area-inset-top));
+  z-index: 5;
+  align-self: flex-start;
+  height: 32px;
+  padding: 0 12px 0 10px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: 0 4px 12px rgba(31, 31, 36, 0.06);
+}
+
+@media (pointer: coarse) {
+  .back {
+    height: 40px;
+  }
 }
 
 /* ---------- Навчальний рік ---------- */
