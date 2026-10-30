@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState } from 'react'
-import { Navigate, NavLink, useLocation, type Location } from 'react-router-dom'
+import { Navigate, NavLink, useLocation, useNavigationType, type Location } from 'react-router-dom'
 import { useAuth } from '../auth/context'
 import { ConfirmHost } from '../components/Confirm'
 import { SavedToast } from '../components/Saved'
@@ -23,14 +23,32 @@ export function AppLayout() {
   const [tabs, setTabs] = useState<Record<string, Location>>({})
   const scrolls = useRef<Record<string, number>>({})
   const shown = useRef<string | undefined>(undefined)
+  // Прокрутка кожного запису історії: «Назад» і «Вперед» повертають туди, де були.
+  const navType = useNavigationType()
+  const byKey = useRef<Record<string, number>>({})
+  const key = useRef(location.key)
   if (active && tabs[active] !== location) setTabs({ ...tabs, [active]: location })
 
   useLayoutEffect(() => {
-    if (active && active !== shown.current) window.scrollTo(0, scrolls.current[active] ?? 0)
+    window.history.scrollRestoration = 'manual'
+    key.current = location.key
+    const saved = byKey.current[location.key]
+    let frame = 0
+    if (navType === 'POP' && saved !== undefined) {
+      // Вміст може дорендеритися трохи згодом — добиваємо позицію кілька кадрів.
+      let tries = 0
+      const restore = () => {
+        window.scrollTo(0, saved)
+        if (Math.abs(window.scrollY - saved) > 2 && tries++ < 20) frame = requestAnimationFrame(restore)
+      }
+      restore()
+    } else if (active && active !== shown.current) window.scrollTo(0, scrolls.current[active] ?? 0)
     shown.current = active
-  }, [active])
+    return () => cancelAnimationFrame(frame)
+  }, [location.key, active, navType])
   useLayoutEffect(() => {
     const onScroll = () => {
+      byKey.current[key.current] = window.scrollY
       if (shown.current) scrolls.current[shown.current] = window.scrollY
     }
     window.addEventListener('scroll', onScroll, { passive: true })
