@@ -1575,8 +1575,28 @@ a.chip {
   text-align: center;
 }
 
-.panel.timetable {
+.timetable {
   max-width: 760px;
+}
+
+.dialog.wide {
+  max-width: 720px;
+}
+
+/* Клітинка розкладу лише для перегляду. */
+.tt-cell.view {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+}
+
+.schedule .sec-head h3 {
+  margin: 0;
+}
+
+.schedule .chips {
+  margin-top: 10px;
 }
 
 /* Сітка може бути ширшою за телефон — прокручується лише вона. */
@@ -1588,7 +1608,7 @@ a.chip {
 
 .tt-grid {
   display: grid;
-  grid-template-columns: 52px repeat(5, minmax(84px, 1fr));
+  grid-template-columns: 68px repeat(5, minmax(84px, 1fr));
   gap: 4px;
   min-width: 480px;
 }

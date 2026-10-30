@@ -9,6 +9,9 @@ export const WEEKDAYS = [
   { value: 6, label: 'Сб' },
 ]
 
+/** Дні тижневого розкладу: п'ятиденка. */
+export const WORKDAYS = WEEKDAYS.slice(0, 5)
+
 export function addDays(d: ISODate, n: number): ISODate {
   const [y, m, day] = d.split('-').map(Number)
   return new Date(Date.UTC(y, m - 1, day + n)).toISOString().slice(0, 10)

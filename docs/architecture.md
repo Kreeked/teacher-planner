@@ -33,13 +33,13 @@
 | `import/` | `docx.ts`, `ktpParser.ts`, `applyImport.ts` (імпорт КТП) |
 | `lib/` | `firebase.ts`, `drive.ts`, `offlineFiles.ts`, `useOfflinePlan.ts`, `useOnline.ts`, `confirm.ts`, `saved.ts`, `drag.ts`, `dates.ts`, `useClassifyLegacy.ts` |
 | `components/` | `Dialog`, `Confirm`, `Menu`, `Sortable`, `DatePicker`, `InlineText`, `RangeRow`, `Saved` |
-| `pages/` | `TodayPage`, `schedule/`, `ktp/` (зокрема `Materials` — вікно й полички), `year/`, `settings/`, `LoginPage`, `SettingsPage` |
+| `pages/` | `TodayPage`, `schedule/` (розклад і дзвінки в налаштуваннях), `ktp/` (зокрема `Materials` — вікно й полички), `year/` (навчальний рік у налаштуваннях), `settings/`, `LoginPage`, `SettingsPage` |
 | `layout/` | `AppLayout`, `TabPanes` (сторінки розділів), `nav.ts` (меню), `MonthCalendar`, `BellList` |
 | `index.css` | усі стилі, токени дизайну як CSS-змінні |
 
 ## Маршрути
 
-`/` Сьогодні · `/ktp` · `/ktp/year` · `/ktp/:courseId` · `/schedule` · `/settings` (порядок як у меню)
+`/` Сьогодні · `/ktp` · `/ktp/:courseId` · `/settings` (порядок як у меню). Навчальний рік, розклад і дзвінки живуть у налаштуваннях; `/ktp/year` лише перенаправляє туди.
 
 Розділи меню не розмонтовуються: `AppLayout` тримає відкриті розділи в `TabPanes` одночасно, неактивні лише `hidden`,
 кожен зі своїм останнім `Location` (`<Routes location>`). Тому перемикання вкладок не скидає стан сторінок (відкритий курс,
