@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { currentAndNext, lessonsOfDay, mondayOf, type DayData } from './day'
+import { bellsOfDay, currentAndNext, lessonsOfDay, mondayOf, slotAt, type DayData } from './day'
 import { computeBells } from './timetable'
-import type { ClassGroup, Course, Lesson, LessonSchedule, Timetable, TimetableEntry } from './types'
+import type { AcademicYear, ClassGroup, Course, Lesson, LessonSchedule, Timetable, TimetableEntry } from './types'
 
 const course = { id: 'k', academic_year_id: 'y', subject: 'Інформатика', grade: 9 } as Course
 const cls = (id: string, letter: string) => ({ id, grade: 9, letter, display_name: `9-${letter}` }) as ClassGroup
@@ -49,5 +49,30 @@ describe('lessonsOfDay', () => {
   it('finds the monday of a week', () => {
     expect(mondayOf('2026-09-10')).toBe('2026-09-07')
     expect(mondayOf('2026-09-13')).toBe('2026-09-07')
+  })
+})
+
+describe('slotAt', () => {
+  const slots = computeBells('08:30', 45, [10, 10, 10])
+  it('finds the lesson in progress and ignores breaks', () => {
+    expect(slotAt(slots, new Date(2026, 8, 7, 9, 0))).toBe(1)
+    expect(slotAt(slots, new Date(2026, 8, 7, 9, 20))).toBeNull()
+    expect(slotAt(slots, new Date(2026, 8, 7, 9, 25))).toBe(2)
+  })
+})
+
+describe('bellsOfDay', () => {
+  const years = [
+    { id: 'y', start_date: '2026-09-01', end_date: '2027-05-31', is_current: true } as AcademicYear,
+    { id: 'z', start_date: '2025-09-01', end_date: '2026-05-31', is_current: false } as AcademicYear,
+  ]
+  const bells = [
+    { academic_year_id: 'z', slots: [] },
+    { academic_year_id: 'y', slots: [] },
+  ] as never[]
+  it('takes the year of the lessons, or of the date when there are none', () => {
+    const list = lessonsOfDay('2026-09-07', data)
+    expect(bellsOfDay('2026-09-07', list, bells, years)?.academic_year_id).toBe('y')
+    expect(bellsOfDay('2026-01-12', [], bells, years)?.academic_year_id).toBe('z')
   })
 })

@@ -20,7 +20,7 @@ Firestore: кожна колекція лежить у `users/{uid}/<колек�
 | `timetable_entries` | клітинка розкладу | timetable_id, weekday, slot_number, class_group_id, course_id |
 | `lesson_materials` | файл / посилання | course_id, lesson_id АБО topic_id (рівно одне), title, kind (file/link), drive_file_id, url, mime_type, size_bytes, position (у межах категорії), keep_offline, category |
 
-`lesson_type`: `regular | practical | test | reserve` (старий `project` показується як звичайний урок). `status` дати: `planned | done | moved | cancelled`.
+`lesson_type`: `regular | practical | test | reserve` (старий `project` показується як звичайний урок). `status` дати: `planned | moved | cancelled` (старе значення `done` більше не використовується й ніде не показується).
 `category` матеріалу уроку: `slides | card | shelter | remote | test`, `null` — «Без типу». У старих записів поля немає:
 при відкритті КТП чи «Сьогодні» вони один раз отримують `slides` (презентації) або `null` (`classifyLegacy` у `data/materials.ts`).
 Матеріали теми (з `topic_id`) більше не показуються й не створюються.

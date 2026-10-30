@@ -1,6 +1,7 @@
 import { addDays, weekday } from './schedule'
 import { slotsOn, timetableOn } from './timetable'
 import type {
+  AcademicYear,
   BellSchedule,
   BellSlot,
   ClassGroup,
@@ -85,4 +86,18 @@ export function currentAndNext(list: DayLesson[], now: Date) {
 /** Понеділок тижня, до якого належить дата. */
 export function mondayOf(day: ISODate) {
   return addDays(day, 1 - weekday(day))
+}
+
+/** Розклад дзвінків для дня: року його уроків, а без уроків — року, до якого належить дата. */
+export function bellsOfDay(day: ISODate, list: DayLesson[], bells: BellSchedule[], years: AcademicYear[]) {
+  const yearId =
+    list[0]?.course.academic_year_id ??
+    (years.find((y) => y.start_date <= day && day <= y.end_date) ?? years.find((y) => y.is_current))?.id
+  return bells.find((b) => b.academic_year_id === yearId) ?? null
+}
+
+/** Номер уроку, що йде в цей момент за дзвінками (під час перерви — null). */
+export function slotAt(slots: BellSlot[], now: Date) {
+  const t = now.getHours() * 60 + now.getMinutes()
+  return slots.find((b) => minutes(b.start) <= t && t < minutes(b.end))?.number ?? null
 }
