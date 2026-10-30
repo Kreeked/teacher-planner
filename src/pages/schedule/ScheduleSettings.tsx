@@ -2,19 +2,18 @@ import { Bell, Check, Pencil } from 'lucide-react'
 import { useState } from 'react'
 import { Dialog } from '../../components/Dialog'
 import { useCollection } from '../../data/db'
-import { WORKDAYS as DAYS, toISO } from '../../data/schedule'
+import { WORKDAYS as DAYS, toISO, weekday } from '../../data/schedule'
 import { timetableOn } from '../../data/timetable'
-import { gradeColor, pickCurrentYear, shortDate } from '../../data/year'
+import type { AcademicYear } from '../../data/types'
+import { gradeColor, shortDate } from '../../data/year'
 import { BellsSection } from '../settings/BellsSection'
 import { SlotLabel, TimetableSection } from './TimetableSection'
 
 type Editing = 'bells' | 'timetable' | null
 
-/** Налаштування → Розклад і дзвінки: тижневий розклад для перегляду; редагування — у вікнах. */
-export function ScheduleSettings() {
-  const { items: years, loading } = useCollection('academic_years')
-  const year = pickCurrentYear(years)
-  const filter = year ? { field: 'academic_year_id', value: year.id } : null
+/** Навчальний рік → Розклад і дзвінки: тиждень для перегляду; редагування розкладу й дзвінків — у вікнах. */
+export function ScheduleSettings({ year }: { year: AcademicYear }) {
+  const filter = { field: 'academic_year_id', value: year.id }
   const { items: bells } = useCollection('bell_schedules', filter)
   const { items: timetables } = useCollection('timetables', filter)
   const { items: courses } = useCollection('courses', filter)
@@ -23,15 +22,6 @@ export function ScheduleSettings() {
   const { items: links } = useCollection('course_classes')
   const [editing, setEditing] = useState<Editing>(null)
   const [today] = useState(() => toISO(new Date()))
-
-  if (loading) return null
-  if (!year)
-    return (
-      <section className="panel">
-        <h3>Розклад і дзвінки</h3>
-        <p className="muted">Розклад і дзвінки прив'язані до навчального року — спершу створи його.</p>
-      </section>
-    )
 
   const bell = bells[0]
   const sorted = [...timetables].sort((a, b) => a.valid_from.localeCompare(b.valid_from))
@@ -46,7 +36,14 @@ export function ScheduleSettings() {
   return (
     <section className="panel schedule">
       <div className="sec-head">
-        <h3>Розклад і дзвінки</h3>
+        <h3>
+          Розклад і дзвінки
+          {current && (
+            <span className="cnt">
+              {sorted.length > 1 ? `${current.title}, з` : 'з'} {shortDate(current.valid_from)}
+            </span>
+          )}
+        </h3>
         <span className="grow" />
         <div className="actions">
           <button className="btn ghost" onClick={() => setEditing('bells')}>
@@ -61,15 +58,12 @@ export function ScheduleSettings() {
       {!current ? (
         <p className="muted">Розкладу ще немає. Створи його — і клас можна буде поставити в кожну клітинку.</p>
       ) : (
-        <>
-          <p className="muted small-text">
-            {sorted.length > 1 ? `${current.title}, діє` : 'Діє'} з {shortDate(current.valid_from)}
-          </p>
+        <div className="schedule-body">
           <div className="tt-scroll">
-            <div className="tt-grid">
+            <div className="tt-grid compact">
               <span />
               {DAYS.map((d) => (
-                <span key={d.value} className="tt-day">
+                <span key={d.value} className={d.value === weekday(today) ? 'tt-day today' : 'tt-day'}>
                   {d.label}
                 </span>
               ))}
@@ -91,18 +85,26 @@ export function ScheduleSettings() {
               ])}
             </div>
           </div>
-          <div className="chips">
-            <span className="pill">
-              <b>{own.length}</b>&nbsp;уроків на тиждень
-            </span>
-            {perClass.map(({ c, n }) => (
-              <span key={c.id} className="chip">
-                <span className="sw" style={{ background: gradeColor(c.grade) }} />
-                {c.display_name} · {n}
-              </span>
-            ))}
-          </div>
-        </>
+
+          <aside className="schedule-side">
+            <div className="set-card">
+              <b className="set-big num">{own.length}</b>
+              <span>уроків на тиждень</span>
+            </div>
+            {perClass.length > 0 && (
+              <div className="set-card">
+                <span>Уроків за класами</span>
+                <div className="chips">
+                  {perClass.map(({ c, n }) => (
+                    <span key={c.id} className="chip tinted" style={{ background: gradeColor(c.grade) }}>
+                      {c.display_name} · {n}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </aside>
+        </div>
       )}
 
       {editing && (

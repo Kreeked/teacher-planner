@@ -34,9 +34,10 @@ export function SlotLabel({ n, bell }: { n: number; bell?: BellSlot }) {
     <span className="tt-slot">
       <b>{n}</b>
       {bell && (
-        <small className="num">
-          {bell.start}–{bell.end}
-        </small>
+        <>
+          <small className="num">{bell.start}</small>
+          <small className="num">{bell.end}</small>
+        </>
       )}
     </span>
   )

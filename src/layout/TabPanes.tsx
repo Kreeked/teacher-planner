@@ -1,8 +1,9 @@
-import { Navigate, Route, Routes, type Location } from 'react-router-dom'
+import { Route, Routes, type Location } from 'react-router-dom'
 import { CoursePage } from '../pages/ktp/CoursePage'
 import { KtpPage } from '../pages/ktp/KtpPage'
 import { SettingsPage } from '../pages/SettingsPage'
 import { TodayPage } from '../pages/TodayPage'
+import { YearPage } from '../pages/year/YearPage'
 
 /** Сторінки кожного розділу меню; ключ — шлях розділу з `NAV`. */
 function TabRoutes({ tab, location }: { tab: string; location: Location }) {
@@ -12,8 +13,7 @@ function TabRoutes({ tab, location }: { tab: string; location: Location }) {
       {tab === '/ktp' && (
         <>
           <Route path="/ktp" element={<KtpPage />} />
-          {/* Навчальний рік тепер у налаштуваннях: старі посилання ведуть туди. */}
-          <Route path="/ktp/year" element={<Navigate to="/settings" replace />} />
+          <Route path="/ktp/year" element={<YearPage />} />
           <Route path="/ktp/:courseId" element={<CoursePage />} />
         </>
       )}

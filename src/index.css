@@ -1589,14 +1589,182 @@ a.chip {
   align-items: center;
   justify-content: center;
   cursor: default;
+  background: transparent;
+  border: 1px dashed var(--line);
+}
+
+.tt-cell.view.on {
+  border: 0;
+}
+
+.tt-day.today {
+  background: var(--ink);
+  color: #fff;
+  border-radius: 999px;
+  padding: 3px 0;
+}
+
+/* ---------- Навчальний рік: рядки налаштувань ---------- */
+.panel.set,
+.panel.schedule {
+  max-width: 920px;
+}
+
+.panel.set {
+  padding: 4px 16px;
+}
+
+/* Сітка для перегляду займає всю ширину, без прокрутки. */
+.tt-grid.compact {
+  grid-template-columns: 48px repeat(5, minmax(0, 1fr));
+  min-width: 0;
+}
+
+.set-row {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr) auto;
+  gap: 8px 16px;
+  align-items: center;
+  padding: 12px 0;
+}
+
+.set-row + .set-row {
+  border-top: 1px solid var(--line);
+}
+
+.set-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+.set-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  min-width: 0;
+}
+
+.set-big {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin-right: 4px;
+}
+
+.sem {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+}
+
+.sem .pill {
+  height: 22px;
+  font-size: 11px;
+}
+
+.chip.tinted {
+  padding: 0 11px;
+}
+
+/* ---------- Розклад і дзвінки на сторінці року ---------- */
+.schedule .sec-head {
+  margin-bottom: 10px;
 }
 
 .schedule .sec-head h3 {
   margin: 0;
 }
 
-.schedule .chips {
-  margin-top: 10px;
+.schedule .cnt {
+  margin-left: 8px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+.schedule-body {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.schedule-body .tt-scroll {
+  flex: 1;
+  min-width: 0;
+}
+
+.schedule-side {
+  width: 230px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.set-card {
+  background: var(--bg);
+  border-radius: var(--r-lg);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+.set-card .set-big {
+  color: var(--ink);
+  margin: 0;
+}
+
+.set-card .chip {
+  color: var(--ink);
+}
+
+@media (max-width: 900px) {
+  .schedule-body {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .schedule-side {
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .schedule-side .set-card {
+    flex: 1 1 200px;
+  }
+}
+
+@media (max-width: 760px) {
+  /* Підпис і кнопка в першому рядку, значення під ними. */
+  .set-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .set-body {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .tt-grid.compact {
+    grid-template-columns: 40px repeat(5, minmax(0, 1fr));
+    gap: 3px;
+  }
+
+  .tt-grid.compact .tt-cell {
+    font-size: 12px;
+    padding: 0;
+  }
 }
 
 /* Сітка може бути ширшою за телефон — прокручується лише вона. */
@@ -1608,7 +1776,7 @@ a.chip {
 
 .tt-grid {
   display: grid;
-  grid-template-columns: 68px repeat(5, minmax(84px, 1fr));
+  grid-template-columns: 48px repeat(5, minmax(84px, 1fr));
   gap: 4px;
   min-width: 480px;
 }

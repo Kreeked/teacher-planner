@@ -62,8 +62,7 @@ export function PeriodsSection({ year, periods }: { year: AcademicYear; periods:
   }
 
   return (
-    <section className="panel">
-      <h3>Семестри й чверті</h3>
+    <div className="form">
       {semesters.length === 0 && <p className="muted">Періодів ще немає.</p>}
       {semesters.map((sem) => (
         <div key={sem.id} className="period-group">
@@ -77,7 +76,7 @@ export function PeriodsSection({ year, periods }: { year: AcademicYear; periods:
       <button className="btn ghost" onClick={addSemester}>
         <Plus size={16} /> Семестр
       </button>
-    </section>
+    </div>
   )
 }
 

@@ -28,7 +28,7 @@ export function KtpPage() {
           <h1>КТП</h1>
           {year && (
             <Link
-              to="/settings"
+              to="/ktp/year"
               className="btn ghost small year-link"
               title={`${formatDate(year.start_date)} — ${formatDate(year.end_date)} · класів: ${classes.length}`}
             >
@@ -59,7 +59,7 @@ export function KtpPage() {
         </div>
 
         {!loading && !year && (
-          <Link to="/settings" className="stat" style={{ background: 'var(--surface)' }}>
+          <Link to="/ktp/year" className="stat" style={{ background: 'var(--surface)' }}>
             <span className="lab">Навчальний рік</span>
             <span className="sub">Ще не налаштовано. Почни з нього: семестри, чверті й класи.</span>
             <span className="arrow">

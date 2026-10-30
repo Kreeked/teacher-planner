@@ -3,8 +3,6 @@ import { Download, LogOut, Upload } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useAuth } from '../auth/context'
 import { OfflineFilesSection } from './settings/OfflineFilesSection'
-import { ScheduleSettings } from './schedule/ScheduleSettings'
-import { YearSettings } from './year/YearSettings'
 import { BackupError, countDocs, downloadJson, exportBackup, parseBackup, restoreBackup } from '../data/backup'
 
 export function SettingsPage() {
@@ -58,10 +56,6 @@ export function SettingsPage() {
             Вийти
           </button>
         </section>
-
-        <YearSettings />
-
-        <ScheduleSettings />
 
         <OfflineFilesSection />
 

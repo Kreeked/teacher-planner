@@ -42,8 +42,7 @@ export function ClassesSection({ year, classes }: { year: AcademicYear; classes:
     byGrade.set(c.grade, [...(byGrade.get(c.grade) ?? []), c])
 
   return (
-    <section className="panel">
-      <h3>Класи</h3>
+    <div className="form">
       {classes.length === 0 && <p className="muted">Додай класи, у яких викладаєш цього року.</p>}
       <div className="grades">
         {[...byGrade].map(([g, list]) => (
@@ -87,6 +86,6 @@ export function ClassesSection({ year, classes }: { year: AcademicYear; classes:
           <Plus size={16} /> Додати
         </button>
       </form>
-    </section>
+    </div>
   )
 }
