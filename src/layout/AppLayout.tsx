@@ -70,6 +70,9 @@ export function AppLayout() {
     return saved ? saved.pathname + saved.search : to
   }
 
+  // Записи історії від меню позначені: «Назад» не веде в попередній розділ, а піднімається до початку цього.
+  const tabProps = (to: string) => ({ to: target(to), replace: to === active, state: { via: 'tab' } })
+
   const online = useOnline()
   useOfflineAutoSync()
 
@@ -82,12 +85,12 @@ export function AppLayout() {
           П
         </div>
         {NAV.slice(0, -1).map(({ to, label, icon: Icon }) => (
-          <NavLink key={to} to={target(to)} end={to === '/'} className="nav-btn" title={label} aria-label={label}>
+          <NavLink key={to} {...tabProps(to)} end={to === '/'} className="nav-btn" title={label} aria-label={label}>
             <Icon size={18} strokeWidth={1.8} />
           </NavLink>
         ))}
         <span className="spacer" />
-        <NavLink to={target(SETTINGS.to)} className="nav-btn" title={SETTINGS.label} aria-label={SETTINGS.label}>
+        <NavLink {...tabProps(SETTINGS.to)} className="nav-btn" title={SETTINGS.label} aria-label={SETTINGS.label}>
           <SETTINGS.icon size={18} strokeWidth={1.8} />
         </NavLink>
       </nav>
@@ -113,7 +116,7 @@ export function AppLayout() {
 
       <nav className="tabbar" aria-label="Розділи">
         {NAV.map(({ to, label, icon: Icon }) => (
-          <NavLink key={to} to={target(to)} end={to === '/'} className="tb" aria-label={label}>
+          <NavLink key={to} {...tabProps(to)} end={to === '/'} className="tb" aria-label={label}>
             <Icon size={18} strokeWidth={1.8} />
             <span>{label}</span>
           </NavLink>

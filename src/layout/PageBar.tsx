@@ -14,7 +14,8 @@ type Props = {
 /** Липка пігулка зверху: на вкладених сторінках — «Назад», на всіх — заголовок сторінки, коли її h1 прокручено. */
 export function PageBar({ tab, child }: Props) {
   const navigate = useNavigate()
-  const { key } = useLocation()
+  const location = useLocation()
+  const { key } = location
   const [title, setTitle] = useState('')
   const [scrolled, setScrolled] = useState(false)
 
@@ -33,12 +34,12 @@ export function PageBar({ tab, child }: Props) {
     }
   }, [key, tab])
 
-  // «Назад» повертає туди, звідки прийшли; без історії (пряме посилання) — до розділу.
+  // Записи, створені меню, — не історія для «Назад»: вгору до розділу. Перехід усередині застосунку — крок назад.
   function back(e: MouseEvent) {
-    if ((window.history.state?.idx ?? 0) > 0) {
-      e.preventDefault()
-      navigate(-1)
-    }
+    e.preventDefault()
+    const viaMenu = location.state?.via === 'tab' || (window.history.state?.idx ?? 0) === 0
+    if (viaMenu) navigate(tab, { replace: true, state: { via: 'tab' } })
+    else navigate(-1)
   }
 
   const showTitle = scrolled && !!title
