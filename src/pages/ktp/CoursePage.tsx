@@ -1,5 +1,5 @@
 import { ask } from '../../lib/confirm'
-import { flash } from '../../lib/flash'
+import { reveal } from '../../lib/reveal'
 import {
   DndContext,
   DragOverlay,
@@ -21,7 +21,7 @@ import {
   Trash2,
   TriangleAlert,
 } from 'lucide-react'
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { DatePicker } from '../../components/DatePicker'
 import { toISO } from '../../data/schedule'
@@ -117,23 +117,21 @@ export function CoursePage() {
   const focusId = params.get('lesson')
   const { key: visit } = useLocation()
   const focused = useRef<string | null>(null)
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!focusId || focused.current === visit) return
     const el = document.getElementById(`lesson-${focusId}`)
     if (!el) return
     focused.current = visit
-    el.scrollIntoView({ block: 'center' })
-    flash(el)
+    reveal(el)
   }, [focusId, visit, lessons.length, loading])
   // Нова тема: прокрутити до неї й підсвітити, щойно вона з'явиться на сторінці.
   const newTopic = useRef<string | null>(null)
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!newTopic.current) return
     const el = document.getElementById(`topic-${newTopic.current}`)
     if (!el) return
     newTopic.current = null
-    el.scrollIntoView({ block: 'center', behavior: 'smooth' })
-    flash(el)
+    reveal(el)
   }, [topics.length])
   const [showSettings, setShowSettings] = useState(false)
   const [editing, setEditing] = useState(false)
