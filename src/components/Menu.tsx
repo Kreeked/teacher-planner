@@ -1,10 +1,14 @@
-import { MoreHorizontal, type LucideIcon } from 'lucide-react'
+import { Check, MoreHorizontal, type LucideIcon } from 'lucide-react'
 import { Fragment, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 
 export type MenuItem = {
   label: string
-  icon: LucideIcon
+  // Іконка або кольоровий кружечок (swatch) ліворуч від назви.
+  icon?: LucideIcon
+  swatch?: string
+  // Вибір одного з варіантів: позначений пункт отримує галочку.
+  checked?: boolean
   onSelect: () => void
   // Дрібний текст праворуч, наприклад кількість файлів.
   hint?: string
@@ -104,13 +108,19 @@ export function Menu({ label, groups, trigger, triggerClass = 'icon-btn menu-btn
                   <button
                     key={item.label}
                     type="button"
-                    role="menuitem"
-                    className={item.danger ? 'menu-item danger' : 'menu-item'}
+                    role={item.checked === undefined ? 'menuitem' : 'menuitemradio'}
+                    aria-checked={item.checked}
+                    className={['menu-item', item.danger && 'danger', item.checked && 'sel'].filter(Boolean).join(' ')}
                     onClick={() => pick(item)}
                   >
-                    <item.icon size={16} />
+                    {item.swatch ? (
+                      <span className="menu-dot" style={{ background: item.swatch }} />
+                    ) : (
+                      item.icon && <item.icon size={16} />
+                    )}
                     <span className="grow">{item.label}</span>
                     {item.hint && <small>{item.hint}</small>}
+                    {item.checked && <Check size={16} />}
                   </button>
                 ))}
               </Fragment>

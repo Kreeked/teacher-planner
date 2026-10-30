@@ -4,7 +4,6 @@ export const LESSON_TYPES: { value: LessonType; label: string }[] = [
   { value: 'regular', label: 'Урок' },
   { value: 'practical', label: 'Практична' },
   { value: 'test', label: 'Контрольна' },
-  { value: 'project', label: 'Проєкт' },
   { value: 'reserve', label: 'Резерв' },
 ]
 

@@ -1608,33 +1608,6 @@ a.chip {
 }
 
 /* ---------- Матеріали ---------- */
-.material-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-height: 0;
-  overflow-y: auto;
-}
-
-.material-row {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-}
-
-.material-row.uploading {
-  gap: 8px;
-  padding: 6px 10px;
-  border-radius: 10px;
-  background: var(--bg);
-  font-size: 13px;
-}
-
-.material-row.uploading .field-error {
-  width: auto;
-  margin: 0;
-}
-
 .material {
   flex: 1;
   min-width: 0;
@@ -1653,70 +1626,220 @@ a.chip {
   background: var(--line);
 }
 
-.material .grow,
-.material-row .grow {
+.material .grow {
   min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.material small,
-.material-row small {
+.material small {
   color: var(--ink-2);
   font-size: 11px;
   flex: none;
 }
 
-/* Розділ вікна матеріалів уроку: один тип файлів. */
-.m-sec {
+/* Вікно матеріалів уроку: поле для файлів, «Щойно додані», один список за типами. */
+.materials-dialog {
+  max-width: 640px;
+}
+
+.dropzone {
+  border: 1.5px dashed #c4c4cc;
+  border-radius: var(--r-lg);
+  background: #fafaf8;
+  padding: 22px 16px 18px;
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 6px;
-  padding: 8px;
-  margin: 0 -8px;
-  border-radius: 14px;
+  text-align: center;
   transition: background 0.12s;
 }
 
-.m-sec.drop {
+.dropzone.over {
+  border-color: var(--ink);
   background: var(--bg);
-  outline: 1.5px dashed #c4c4cc;
-  outline-offset: -1.5px;
 }
 
-.m-sec-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
+.dz-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: 0 0 0 1px var(--line);
+  display: grid;
+  place-items: center;
 }
 
-.m-sec-head .cnt {
-  color: var(--ink-2);
+.dz-title {
+  margin: 4px 0 0;
+  font-size: 15px;
   font-weight: 600;
 }
 
-.m-sec-head .btn.small.on {
+.dz-sub {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.dz-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.dz-actions .btn.small.on {
   background: var(--line);
 }
 
-.m-sec.other .m-sec-head {
-  color: var(--ink-2);
+.dropzone .link-form {
+  width: 100%;
+  margin-top: 6px;
 }
 
-.m-sec .material-list {
-  overflow: visible;
-}
-
-.m-drop {
-  margin: 0;
-  padding: 10px 12px;
-  border: 1.5px dashed #d4d4da;
-  border-radius: 12px;
-  color: var(--ink-2);
+.list-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 -2px;
   font-size: 12px;
-  text-align: center;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.list-label .cnt {
+  color: #a9a9b8;
+}
+
+.mlist {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mrow {
+  display: grid;
+  grid-template-columns: 148px minmax(0, 1fr) 32px 32px;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 4px 4px 4px 6px;
+  border-radius: 12px;
+}
+
+.mrow:hover {
+  background: var(--bg);
+}
+
+.mrow.new {
+  background: #fafaf8;
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.mrow .material {
+  background: transparent;
+  padding: 4px 6px;
+  font-size: 14px;
+}
+
+.mrow .material:hover {
+  background: var(--surface);
+}
+
+.mname {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.mname .mtitle {
+  padding: 0 6px;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mname .hint {
+  padding: 0 6px;
+  font-size: 12px;
+  color: #a4501f;
+}
+
+.mname .field-error {
+  margin: 0;
+  padding: 0 6px;
+}
+
+.msize {
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.bar {
+  height: 4px;
+  margin: 0 6px;
+  border-radius: 999px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.bar i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--ink);
+}
+
+.kind-btn {
+  justify-self: start;
+  max-width: 100%;
+  height: 28px;
+  border: 0;
+  border-radius: 999px;
+  padding: 0 8px 0 9px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.kind-btn .grow {
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kind-btn .chev {
+  color: var(--ink-2);
+}
+
+.mrow:hover .kind-btn {
+  background: var(--surface);
+}
+
+.kind-btn.need {
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1.5px var(--ink);
+}
+
+.kind-btn.on {
+  box-shadow: 0 0 0 2px var(--ink);
+}
+
+.icon-btn.keep.on {
+  background: var(--ink);
+  color: #fff;
 }
 
 /* Полички уроку: компактний ряд типів файлів під назвою уроку. */
@@ -2198,11 +2321,6 @@ h2.topic-title {
   color: #3a4590;
 }
 
-.type-tag.project {
-  background: var(--lilac);
-  color: #5a3f8f;
-}
-
 .l-files {
   display: flex;
   flex-wrap: wrap;
@@ -2219,26 +2337,11 @@ h2.topic-title {
   background: var(--bg);
 }
 
-.topic-files {
-  flex-basis: 100%;
-  padding: 0;
-}
-
-.topic-files .material {
-  background: rgba(255, 255, 255, 0.72);
-}
-
 .ktp-empty {
   margin: 0;
   padding: 6px 4px 2px;
   font-size: 12px;
   color: var(--ink-2);
-}
-
-.topic-row .drag-handle {
-  width: 24px;
-  border-radius: 8px;
-  margin-left: -4px;
 }
 
 .topic.lifted {
@@ -2259,14 +2362,6 @@ h2.topic-title {
 
 .topic-end {
   min-height: 24px;
-}
-
-.edit-hint {
-  margin: 0;
-}
-
-.edit-hint svg {
-  vertical-align: -2px;
 }
 
 .sec-head .btn.small {
@@ -2377,57 +2472,23 @@ h2.topic-title {
   color: var(--ink-2);
 }
 
-/* Назва теми завширшки з текст — години стоять одразу за нею. */
-.ktp.edit .topic-row .topic-title {
+/* Поле завширшки з текст: невидима копія тексту задає ширину, поле лягає поверх неї. */
+.fit {
+  display: inline-grid;
   flex: 0 1 auto;
+  min-width: 0;
   max-width: 100%;
-  min-width: 120px;
 }
 
-@supports (field-sizing: content) {
-  .ktp.edit .topic-row .topic-title {
-    field-sizing: content;
-    width: auto !important;
-  }
+.fit > * {
+  grid-area: 1 / 1;
+  min-width: 6ch;
 }
 
-/* Тип уроку — пігулка зі стрілкою, щоб було видно, що це вибір. */
-.type-pill {
-  appearance: none;
-  justify-self: start;
-  align-self: center;
-  max-width: 100%;
-  height: 26px;
-  border: 0;
-  border-radius: 999px;
-  padding: 0 24px 0 10px;
-  font: inherit;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  background: var(--bg)
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%236b6b76' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")
-    no-repeat right 9px center;
-  color: var(--ink-2);
-}
-
-.type-pill:focus-visible {
-  outline: 2px solid var(--ink);
-}
-
-.type-pill.test {
-  background-color: var(--peach);
-  color: #8a4a1c;
-}
-
-.type-pill.practical {
-  background-color: var(--peri);
-  color: #3a4590;
-}
-
-.type-pill.project {
-  background-color: var(--lilac);
-  color: #5a3f8f;
+.fit-sizer {
+  visibility: hidden;
+  white-space: pre;
+  overflow: hidden;
 }
 
 .add-topic {
@@ -2554,7 +2615,7 @@ h2.topic-title {
 
 .lesson-item {
   display: grid;
-  grid-template-columns: 30px minmax(0, 1fr) auto 32px;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
   align-items: start;
   gap: 14px;
   padding: 12px 0;
@@ -2590,10 +2651,37 @@ h2.topic-title {
   color: var(--ink-2);
 }
 
-.lesson-item .l-hw {
+.lesson-item .l-body {
+  gap: 6px;
+}
+
+/* ДЗ: мітка «ДЗ» і текст; у редагуванні поле стоїть там само. */
+.hw {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.hw-tag {
+  flex: none;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--ink-2);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  display: inline-flex;
+  align-items: center;
+}
+
+.hw-text {
   margin: 0;
+  min-width: 0;
   font-size: 14px;
-  color: #55555f;
+  line-height: 22px;
+  color: #3f3f48;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
@@ -2639,7 +2727,8 @@ h2.topic-title {
   margin-left: -8px;
 }
 
-.ktp.edit .topic-title + .hours {
+.ktp.edit .fit + .hours {
+  margin-left: -6px;
   font-size: 13px;
   font-weight: 500;
   color: var(--ink-2);
@@ -2653,34 +2742,47 @@ h2.topic-title {
   font-weight: 600;
 }
 
-/* Ручка теми стоїть у полі картки, щоб назва була там само, де в перегляді. */
-.ktp.edit .topic-row .drag-handle {
-  width: 18px;
-  margin-left: -18px;
-  margin-right: -8px;
-}
-
-.lesson-item.editing {
-  align-items: start;
-}
-
-.lesson-item .l-no.drag-handle {
+/* Ручка перетягування — окрема кнопка розміром з кнопку-іконку. */
+.grip {
+  width: 32px;
+  height: 32px;
   border: 0;
   padding: 0;
-  color: var(--ink);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink-2);
+  display: grid;
+  place-items: center;
   cursor: grab;
+  flex: none;
+  touch-action: none;
 }
 
-.l-no-grip {
-  display: none;
+.grip:hover {
+  background: var(--bg);
+  color: var(--ink);
 }
 
-.lesson-item .l-no.drag-handle:hover .l-no-n {
-  display: none;
+.ktp.edit .topic-row > .grip {
+  margin-right: 4px;
 }
 
-.lesson-item .l-no.drag-handle:hover .l-no-grip {
-  display: block;
+/* Рядок уроку в редагуванні: ручка · номер · зміст · дати · кошик. */
+.lesson-item.editing {
+  grid-template-columns: 32px 30px minmax(0, 1fr) auto 32px;
+  column-gap: 12px;
+}
+
+.lesson-item.editing .grip,
+.lesson-item .icon-btn.del,
+.topic-row .icon-btn.del {
+  width: 32px;
+  height: 32px;
+  margin-top: -1px;
+}
+
+.ktp.edit .topic-end {
+  padding-left: 44px;
 }
 
 /* Поля без рамки, текст стоїть там само, де в перегляді. */
@@ -2688,39 +2790,73 @@ h2.topic-title {
   border-radius: 8px;
 }
 
+.l-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
 .lesson-item textarea.l-title {
+  flex: 1;
+  min-width: 0;
   margin: -5px 0 -5px -8.5px;
-  width: calc(100% + 8.5px);
   font-size: 16px;
   font-weight: 500;
   line-height: 1.4;
 }
 
-.l-meta {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  margin-top: 4px;
-}
-
-.l-meta .type-pill {
-  flex: none;
-}
-
-.l-hw-label {
-  flex: none;
-  font-size: 14px;
-  line-height: 26px;
-  color: #55555f;
-}
-
-.lesson-item textarea.l-hw {
+.lesson-item textarea.hw-text {
   flex: 1;
-  min-height: 26px;
-  margin-left: -10px;
-  padding: 3px 7px;
-  font-size: 14px;
-  color: #55555f;
+  min-height: 28px;
+  margin: -3px 0 -3px -8px;
+  padding: 2px 7px;
+}
+
+/* Тип уроку — пігулка кольору типу з меню застосунку. На телефоні — у ряду дат. */
+.type-btn {
+  flex: none;
+  height: 26px;
+  border: 0;
+  border-radius: 999px;
+  padding: 0 8px 0 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--bg);
+  color: var(--ink-2);
+  margin-top: 1px;
+}
+
+.type-btn.practical {
+  background: var(--peri);
+  color: #3a4590;
+}
+
+.type-btn.test {
+  background: var(--peach);
+  color: #8a4a1c;
+}
+
+.type-btn.on {
+  box-shadow: 0 0 0 2px var(--ink);
+}
+
+.type-phone {
+  display: none;
+}
+
+.menu-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: none;
+  box-shadow: inset 0 0 0 1px rgba(31, 31, 36, 0.15);
+}
+
+.menu-item.sel {
+  font-weight: 600;
 }
 
 .lesson-item.placeholder-row {
@@ -2742,6 +2878,10 @@ h2.topic-title {
 .date-pill .date-btn.compact:hover,
 .date-pill .date-btn.compact[aria-expanded='true'] {
   background: var(--surface);
+}
+
+.date-pill:not(.empty) .date-btn.compact span {
+  color: var(--ink);
 }
 
 .date-pill.empty .date-btn.compact {
@@ -2824,6 +2964,23 @@ h2.topic-title {
 }
 
 @media (max-width: 760px) {
+  /* Матеріали: тип під назвою файлу, щоб назва мала всю ширину. */
+  .mrow {
+    grid-template-columns: minmax(0, 1fr) 32px 32px;
+    row-gap: 4px;
+    padding: 8px 4px 8px 6px;
+  }
+
+  .mrow > .mname {
+    grid-row: 1;
+    grid-column: 1;
+  }
+
+  .mrow > .kind-btn {
+    grid-row: 2;
+    grid-column: 1;
+  }
+
   .ktp .topic {
     padding: 12px 14px 4px;
   }
@@ -2835,7 +2992,7 @@ h2.topic-title {
   /* Меню теми лишається праворуч від назви, попередження й файли — нижче. */
   .ktp.view .topic-row {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 32px;
+    grid-template-columns: minmax(0, 1fr);
     gap: 6px 10px;
     align-items: start;
   }
@@ -2844,23 +3001,49 @@ h2.topic-title {
     display: none;
   }
 
-  .ktp.view .topic-row > .menu-btn {
-    grid-column: 2;
-    grid-row: 1;
-  }
-
-  .ktp.view .topic-row > .warn-badge,
-  .ktp.view .topic-row > .topic-files {
+  .ktp.view .topic-row > .warn-badge {
     grid-column: 1 / -1;
     justify-self: start;
   }
 
   .lesson-item {
-    grid-template-columns: 28px minmax(0, 1fr) 32px;
+    grid-template-columns: 28px minmax(0, 1fr);
     grid-template-areas:
-      'no body menu'
-      '. pills pills';
+      'no body'
+      '. pills';
     gap: 6px 10px;
+  }
+
+  .lesson-item.editing {
+    grid-template-columns: 32px 28px minmax(0, 1fr) 32px;
+    grid-template-areas:
+      'grip no body del'
+      '. . pills pills';
+    column-gap: 8px;
+  }
+
+  .lesson-item .grip {
+    grid-area: grip;
+  }
+
+  .lesson-item .icon-btn.del {
+    grid-area: del;
+  }
+
+  .ktp.edit .topic-end {
+    padding-left: 76px;
+  }
+
+  .type-desk {
+    display: none;
+  }
+
+  .type-phone {
+    display: contents;
+  }
+
+  .l-pills .type-btn {
+    margin: 0 2px 0 0;
   }
 
   .lesson-item .l-no {
@@ -2871,10 +3054,6 @@ h2.topic-title {
 
   .lesson-item .l-body {
     grid-area: body;
-  }
-
-  .lesson-item .menu-btn {
-    grid-area: menu;
   }
 
   /* Полички дрібні, але область натискання — на всю висоту ряду (≥ 40 px).
@@ -2900,12 +3079,11 @@ h2.topic-title {
     font-size: 16px;
   }
 
-  /* Як у перегляді: назва й меню в першому рядку, години й попередження — нижче. Ручка — у полі картки. */
+  /* Ручка · назва · кошик у першому рядку, години й попередження — нижче. */
   .ktp.edit .topic-row {
-    position: relative;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 32px;
-    gap: 6px 10px;
+    grid-template-columns: 32px minmax(0, 1fr) 32px;
+    gap: 6px 8px;
     align-items: center;
   }
 
@@ -2913,34 +3091,31 @@ h2.topic-title {
     display: none;
   }
 
-  .ktp.edit .topic-row > .drag-handle {
-    position: absolute;
-    left: -16px;
-    top: 4px;
-    width: 16px;
+  .ktp.edit .topic-row > .grip {
+    grid-column: 1;
+    grid-row: 1;
     margin: 0;
   }
 
-  .ktp.edit .topic-row > .topic-title {
-    grid-column: 1;
-    grid-row: 1;
-    width: calc(100% + 8px) !important;
-    field-sizing: fixed;
-  }
-
-  .ktp.edit .topic-row > .menu-btn {
+  .ktp.edit .topic-row > .fit {
     grid-column: 2;
     grid-row: 1;
   }
 
-  .ktp.edit .topic-row > .hours,
-  .ktp.edit .topic-row > .warn-badge,
-  .ktp.edit .topic-row > .topic-files {
-    grid-column: 1 / -1;
-    justify-self: start;
+  .ktp.edit .topic-row > .icon-btn.del {
+    grid-column: 3;
+    grid-row: 1;
   }
 
-  .lesson-item .l-hw {
+  .ktp.edit .topic-row > .hours,
+  .ktp.edit .topic-row > .warn-badge {
+    grid-column: 2 / -1;
+    justify-self: start;
+    margin-left: 0;
+  }
+
+  .hw-text,
+  .lesson-item textarea.hw-text {
     font-size: 13px;
   }
 

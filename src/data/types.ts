@@ -63,7 +63,7 @@ export type Topic = Meta & {
   planned_hours: number
 }
 
-export type LessonType = 'regular' | 'practical' | 'test' | 'project' | 'reserve'
+export type LessonType = 'regular' | 'practical' | 'test' | 'reserve'
 
 export type Lesson = Meta & {
   course_id: string
