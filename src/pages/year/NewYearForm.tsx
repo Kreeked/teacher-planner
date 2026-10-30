@@ -4,9 +4,9 @@ import { Dialog } from '../../components/Dialog'
 import { commit, createDoc, newBatch } from '../../data/db'
 import { defaultYear, defaultYearStart, validateYear } from '../../data/year'
 
-type Props = { onCreated: (id: string) => void; onClose: () => void; makeCurrent: boolean }
+type Props = { onCreated: (id: string) => void; onClose: () => void }
 
-export function NewYearForm({ onCreated, onClose, makeCurrent }: Props) {
+export function NewYearForm({ onCreated, onClose }: Props) {
   const [initial] = useState(() => defaultYear(defaultYearStart(new Date())))
   const [title, setTitle] = useState(initial.title)
   const [start, setStart] = useState(initial.start_date)
@@ -19,11 +19,7 @@ export function NewYearForm({ onCreated, onClose, makeCurrent }: Props) {
     e.preventDefault()
     if (error || !title.trim()) return
     const batch = newBatch()
-    const yearId = createDoc(
-      'academic_years',
-      { title: title.trim(), start_date: start, end_date: end, is_current: makeCurrent },
-      batch,
-    )
+    const yearId = createDoc('academic_years', { title: title.trim(), start_date: start, end_date: end }, batch)
     if (withSemesters) {
       // Типові семестри підганяємо під введені дати року.
       const tpl = defaultYear(Number(start.slice(0, 4))).semesters
@@ -74,12 +70,7 @@ export function NewYearForm({ onCreated, onClose, makeCurrent }: Props) {
           </div>
           <div className="label">
             Кінець
-            <DatePicker
-              label="Кінець року"
-              value={end || null}
-              min={start || undefined}
-              onChange={(d) => setEnd(d ?? '')}
-            />
+            <DatePicker label="Кінець року" value={end || null} min={start || undefined} onChange={(d) => setEnd(d ?? '')} />
           </div>
         </div>
         <label className="check">

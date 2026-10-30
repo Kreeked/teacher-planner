@@ -2,6 +2,7 @@ import { ArrowUpRight, FileUp, Plus } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useCollection } from '../../data/db'
+import { toISO } from '../../data/schedule'
 import { countedLessons, courseTitle, lessonsWord } from '../../data/ktp'
 import type { ClassGroup, Course } from '../../data/types'
 import { formatDate, gradeColor, pickCurrentYear } from '../../data/year'
@@ -11,7 +12,8 @@ import { NewCourseForm } from './NewCourseForm'
 export function KtpPage() {
   const navigate = useNavigate()
   const { items: years, loading } = useCollection('academic_years')
-  const year = pickCurrentYear(years)
+  const [today] = useState(() => toISO(new Date()))
+  const year = pickCurrentYear(years, today)
   const filter = year ? { field: 'academic_year_id', value: year.id } : null
   const { items: classes } = useCollection('class_groups', filter)
   const { items: courses } = useCollection('courses', filter)

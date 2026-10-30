@@ -1,98 +1,81 @@
-import { ask } from '../../lib/confirm'
-import { Pencil, Plus, Trash2 } from 'lucide-react'
-import { useState, type ReactNode } from 'react'
-import { Dialog } from '../../components/Dialog'
-import { RangeRow } from '../../components/RangeRow'
-import { notifySaved } from '../../lib/saved'
-import { commit, deleteRefs, newBatch, ref, refsWhere, updateFields, useCollection } from '../../data/db'
+import { Plus, Trash2 } from 'lucide-react'
+import { useState } from 'react'
+import { deleteRefs, ref, refsWhere, useCollection } from '../../data/db'
+import { toISO } from '../../data/schedule'
+import type { Shift } from '../../data/timetable'
 import type { AcademicYear } from '../../data/types'
-import { formatDate, gradeColor, pickCurrentYear, shortDate, sortPeriods, validateYear } from '../../data/year'
-import { ScheduleSettings } from '../schedule/ScheduleSettings'
+import { isCurrentYear, pickCurrentYear } from '../../data/year'
+import { ask } from '../../lib/confirm'
+import { BellsSection } from './BellsSection'
 import { ClassesSection } from './ClassesSection'
 import { NewYearForm } from './NewYearForm'
 import { PeriodsSection } from './PeriodsSection'
+import { ScheduleSection } from './ScheduleSection'
+import { YearSection } from './YearSection'
 
-type Editing = 'year' | 'periods' | 'classes' | null
-
-const SEMESTER_TONES = ['var(--mint)', 'var(--butter)', 'var(--lilac)', 'var(--peri)']
-
-/** Рядок налаштувань: підпис, значення й кнопка, що відкриває вікно редагування. */
-function SetRow({ label, onEdit, editLabel, children }: { label: string; onEdit: () => void; editLabel: ReactNode; children: ReactNode }) {
-  return (
-    <div className="set-row">
-      <span className="set-label">{label}</span>
-      <div className="set-body">{children}</div>
-      <button className="btn ghost small set-edit" onClick={onEdit}>
-        {editLabel}
-      </button>
-    </div>
-  )
+/** Підпис під вибором року: чи поточний він і що від цього залежить. */
+function caption(year: AcademicYear, current: AcademicYear | undefined, today: string) {
+  if (isCurrentYear(year, today))
+    return `${year.title} — поточний: сьогодні входить у його дати. За ним працюють «Сьогодні» й КТП. Усе нижче стосується саме цього року.`
+  if (current && isCurrentYear(current, today))
+    return `${year.title} — не поточний: сьогодні входить у дати ${current.title}. «Сьогодні» й КТП працюють за ним. Усе нижче стосується саме ${year.title}.`
+  return `Сьогодні поза датами будь-якого року, тому «Сьогодні» й КТП беруть ${current?.title ?? 'найближчий рік'}. Усе нижче стосується саме ${year.title}.`
 }
 
 export function YearPage() {
   const { items: years, loading } = useCollection('academic_years')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
-  const [editing, setEditing] = useState<Editing>(null)
+  const [bellShift, setBellShift] = useState<Shift>(1)
+  const [scheduleShift, setScheduleShift] = useState<Shift>(1)
+  const [today] = useState(() => toISO(new Date()))
 
-  const year = years.find((y) => y.id === selectedId) ?? pickCurrentYear(years)
+  const current = pickCurrentYear(years, today)
+  const year = years.find((y) => y.id === selectedId) ?? current
   const filter = year ? { field: 'academic_year_id', value: year.id } : null
   const { items: periods } = useCollection('periods', filter)
   const { items: classes } = useCollection('class_groups', filter)
+  const { items: bells } = useCollection('bell_schedules', filter)
+  const { items: timetables } = useCollection('timetables', filter)
+  const { items: courses } = useCollection('courses', filter)
+  const { items: allEntries } = useCollection('timetable_entries')
+  const { items: links } = useCollection('course_classes')
 
-  function makeCurrent(y: AcademicYear) {
-    const batch = newBatch()
-    for (const other of years)
-      if (other.is_current !== (other.id === y.id))
-        updateFields('academic_years', other.id, { is_current: other.id === y.id }, batch)
-    commit(batch)
-  }
+  const entries = allEntries.filter((e) => timetables.some((t) => t.id === e.timetable_id))
 
   async function removeYear(y: AcademicYear) {
-    if (!(await ask(`Видалити навчальний рік ${y.title} разом із семестрами, класами і всіма КТП цього року?`))) return
+    if (
+      !(await ask(
+        `Видалити навчальний рік ${y.title} разом із семестрами, класами, розкладом, дзвінками і всіма КТП цього року?`,
+      ))
+    )
+      return
     const refs = [
       ref('academic_years', y.id),
       ...periods.map((p) => ref('periods', p.id)),
       ...classes.map((c) => ref('class_groups', c.id)),
+      ...bells.map((b) => ref('bell_schedules', b.id)),
+      ...timetables.map((t) => ref('timetables', t.id)),
+      ...entries.map((e) => ref('timetable_entries', e.id)),
     ]
     for (const course of await refsWhere('courses', 'academic_year_id', y.id)) {
       refs.push(course)
-      for (const name of [
-        'course_classes',
-        'topics',
-        'lessons',
-        'lesson_schedules',
-        'lesson_materials',
-      ] as const)
+      for (const name of ['course_classes', 'topics', 'lessons', 'lesson_schedules', 'lesson_materials'] as const)
         refs.push(...(await refsWhere(name, 'course_id', course.id)))
     }
     deleteRefs(refs)
-    setEditing(null)
     setSelectedId(null)
   }
 
-  const sortedYears = [...years].sort((a, b) => b.start_date.localeCompare(a.start_date))
-  const semesters = sortPeriods(periods.filter((p) => !p.parent_id))
-  const sortedClasses = [...classes].sort((a, b) => a.grade - b.grade || a.letter.localeCompare(b.letter, 'uk'))
+  const sortedYears = [...years].sort((a, b) => a.start_date.localeCompare(b.start_date))
 
   return (
-    <div className="page">
+    <div className="page yp">
       <main className="main">
-        <div className="sec-head page-head">
-          <h1>Навчальний рік</h1>
-          <span className="grow" />
-          {year && (
-            <div className="actions">
-              <button className="btn ghost" onClick={() => setCreating(true)}>
-                <Plus size={15} /> Новий рік
-              </button>
-            </div>
-          )}
-        </div>
+        <h1>Навчальний рік</h1>
 
         {creating && (
           <NewYearForm
-            makeCurrent={years.length === 0}
             onClose={() => setCreating(false)}
             onCreated={(id) => {
               setSelectedId(id)
@@ -115,101 +98,68 @@ export function YearPage() {
 
         {year && (
           <>
-            {sortedYears.length > 1 && (
-              <div className="chips">
+            <section className="panel yp-block yp-sel" aria-labelledby="yp-sel">
+              <h2 id="yp-sel" className="yp-sel-title">
+                Обраний рік
+              </h2>
+              <div className="yp-years" role="group" aria-label="Навчальний рік">
                 {sortedYears.map((y) => (
                   <button
                     key={y.id}
-                    className={y.id === year.id ? 'chip plain on' : 'chip plain'}
+                    type="button"
+                    className={y.id === year.id ? 'yp-year on' : 'yp-year'}
+                    aria-pressed={y.id === year.id}
                     onClick={() => setSelectedId(y.id)}
                   >
+                    {isCurrentYear(y, today) && <i aria-label="Поточний" />}
                     {y.title}
-                    {y.is_current && ' · поточний'}
                   </button>
                 ))}
               </div>
-            )}
-
-            <section className="panel set">
-              <SetRow label="Рік" onEdit={() => setEditing('year')} editLabel={<><Pencil size={14} /> Змінити</>}>
-                <span className="set-big">{year.title}</span>
-                <span className="pill">
-                  {formatDate(year.start_date)} — {formatDate(year.end_date)}
-                </span>
-                {year.is_current && <span className="pill">Поточний</span>}
-              </SetRow>
-
-              <SetRow label="Семестри" onEdit={() => setEditing('periods')} editLabel={<><Pencil size={14} /> Змінити</>}>
-                {semesters.length === 0 && <span className="muted">Періодів ще немає.</span>}
-                {semesters.map((sem, i) => {
-                  const quarters = sortPeriods(periods.filter((p) => p.parent_id === sem.id))
-                  return (
-                    <div key={sem.id} className="sem" style={{ background: SEMESTER_TONES[i % SEMESTER_TONES.length] }}>
-                      <b>{sem.title}</b>
-                      <span className="num">
-                        {shortDate(sem.start_date)} — {shortDate(sem.end_date)}
-                      </span>
-                      {quarters.map((q) => (
-                        <span key={q.id} className="pill num">
-                          {q.title} · {shortDate(q.start_date)} — {shortDate(q.end_date)}
-                        </span>
-                      ))}
-                    </div>
-                  )
-                })}
-              </SetRow>
-
-              <SetRow label="Класи" onEdit={() => setEditing('classes')} editLabel={<><Plus size={14} /> Додати клас</>}>
-                {sortedClasses.length === 0 && <span className="muted">Додай класи, у яких викладаєш цього року.</span>}
-                {sortedClasses.map((c) => (
-                  <span key={c.id} className="chip">
-                    <span className="sw" style={{ background: gradeColor(c.grade) }} />
-                    {c.display_name}
-                  </span>
-                ))}
-              </SetRow>
+              <button type="button" className="btn ghost yp-new" onClick={() => setCreating(true)}>
+                <Plus size={16} /> Новий рік
+              </button>
+              <p className="yp-caption">
+                {isCurrentYear(year, today) && <i />}
+                {caption(year, current, today)}
+              </p>
             </section>
 
-            <ScheduleSettings year={year} />
+            <YearSection key={year.id} year={year} periods={periods} current={isCurrentYear(year, today)} />
 
-            {editing === 'year' && (
-              <Dialog
-                title="Навчальний рік"
-                onClose={() => setEditing(null)}
-                footer={
-                  <>
-                    <button className="btn ghost danger left" onClick={() => removeYear(year)}>
-                      <Trash2 size={15} /> Видалити рік
-                    </button>
-                    {!year.is_current && (
-                      <button className="btn ghost" onClick={() => makeCurrent(year)}>
-                        Зробити поточним
-                      </button>
-                    )}
-                    <button className="btn" onClick={() => setEditing(null)}>
-                      Готово
-                    </button>
-                  </>
-                }
-              >
-                <RangeRow
-                  titleLabel="Назва року"
-                  value={year}
-                  validate={(v) => validateYear(v, periods)}
-                  onSave={(v) => (updateFields('academic_years', year.id, v), notifySaved())}
-                />
-              </Dialog>
-            )}
-            {editing === 'periods' && (
-              <Dialog title="Семестри й чверті" onClose={() => setEditing(null)}>
-                <PeriodsSection year={year} periods={periods} />
-              </Dialog>
-            )}
-            {editing === 'classes' && (
-              <Dialog title="Класи" onClose={() => setEditing(null)}>
-                <ClassesSection year={year} classes={classes} />
-              </Dialog>
-            )}
+            <section className="panel yp-block" aria-labelledby="yp-per">
+              <h2 id="yp-per">Семестри й чверті</h2>
+              <PeriodsSection year={year} periods={periods} />
+            </section>
+
+            <section className="panel yp-block" aria-labelledby="yp-cls">
+              <h2 id="yp-cls">Класи</h2>
+              <ClassesSection year={year} classes={classes} />
+            </section>
+
+            <BellsSection year={year} bells={bells[0]} entries={entries} shift={bellShift} onShift={setBellShift} />
+
+            <ScheduleSection
+              year={year}
+              bells={bells[0]}
+              timetables={timetables}
+              entries={entries}
+              courses={courses}
+              classes={classes}
+              links={links.filter((l) => courses.some((c) => c.id === l.course_id))}
+              shift={scheduleShift}
+              onShift={setScheduleShift}
+            />
+
+            <section className="panel yp-block yp-danger" aria-labelledby="yp-del">
+              <div>
+                <h2 id="yp-del">Видалити рік</h2>
+                <p>Разом із семестрами, класами, розкладом і прив’язками до КТП. Скасувати не можна.</p>
+              </div>
+              <button type="button" className="btn ghost danger" onClick={() => removeYear(year)}>
+                <Trash2 size={16} /> Видалити {year.title}
+              </button>
+            </section>
           </>
         )}
       </main>

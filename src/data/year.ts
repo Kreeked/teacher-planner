@@ -11,8 +11,16 @@ export function defaultYear(startYear: number) {
     start_date: `${startYear}-09-01`,
     end_date: `${startYear + 1}-06-30`,
     semesters: [
-      { title: 'І семестр', start_date: `${startYear}-09-01`, end_date: `${startYear}-12-26` },
-      { title: 'ІІ семестр', start_date: `${startYear + 1}-01-12`, end_date: `${startYear + 1}-06-30` },
+      {
+        title: 'І семестр',
+        start_date: `${startYear}-09-01`,
+        end_date: `${startYear}-12-26`,
+      },
+      {
+        title: 'ІІ семестр',
+        start_date: `${startYear + 1}-01-12`,
+        end_date: `${startYear + 1}-06-30`,
+      },
     ],
   }
 }
@@ -25,7 +33,11 @@ function overlaps(a: Range, b: Range) {
   return a.start_date <= b.end_date && b.start_date <= a.end_date
 }
 
-const fmt = new Intl.DateTimeFormat('uk-UA', { day: '2-digit', month: '2-digit', year: 'numeric' })
+const fmt = new Intl.DateTimeFormat('uk-UA', {
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+})
 
 export function formatDate(d: ISODate) {
   const [y, m, day] = d.split('-').map(Number)
@@ -62,17 +74,12 @@ export function parseShortDate(text: string, year: Range): ISODate | null | unde
  * навчального року та батьківського періоду, не перетинаються з сусідами.
  * Повертає текст помилки або null.
  */
-export function validatePeriod(
-  p: Range & { id?: string; parent_id: string | null },
-  year: Range,
-  all: Period[],
-): string | null {
+export function validatePeriod(p: Range & { id?: string; parent_id: string | null }, year: Range, all: Period[]): string | null {
   if (!p.start_date || !p.end_date) return 'Вкажи обидві дати'
   if (p.start_date > p.end_date) return 'Початок пізніше за кінець'
   if (p.start_date < year.start_date || p.end_date > year.end_date) return 'Виходить за межі навчального року'
   const parent = p.parent_id ? all.find((x) => x.id === p.parent_id) : undefined
-  if (parent && (p.start_date < parent.start_date || p.end_date > parent.end_date))
-    return `Виходить за межі: ${parent.title}`
+  if (parent && (p.start_date < parent.start_date || p.end_date > parent.end_date)) return `Виходить за межі: ${parent.title}`
   const clash = all.find((x) => x.id !== p.id && x.parent_id === p.parent_id && overlaps(x, p))
   if (clash) return `Перетинається з: ${clash.title}`
   // Семестр не можна звузити так, щоб його чверть опинилась поза ним.
@@ -93,8 +100,22 @@ export function sortPeriods(periods: Period[]) {
   return [...periods].sort((a, b) => a.position - b.position || a.start_date.localeCompare(b.start_date))
 }
 
-export function pickCurrentYear(years: AcademicYear[]) {
-  return years.find((y) => y.is_current) ?? [...years].sort((a, b) => b.start_date.localeCompare(a.start_date))[0]
+/**
+ * Поточний рік визначається лише датами: той, у чиїх межах сьогодні.
+ * Між роками (наприклад, влітку) — найближчий наступний, а коли наступних немає — останній з минулих.
+ */
+export function pickCurrentYear(years: AcademicYear[], today: ISODate) {
+  const sorted = [...years].sort((a, b) => a.start_date.localeCompare(b.start_date))
+  return (
+    sorted.find((y) => y.start_date <= today && today <= y.end_date) ??
+    sorted.find((y) => y.start_date > today) ??
+    sorted[sorted.length - 1]
+  )
+}
+
+/** Чи охоплює рік цю дату. */
+export function isCurrentYear(y: Pick<AcademicYear, 'start_date' | 'end_date'>, today: ISODate) {
+  return y.start_date <= today && today <= y.end_date
 }
 
 export function classDisplayName(grade: number, letter: string) {
@@ -103,7 +124,19 @@ export function classDisplayName(grade: number, letter: string) {
 
 /** «А Б, В» → ['А', 'Б', 'В']; латинські схожі літери переводимо в кирилицю. */
 export function parseLetters(input: string) {
-  const latin: Record<string, string> = { A: 'А', B: 'В', C: 'С', E: 'Е', H: 'Н', K: 'К', M: 'М', O: 'О', P: 'Р', T: 'Т', X: 'Х' }
+  const latin: Record<string, string> = {
+    A: 'А',
+    B: 'В',
+    C: 'С',
+    E: 'Е',
+    H: 'Н',
+    K: 'К',
+    M: 'М',
+    O: 'О',
+    P: 'Р',
+    T: 'Т',
+    X: 'Х',
+  }
   const parts = input
     .split(/[\s,;]+/)
     .map((s) => s.trim().toUpperCase())

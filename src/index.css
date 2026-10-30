@@ -416,9 +416,23 @@ h2 {
 .bell-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: 6px;
   padding: 5px 8px;
   border-radius: 12px;
+}
+
+.bell-shift {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bell-shift-name {
+  padding: 4px 8px 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-2);
 }
 
 .bell-row.now {
@@ -426,7 +440,8 @@ h2 {
 }
 
 .bell-row b {
-  width: 16px;
+  width: 22px;
+  text-align: center;
   font-size: 14px;
 }
 
@@ -522,6 +537,14 @@ h2 {
 @media (hover: hover) {
   .btn.ghost:not(:disabled):hover {
     background: var(--line);
+  }
+
+  .btn:not(.ghost):not(.danger-fill):not(:disabled):hover {
+    background: #3a3a42;
+  }
+
+  .btn.danger-fill:not(:disabled):hover {
+    background: #e65a49;
   }
 }
 
@@ -747,6 +770,16 @@ h2 {
   color: #fff;
 }
 
+@media (hover: hover) {
+  .chip.plain:not(.on):hover {
+    background: var(--line);
+  }
+
+  .chip.plain.on:hover {
+    background: #3a3a42;
+  }
+}
+
 .chip-x {
   width: 20px;
   height: 20px;
@@ -952,132 +985,770 @@ h2 {
 }
 
 /* ---------- Навчальний рік ---------- */
-/* Назва · початок — кінець · кошик: однакові колонки в усіх рядках, тож дати стоять одна під одною. */
-.range-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 172px 10px 172px 30px;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 0;
-}
-
-.range-row .title {
-  min-width: 0;
-  font-weight: 600;
-}
-
-.range-row .date-btn.field {
-  width: 100%;
-  min-width: 0;
-}
-
-.range-row .date-btn.field span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.range-row .dash {
-  color: var(--ink-2);
-  text-align: center;
-}
-
-.range-row .field-error {
-  grid-column: 1 / -1;
-}
-
-.nested {
-  padding-left: 22px;
-}
-
-.period-group {
-  padding: 6px 0;
-  border-top: 1px solid var(--line);
-}
-
-.period-group:first-of-type {
-  border-top: 0;
-}
-
 .panel > .btn.ghost {
   margin-top: 8px;
 }
 
-.grades {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.yp {
+  width: 100%;
+  max-width: 880px;
+  margin: 0 auto;
+}
+
+.yp .main {
+  gap: 12px;
+}
+
+.yp h1 {
+  margin-bottom: 4px;
+}
+
+.panel.yp-block {
+  max-width: none;
+  padding: 16px 20px;
+}
+
+.yp-block h2 {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.yp-block > h2 {
   margin-bottom: 12px;
 }
 
-.grade-row {
+.yp-head {
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
 }
 
-.grade-label {
-  width: 44px;
+.yp-head h2 {
+  margin: 0;
+}
+
+.yp-count {
+  color: #a9a9b8;
+  margin-left: 4px;
+}
+
+/* Поля сторінки року: 14 px, текст зліва. */
+.yp .field {
+  font-size: 14px;
+  font-weight: 500;
+  padding: 0 12px;
+  text-align: left;
+}
+
+.yp .date-btn.field {
+  width: 100%;
+  min-width: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.yp select.field {
+  padding: 0 8px;
+}
+
+.yp .muted {
+  font-size: 14px;
+}
+
+.yp-num {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--bg);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-size: 12px;
-  font-weight: 600;
-  color: var(--ink-2);
+  font-weight: 700;
   flex: none;
 }
 
-.add-class {
+.yp-empty {
+  margin: 0;
+  padding: 12px 16px;
+  color: var(--ink-2);
+  line-height: 1.45;
+}
+
+/* Вибір року */
+.yp-sel {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    'title years new'
+    'caption caption caption';
+  align-items: center;
+  gap: 10px 14px;
+}
+
+.yp-sel > .yp-sel-title {
+  grid-area: title;
+  margin: 0;
+  font-size: 15px;
+}
+
+.yp-years {
+  grid-area: years;
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
 }
 
-.add-class input {
-  flex: 1 1 120px;
+.yp-sel .yp-new {
+  grid-area: new;
+}
+
+.yp-year {
+  height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--ink);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.yp-year.on {
+  background: var(--ink);
+  color: #fff;
+}
+
+.yp-year i,
+.yp-caption i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--mint-d);
+  display: block;
+  flex: none;
+}
+
+.yp-caption {
+  grid-area: caption;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ink-2);
+}
+
+.yp-caption i {
+  margin-top: 5px;
+}
+
+.yp-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 11px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Рік */
+.yp-year-fields {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.yp-name,
+.yp-date {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+.yp-name {
+  flex: 1 1 200px;
+}
+
+.yp-date {
+  width: 160px;
+}
+
+.yp-block > .field-error {
+  margin-top: 8px;
+}
+
+/* Семестри й чверті */
+.yp-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.yp-group {
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.yp-range {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 30px;
+  align-items: center;
+  gap: 6px;
+}
+
+.yp-range.nested {
+  padding-left: 20px;
+}
+
+.yp-range .field-error {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.yp-range-dates {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.yp-range-dates .date-btn.field {
+  width: 132px;
+}
+
+.yp-dash {
+  width: 10px;
+  text-align: center;
+  color: var(--ink-2);
+}
+
+.yp-nested-add {
+  padding-left: 20px;
+}
+
+.panel > .btn.ghost.yp-add {
+  margin-top: 12px;
+}
+
+/* Класи */
+.yp-grades {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.yp-grade {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.yp-grade-label {
+  width: 48px;
+  flex: none;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+.yp-add-class {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.yp-add-class select {
+  width: 112px;
+}
+
+.yp-add-class input {
+  width: 200px;
+}
+
+/* Дзвінки: таблиця на ПК */
+.yp-bell-table {
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+
+.yp-bell-row {
+  display: grid;
+  grid-template-columns: 64px 112px 112px 1fr 168px 48px;
+  align-items: center;
+  min-height: 52px;
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+}
+
+.yp-bell-row > span:first-child {
+  padding-left: 12px;
+}
+
+.yp-bell-row.head {
+  height: 36px;
+  min-height: 0;
+  background: var(--bg);
+  border-top: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.yp-bell-row.head > span:first-child {
+  padding-left: 16px;
+}
+
+.yp-bell-row .field {
+  width: 88px;
+  font-variant-numeric: tabular-nums;
+}
+
+.yp-bell-row .icon-btn {
+  width: 34px;
+  height: 34px;
+}
+
+.yp-hidden {
+  visibility: hidden;
+}
+
+.yp-dur {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--mint);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.yp-break {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 34px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--bg);
+}
+
+.yp-break.long {
+  background: var(--butter);
+}
+
+.yp-break:focus-within {
+  box-shadow: 0 0 0 2px var(--ink);
+}
+
+.yp-break button {
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.75);
+  color: var(--ink);
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+
+.yp-break button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.yp-break input {
+  width: 34px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  text-align: center;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  outline: none;
+}
+
+.yp-break-unit {
+  font-size: 12px;
+  font-weight: 500;
+  margin-right: 4px;
+}
+
+.yp-bell-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.yp-bell-foot.cards {
+  border: 0;
+  padding: 0;
+  margin-top: 12px;
+}
+
+.yp-bell-foot.cards .yp-empty {
+  padding: 0;
+  flex: 1 1 100%;
+}
+
+/* Дзвінки: картки на телефоні */
+.yp-bell-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.yp-bell-card {
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.yp-bell-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.yp-bell-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.yp-bell-dur {
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+.yp-bell-times {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.yp-bell-times label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+.yp-bell-times .field {
+  width: 100%;
+  font-variant-numeric: tabular-nums;
+}
+
+.yp-bell-brk {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-right: -2px;
+}
+
+.yp-bell-brk > span:first-child {
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.yp-bell-brk .yp-break input {
+  width: 56px;
+}
+
+/* Розклад */
+.yp-tt {
+  display: grid;
+  grid-template-columns: 84px repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.yp-day {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 0;
+  border-radius: 999px;
+  color: var(--ink-2);
+}
+
+.yp-day.today {
+  background: var(--ink);
+  color: #fff;
+}
+
+.yp-slot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.yp-slot-time {
+  display: flex;
+  flex-direction: column;
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.yp-slot-time span:first-child {
+  font-weight: 600;
+}
+
+.yp-slot-time span:last-child {
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+.yp-cell {
+  appearance: none;
+  -webkit-appearance: none;
+  min-height: 44px;
+  min-width: 0;
+  border: 1.5px dashed var(--line);
+  border-radius: 12px;
+  background: transparent;
+  color: transparent;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  text-align-last: center;
+  padding: 0 4px;
+  cursor: pointer;
+}
+
+.yp-cell.on {
+  border: 0;
+  color: var(--ink);
+}
+
+.yp-cell option,
+.yp-cell optgroup {
+  color: var(--ink);
+  background: var(--surface);
+}
+
+.yp-cell:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* Видалити рік */
+.yp-danger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.yp-danger h2 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.yp-danger p {
+  margin: 2px 0 0;
+  color: var(--ink-2);
+  font-size: 13px;
+}
+
+/* Наведення на всі клікабельні елементи сторінки. */
+@media (hover: hover) {
+  .yp .field:hover {
+    border-color: #cfcfc9;
+  }
+
+  .yp .field:focus,
+  .yp .date-btn.field[aria-expanded='true'] {
+    border-color: var(--ink);
+  }
+
+  .yp-year:not(.on):hover {
+    background: var(--line);
+  }
+
+  .yp-break button:not(:disabled):hover {
+    background: var(--surface);
+  }
+
+  .yp-cell:not(.on):hover {
+    border-color: var(--ink-2);
+    background: var(--bg);
+    color: var(--ink-2);
+  }
+
+  .yp-cell.on:hover {
+    filter: brightness(0.94);
+  }
+
+  .btn.ghost.danger:not(:disabled):hover {
+    background: rgba(242, 107, 91, 0.14);
+  }
 }
 
 @media (max-width: 760px) {
-  /* Назва з кошиком у першому рядку, дві дати з тире — у другому. */
-  .range-row {
-    grid-template-columns: minmax(0, 1fr) 10px minmax(0, 1fr) 30px;
+  .panel.yp-block {
+    padding: 16px;
   }
 
-  .range-row .title {
-    grid-column: 1 / 4;
-    grid-row: 1;
+  .yp-sel {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'title'
+      'years'
+      'caption'
+      'new';
   }
 
-  .range-row .icon-btn {
-    grid-column: 4;
-    grid-row: 1;
+  .yp-sel .yp-new {
+    justify-self: start;
+    margin-top: 2px;
   }
 
-  /* Дати завжди в другому рядку, навіть коли кошика немає (рядок року). */
-  .range-row > :nth-child(2) {
-    grid-column: 1;
-    grid-row: 2;
+  .yp-flag {
+    height: 24px;
   }
 
-  .range-row > .dash {
+  /* Перемикач зміни стоїть під заголовком блоку. */
+  .yp-head.stack {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .yp-name {
+    flex-basis: 100%;
+  }
+
+  .yp-year-fields {
+    gap: 10px 8px;
+  }
+
+  .yp-date {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+  }
+
+  .yp-group {
+    padding: 10px;
+    gap: 8px;
+  }
+
+  .yp-range {
+    grid-template-columns: minmax(0, 1fr) 30px;
+  }
+
+  .yp-range .icon-btn {
     grid-column: 2;
-    grid-row: 2;
+    grid-row: 1;
   }
 
-  .range-row > :nth-child(4) {
-    grid-column: 3;
+  .yp-range-dates {
+    grid-column: 1 / -1;
     grid-row: 2;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
 
-  .range-row .date-btn.field {
-    padding: 0 8px;
+  .yp-range-dates .date-btn.field {
+    width: 100%;
+  }
+
+  .yp-dash {
+    display: none;
+  }
+
+  .yp-range.nested {
+    margin-left: 16px;
+    padding: 6px 0 0;
+    border-top: 1px solid var(--line);
+  }
+
+  .yp-nested-add {
+    margin-left: 16px;
+    padding: 0;
+  }
+
+  .yp-grade {
+    gap: 8px;
+  }
+
+  .yp-grade-label {
+    width: 44px;
+    font-size: 14px;
+  }
+
+  .yp-add-class input {
+    flex: 1 1 120px;
+    width: auto;
+  }
+
+  .yp-tt {
+    grid-template-columns: 72px repeat(5, minmax(0, 1fr));
+    gap: 6px 4px;
+  }
+
+  .yp-slot {
+    gap: 6px;
+    padding-right: 10px;
+  }
+
+  .yp-cell {
     font-size: 12px;
-    gap: 5px;
   }
 
-  /* Чверть: відступ лише в назви, дати стоять під датами семестру. */
-  .range-row.nested {
-    padding-left: 0;
+  .yp-sched .chip.plain {
+    height: 34px;
+    padding: 0 14px;
+    font-size: 13px;
   }
 
-  .range-row.nested .title {
-    margin-left: 14px;
+  .yp-danger {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+  }
+
+  .yp-danger p {
+    font-size: 14px;
+    margin: 2px 0 12px;
   }
 }
 
@@ -1531,310 +2202,6 @@ a.chip {
   font-size: inherit;
   color: var(--ink);
   text-decoration: underline;
-}
-
-/* ---------- Розклад ---------- */
-.bell-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.bell-row {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.bell-row > b {
-  width: 22px;
-  text-align: center;
-}
-
-.bell-row .field[type='time'] {
-  width: 112px;
-}
-
-.bell-row .dash {
-  color: var(--ink-2);
-}
-
-.form .bell-break {
-  display: inline-flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 4px;
-  margin-left: 8px;
-  font-size: 12px;
-  color: var(--ink-2);
-}
-
-.bell-break .field {
-  width: 48px;
-  text-align: center;
-}
-
-.timetable {
-  max-width: 760px;
-}
-
-.dialog.wide {
-  max-width: 720px;
-}
-
-/* Клітинка розкладу лише для перегляду. */
-.tt-cell.view {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: default;
-  background: transparent;
-  border: 1px dashed var(--line);
-}
-
-.tt-cell.view.on {
-  border: 0;
-}
-
-.tt-day.today {
-  background: var(--ink);
-  color: #fff;
-  border-radius: 999px;
-  padding: 3px 0;
-}
-
-/* ---------- Навчальний рік: рядки налаштувань ---------- */
-.panel.set,
-.panel.schedule {
-  max-width: 920px;
-}
-
-.panel.set {
-  padding: 4px 16px;
-}
-
-/* Сітка для перегляду займає всю ширину, без прокрутки. */
-.tt-grid.compact {
-  grid-template-columns: 48px repeat(5, minmax(0, 1fr));
-  min-width: 0;
-}
-
-.set-row {
-  display: grid;
-  grid-template-columns: 120px minmax(0, 1fr) auto;
-  gap: 8px 16px;
-  align-items: center;
-  padding: 12px 0;
-}
-
-.set-row + .set-row {
-  border-top: 1px solid var(--line);
-}
-
-.set-label {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--ink-2);
-}
-
-.set-body {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px 8px;
-  min-width: 0;
-}
-
-.set-big {
-  font-size: 26px;
-  font-weight: 700;
-  line-height: 1.05;
-  letter-spacing: -0.02em;
-  margin-right: 4px;
-}
-
-.sem {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 10px;
-  padding: 8px 12px;
-  border-radius: 12px;
-  font-size: 13px;
-}
-
-.sem .pill {
-  height: 22px;
-  font-size: 11px;
-}
-
-.chip.tinted {
-  padding: 0 11px;
-}
-
-/* ---------- Розклад і дзвінки на сторінці року ---------- */
-.schedule .sec-head {
-  margin-bottom: 10px;
-}
-
-.schedule .sec-head h3 {
-  margin: 0;
-}
-
-.schedule .cnt {
-  margin-left: 8px;
-  font-weight: 500;
-  color: var(--ink-2);
-}
-
-.schedule-body {
-  display: flex;
-  gap: 20px;
-  align-items: flex-start;
-}
-
-.schedule-body .tt-scroll {
-  flex: 1;
-  min-width: 0;
-}
-
-.schedule-side {
-  width: 230px;
-  flex: none;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.set-card {
-  background: var(--bg);
-  border-radius: var(--r-lg);
-  padding: 12px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--ink-2);
-}
-
-.set-card .set-big {
-  color: var(--ink);
-  margin: 0;
-}
-
-.set-card .chip {
-  color: var(--ink);
-}
-
-@media (max-width: 900px) {
-  .schedule-body {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .schedule-side {
-    width: 100%;
-    flex-direction: row;
-    flex-wrap: wrap;
-  }
-
-  .schedule-side .set-card {
-    flex: 1 1 200px;
-  }
-}
-
-@media (max-width: 760px) {
-  /* Підпис і кнопка в першому рядку, значення під ними. */
-  .set-row {
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-
-  .set-body {
-    grid-column: 1 / -1;
-    grid-row: 2;
-  }
-
-  .tt-grid.compact {
-    grid-template-columns: 40px repeat(5, minmax(0, 1fr));
-    gap: 3px;
-  }
-
-  .tt-grid.compact .tt-cell {
-    font-size: 12px;
-    padding: 0;
-  }
-}
-
-/* Сітка може бути ширшою за телефон — прокручується лише вона. */
-.tt-scroll {
-  overflow-x: auto;
-  margin: 0 -4px;
-  padding: 0 4px 4px;
-}
-
-.tt-grid {
-  display: grid;
-  grid-template-columns: 48px repeat(5, minmax(84px, 1fr));
-  gap: 4px;
-  min-width: 480px;
-}
-
-.tt-day {
-  text-align: center;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--ink-2);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.tt-slot {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  font-size: 13px;
-  line-height: 1.1;
-}
-
-.tt-slot small {
-  font-size: 10px;
-  color: var(--ink-2);
-}
-
-.tt-cell {
-  appearance: none;
-  height: 40px;
-  border: 0;
-  border-radius: 10px;
-  background: var(--bg);
-  color: #b4b4bf;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 700;
-  text-align: center;
-  text-align-last: center;
-  cursor: pointer;
-  min-width: 0;
-  padding: 0 4px;
-}
-
-.tt-cell.on {
-  color: var(--ink);
-}
-
-.tt-cell:focus {
-  outline: 2px solid var(--ink);
-}
-
-.tt-copy .row-actions {
-  margin-top: 0;
-  align-items: center;
-}
-
-.tt-copy .btn.ghost {
-  margin-top: 0;
 }
 
 .day-time {
