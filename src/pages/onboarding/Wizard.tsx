@@ -79,6 +79,8 @@ export function Wizard({ onExit, onDone }: Props) {
   // Нова чернетка року порожня: усе вказує користувач.
   const [draft, setDraft] = useState({ title: '', start: '', end: '' })
   const draftError = draft.title.trim() ? validateYear({ start_date: draft.start, end_date: draft.end }, [], years) : yearTitleError
+  // Порожні поля помилкою не позначаємо: «Далі» неактивна, доки їх не заповнено.
+  const dateError = draft.start && draft.end ? validateYear({ start_date: draft.start, end_date: draft.end }, [], years) : null
   // Картки предметів можуть бути недописані: тоді «Далі» неактивна.
   const [subjectsValid, setSubjectsValid] = useState(true)
   const [bellShift, setBellShift] = useState<Shift>(1)
@@ -193,7 +195,7 @@ export function Wizard({ onExit, onDone }: Props) {
                     title={draft.title}
                     start={draft.start}
                     end={draft.end}
-                    error={draft.title || draft.start || draft.end ? draftError : null}
+                    error={dateError}
                     onTitle={(title) => setDraft({ ...draft, title })}
                     onStart={(d) => setDraft({ ...draft, start: d ?? '' })}
                     onEnd={(d) => setDraft({ ...draft, end: d ?? '' })}

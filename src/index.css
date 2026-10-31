@@ -5971,3 +5971,15 @@ a:not([class]):active {
   opacity: 0.4;
   cursor: default;
 }
+
+/* Порожнє поле дати читається як підказка. */
+.ob-field .date-btn.empty,
+.ob-sem-dates .date-btn.empty {
+  color: #7d7d8c;
+  font-weight: 400;
+}
+
+.ob-sem-dates .date-btn:disabled {
+  background: #f3f3ef;
+  cursor: not-allowed;
+}

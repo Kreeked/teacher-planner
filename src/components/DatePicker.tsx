@@ -28,13 +28,14 @@ type Props = {
   clearable?: boolean
   placeholder?: string
   className?: string
+  disabled?: boolean
 }
 
 const POP_W = 272
 const POP_H = 330
 
 /** Поле дати з календарем у стилі застосунку замість системного вікна браузера. */
-export function DatePicker({ value, onChange, label, min, max, compact, numeric, trailingIcon, clearable, placeholder, className }: Props) {
+export function DatePicker({ value, onChange, label, min, max, compact, numeric, trailingIcon, clearable, placeholder, className, disabled }: Props) {
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState<CSSProperties>({})
   const button = useRef<HTMLButtonElement>(null)
@@ -101,6 +102,7 @@ export function DatePicker({ value, onChange, label, min, max, compact, numeric,
         aria-label={value ? `${label}: ${formatLong(value)}` : label}
         aria-haspopup="dialog"
         aria-expanded={open}
+        disabled={disabled}
         onClick={() => setOpen(!open)}
       >
         {!compact && !numeric && <CalendarDays size={14} />}

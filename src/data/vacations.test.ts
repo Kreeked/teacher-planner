@@ -135,3 +135,8 @@ describe('порожні дати семестрів', () => {
     expect(periodsComplete(full, [off('Осінні канікули'), off('Весняні канікули')])).toBe(true)
   })
 })
+
+it('семестр не перетинається із сусіднім, у якого дат ще немає', () => {
+  const next = { title: 'ІІ семестр', start_date: '', end_date: '2027-06-30' }
+  expect(validateSemester({ start_date: '2026-09-01', end_date: '2026-12-20' }, { year, next })).toBeNull()
+})
