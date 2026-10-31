@@ -57,14 +57,20 @@ describe('unplacedClasses і emptySemesters', () => {
     expect(ids(unplacedClasses({ ...base, entries: [] }, 0))).toEqual(['a', 'b'])
   })
 
+  it('клас, якому не вистачає годин, ще не розставлений', () => {
+    const p = { ...base, entries: [entry('1', 't1', 'a'), entry('2', 't1', 'b'), entry('3', 't1', 'b')] }
+    expect(ids(unplacedClasses(p, 0))).toEqual(['a'])
+    expect(ids(unplacedClasses({ ...p, entries: [...p.entries, entry('4', 't1', 'a')] }, 0))).toEqual([])
+  })
+
   it('називає класи, яких немає в розкладі цього семестру', () => {
     const p = { ...base, entries: [entry('1', 't1', 'a')] }
-    expect(ids(unplacedClasses(p, 0))).toEqual(['b'])
+    expect(ids(unplacedClasses(p, 0))).toEqual(['a', 'b'])
     expect(ids(unplacedClasses(p, 1))).toEqual(['a', 'b'])
   })
 
   it('усі розставлені — порожньо', () => {
-    expect(unplacedClasses({ ...base, entries: [entry('1', 't1', 'a'), entry('2', 't1', 'b')] }, 0)).toEqual([])
+    expect(unplacedClasses({ ...base, entries: ['1', '2'].flatMap((n) => [entry(`a${n}`, 't1', 'a'), entry(`b${n}`, 't1', 'b')]) }, 0)).toEqual([])
   })
 
   it('клас без годин у семестрі не потрібен у розкладі', () => {
