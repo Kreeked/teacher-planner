@@ -1,9 +1,10 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Navigate, NavLink, useLocation, useNavigationType, type Location } from 'react-router-dom'
 import { useAuth } from '../auth/context'
 import { Logo } from '../components/Logo'
 import { ConfirmHost } from '../components/Confirm'
 import { SavedToast } from '../components/Saved'
+import { hideSplash } from '../lib/splash'
 import { useOfflineAutoSync } from '../lib/useOfflinePlan'
 import { useOnline } from '../lib/useOnline'
 import { NAV } from './nav'
@@ -30,6 +31,10 @@ export function AppLayout() {
   const byKey = useRef<Record<string, number>>({})
   const key = useRef(location.key)
   const path = useRef(location.pathname)
+  // Відкрито не «Сьогодні» — заставку знімаємо одразу, її тут ніхто не прибере.
+  useEffect(() => {
+    if (active !== '/') hideSplash()
+  }, [active])
   if (active && tabs[active] !== location) setTabs({ ...tabs, [active]: location })
 
   useLayoutEffect(() => {
