@@ -7,14 +7,25 @@ import { validateYear } from '../../data/year'
 import { notifySaved } from '../../lib/saved'
 
 /** Назва й межі року: правиться на місці, зберігається, щойно значення коректні. */
-export function YearSection({ year, periods, current }: { year: AcademicYear; periods: Period[]; current: boolean }) {
+export function YearSection({
+  year,
+  periods,
+  others,
+  current,
+}: {
+  year: AcademicYear
+  periods: Period[]
+  // Інші навчальні роки: дати цього не мають з ними перетинатися.
+  others: AcademicYear[]
+  current: boolean
+}) {
   const r = useRangeDraft({
     value: {
       title: year.title,
       start_date: year.start_date,
       end_date: year.end_date,
     },
-    validate: (v) => validateYear(v, periods),
+    validate: (v) => validateYear(v, periods, others),
     onSave: (v) => (updateFields('academic_years', year.id, v), notifySaved()),
   })
 

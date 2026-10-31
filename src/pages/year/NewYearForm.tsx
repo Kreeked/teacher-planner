@@ -1,19 +1,20 @@
 import { useState } from 'react'
 import { DatePicker } from '../../components/DatePicker'
 import { Dialog } from '../../components/Dialog'
+import type { AcademicYear } from '../../data/types'
 import { defaultYear, defaultYearStart, validateYear } from '../../data/year'
 import { createYear } from './createYear'
 
-type Props = { onCreated: (id: string) => void; onClose: () => void }
+type Props = { years: AcademicYear[]; onCreated: (id: string) => void; onClose: () => void }
 
-export function NewYearForm({ onCreated, onClose }: Props) {
+export function NewYearForm({ years, onCreated, onClose }: Props) {
   const [initial] = useState(() => defaultYear(defaultYearStart(new Date())))
   const [title, setTitle] = useState(initial.title)
   const [start, setStart] = useState(initial.start_date)
   const [end, setEnd] = useState(initial.end_date)
   const [withSemesters, setWithSemesters] = useState(true)
 
-  const error = validateYear({ start_date: start, end_date: end }, [])
+  const error = validateYear({ start_date: start, end_date: end }, [], years)
 
   function submit(e: React.FormEvent) {
     e.preventDefault()

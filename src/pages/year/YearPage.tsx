@@ -72,6 +72,7 @@ export function YearPage() {
 
         {creating && (
           <NewYearForm
+            years={years}
             onClose={() => setCreating(false)}
             onCreated={(id) => {
               setSelectedId(id)
@@ -119,7 +120,13 @@ export function YearPage() {
               ]}
             />
 
-            <YearSection key={year.id} year={year} periods={periods} current={isCurrentYear(year, today)} />
+            <YearSection
+              key={year.id}
+              year={year}
+              periods={periods}
+              others={years.filter((y) => y.id !== year.id)}
+              current={isCurrentYear(year, today)}
+            />
 
             <section className="panel yp-block" aria-labelledby="yp-per">
               <h2 id="yp-per">Семестри й чверті</h2>

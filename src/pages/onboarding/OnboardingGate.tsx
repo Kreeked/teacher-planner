@@ -12,14 +12,15 @@ import { Wizard } from './Wizard'
 export function OnboardingGate({ children }: { children: ReactNode }) {
   const { user } = useAuth()
   const { items: years, loading } = useCollection('academic_years')
-  // Налаштування йде: або щойно натиснули «Створити», або рік створено, але кроки не пройдено до кінця.
+  // «Створити» / «Продовжити» натиснуто: йде налаштування.
   const [started, setStarted] = useState(false)
   const [finished, setFinished] = useState(false)
 
   if (loading) return <div className="splash" aria-busy="true" />
 
-  const resuming = !finished && years.length > 0 && getOnboardingStep(user!.uid) !== null
-  if (started || resuming)
+  // Рік уже почато, але не доведено до кінця: після виходу чи нової вкладки знову починаємо з вітання, дані збережено.
+  const unfinished = !finished && years.length > 0 && getOnboardingStep(user!.uid) !== null
+  if (started)
     return (
       <Wizard
         onExit={() => setStarted(false)}
@@ -29,6 +30,6 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
         }}
       />
     )
-  if (years.length === 0) return <Welcome onStart={() => setStarted(true)} />
+  if (years.length === 0 || unfinished) return <Welcome resume={unfinished} onStart={() => setStarted(true)} />
   return children
 }

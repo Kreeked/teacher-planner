@@ -110,6 +110,26 @@ describe('validatePeriod', () => {
   })
 })
 
+describe('validateYear: перетин з іншими роками', () => {
+  const prev = { title: '2025/2026', start_date: '2025-09-01', end_date: '2026-06-30' }
+
+  it('дати поруч, але не перетинаються — дозволено', () => {
+    expect(validateYear({ start_date: '2026-07-01', end_date: '2027-06-30' }, [], [prev])).toBeNull()
+  })
+
+  it('перетин із іншим роком — помилка з його назвою', () => {
+    expect(validateYear({ start_date: '2026-06-30', end_date: '2027-06-30' }, [], [prev])).toMatch('2025/2026')
+  })
+
+  it('початок пізніше за кінець — помилка раніше за перетин', () => {
+    expect(validateYear({ start_date: '2027-06-30', end_date: '2026-09-01' }, [], [prev])).toBe('Початок пізніше за кінець')
+  })
+
+  it('порожні дати — помилка', () => {
+    expect(validateYear({ start_date: '', end_date: '2027-06-30' }, [], [prev])).toBe('Вкажи обидві дати')
+  })
+})
+
 describe('validateYear', () => {
   it('does not let the year shrink past its periods', () => {
     expect(validateYear({ start_date: '2026-09-01', end_date: '2027-05-31' }, [sem1, sem2])).toMatch('ІІ семестр')
