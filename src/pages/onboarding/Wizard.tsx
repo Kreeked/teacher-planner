@@ -17,11 +17,11 @@ import { hideSplash } from '../../lib/splash'
 import { BellsSection } from '../year/BellsSection'
 import { createYear } from '../year/createYear'
 import { ScheduleSection } from '../year/ScheduleSection'
-import { SubjectsSection } from '../year/SubjectsSection'
 import { useYearData } from '../year/useYearData'
 import { syncVacations } from '../year/vacations'
 import { ClassesStep } from './ClassesStep'
 import { SemestersStep } from './SemestersStep'
+import { SubjectsStep } from './SubjectsStep'
 import { YearFields, yearTitleError } from './YearFields'
 
 type Props = {
@@ -75,6 +75,8 @@ export function Wizard({ onExit, onDone }: Props) {
   const [initial] = useState(() => defaultYear(defaultYearStart(new Date())))
   const [draft, setDraft] = useState({ title: initial.title, start: initial.start_date, end: initial.end_date })
   const draftError = draft.title.trim() ? validateYear({ start_date: draft.start, end_date: draft.end }, [], years) : yearTitleError
+  // Картки предметів можуть бути недописані: тоді «Далі» неактивна.
+  const [subjectsValid, setSubjectsValid] = useState(true)
   const [bellShift, setBellShift] = useState<Shift>(1)
   const [scheduleShift, setScheduleShift] = useState<Shift>(1)
 
@@ -84,9 +86,10 @@ export function Wizard({ onExit, onDone }: Props) {
 
   const current = STEPS[step]
   const last = step === STEPS.length - 1
-  const ready = year ? canProceed(current.id, counts) : !draftError
+  const ready = year ? canProceed(current.id, counts) && (current.id !== 'subjects' || subjectsValid) : !draftError
 
   function go(n: number) {
+    setSubjectsValid(true)
     setStep(n)
     setOnboardingStep(uid, n)
     window.scrollTo(0, 0)
@@ -145,8 +148,8 @@ export function Wizard({ onExit, onDone }: Props) {
             <p className="ob-lead">{current.lead}</p>
           </header>
 
-          <section className={current.id === 'year' ? 'ob-block year' : current.id === 'classes' ? 'ob-block cls' : 'ob-block'} aria-labelledby="ob-title">
-            <div className={current.id === 'periods' ? 'ob-body ob-sem' : current.id === 'classes' ? 'ob-body ob-cls' : 'ob-body yp'} key={current.id}>
+          <section className={current.id === 'year' ? 'ob-block year' : current.id === 'classes' ? 'ob-block cls' : current.id === 'subjects' ? 'ob-block subj' : 'ob-block'} aria-labelledby="ob-title">
+            <div className={current.id === 'periods' ? 'ob-body ob-sem' : current.id === 'classes' ? 'ob-body ob-cls' : current.id === 'subjects' ? 'ob-body ob-subj' : 'ob-body yp'} key={current.id}>
               {current.id === 'year' &&
                 (year ? (
                   <ExistingYear year={year} periods={data.periods} daysOff={data.daysOff} others={years.filter((y) => y.id !== year.id)} />
@@ -164,7 +167,15 @@ export function Wizard({ onExit, onDone }: Props) {
               {year && current.id === 'periods' && <SemestersStep year={year} periods={data.periods} daysOff={data.daysOff} />}
               {year && current.id === 'classes' && <ClassesStep year={year} classes={data.classes} />}
               {year && current.id === 'subjects' && (
-                <SubjectsSection year={year} courses={data.courses} classes={data.classes} links={data.links} />
+                <SubjectsStep
+                  year={year}
+                  courses={data.courses}
+                  classes={data.classes}
+                  links={data.links}
+                  periods={data.periods}
+                  daysOff={data.daysOff}
+                  onValid={setSubjectsValid}
+                />
               )}
               {year && current.id === 'bells' && (
                 <BellsSection year={year} bells={data.bells[0]} entries={data.entries} shift={bellShift} onShift={setBellShift} />

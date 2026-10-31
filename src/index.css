@@ -5314,3 +5314,214 @@ a:not([class]):active {
     padding: 10px 22px;
   }
 }
+
+/* Крок «Предмети» */
+.ob-block.subj {
+  margin-top: 24px;
+}
+
+.ob-subj {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ob-sub {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ob-sub-top {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.ob-sub-f {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+.ob-sub-f.grow {
+  flex: 1;
+  min-width: 0;
+}
+
+.ob-sub-f.grade {
+  width: 140px;
+  flex: none;
+}
+
+.ob-sub-in {
+  width: 100%;
+  height: 36px;
+  box-sizing: border-box;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 0 12px;
+}
+
+.ob-sub-in.num {
+  font-variant-numeric: tabular-nums;
+}
+
+.ob-sub-in:focus {
+  outline: none;
+  border-color: var(--ink);
+}
+
+.ob-sub-in::placeholder {
+  color: #a3a3ad;
+}
+
+.ob-sub-sel {
+  position: relative;
+  height: 36px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: #8a8a94;
+}
+
+.ob-sub-sel.on {
+  color: var(--ink);
+}
+
+.ob-sub-sel:focus-within {
+  border-color: var(--ink);
+}
+
+.ob-sub-sel i {
+  position: absolute;
+  left: 12px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.ob-sub-sel select {
+  width: 100%;
+  height: 100%;
+  appearance: none;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 0 32px 0 12px;
+  cursor: pointer;
+}
+
+.ob-sub-sel.on i + select {
+  padding-left: 30px;
+}
+
+.ob-sub-sel select:focus {
+  outline: none;
+}
+
+.ob-sub-sel svg {
+  position: absolute;
+  right: 12px;
+  color: var(--ink-2);
+  pointer-events: none;
+}
+
+.ob-sub-del {
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.ob-sub-hours {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.ob-sub-classes {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 30px;
+}
+
+.ob-sub-cap {
+  margin-right: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+.ob-sub-hint {
+  font-size: 13px;
+  color: #8a8a94;
+}
+
+.ob-sub-chip {
+  height: 30px;
+  box-sizing: border-box;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1.5px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.ob-sub-chip.on {
+  border-color: var(--ink);
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.ob-sub-err {
+  margin: 0;
+}
+
+.ob-sub-add {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1.5px dashed #cfcfc8;
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
