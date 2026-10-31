@@ -3507,6 +3507,9 @@ h2.topic-title {
 }
 
 .menu-pop {
+  width: max-content;
+  min-width: 220px;
+  max-width: min(440px, calc(100vw - 16px));
   max-height: min(360px, calc(100vh - 16px));
   overflow-y: auto;
   position: fixed;

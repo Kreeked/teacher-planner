@@ -142,6 +142,7 @@ export function LessonShelves({ own, onOpen }: { own: LessonMaterial[]; onOpen: 
               key={shelf}
               label={`${full}: ${n}`}
               triggerClass="shelf"
+              align="start"
               trigger={text}
               groups={[
                 files.map((m) => {
