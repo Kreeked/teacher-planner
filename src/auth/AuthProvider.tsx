@@ -3,11 +3,12 @@ import {
   onAuthStateChanged,
   signInAnonymously,
   signInWithCredential,
-  signInWithPopup,   signOut,
+  signInWithPopup,
+  signOut,
   type User,
 } from 'firebase/auth'
 import { useEffect, useState, type ReactNode } from 'react'
-import { PopupClosed, googleSignInToken } from '../lib/drive'
+import { PopupClosed, forgetDriveToken, googleSignInToken } from '../lib/drive'
 import { auth, googleProvider, usingEmulators } from '../lib/firebase'
 import { AuthContext } from './context'
 
@@ -49,8 +50,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await signInWithPopup(auth, googleProvider)
   }
 
+  function logOut() {
+    forgetDriveToken()
+    return signOut(auth)
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signOut: () => signOut(auth) }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signOut: logOut }}>
       {children}
     </AuthContext.Provider>
   )
