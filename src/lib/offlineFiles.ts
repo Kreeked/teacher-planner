@@ -59,6 +59,8 @@ let state: OfflineState = {
   ...readPrefs(),
 }
 const listeners = new Set<() => void>()
+// Збільшується, коли копії стирають при виході: синхронізація, що вже йде, не має повернути файли назад.
+let generation = 0
 
 function set(patch: Partial<OfflineState>) {
   state = { ...state, ...patch }
@@ -127,23 +129,28 @@ export async function syncOffline(all: LessonMaterial[], interactive: boolean) {
 
   // Просимо браузер не стирати копії, коли місця мало.
   navigator.storage?.persist?.().catch(() => {})
+  const gen = generation
   set({ running: true, done: 0, total: missing.length, error: '' })
   let failed = 0
   let error = ''
   for (const m of missing) {
     const id = m.drive_file_id!
     // Токен діє годину: у фоні не відкриваємо вікно Google посеред синхронізації, а просто зупиняємось.
-    if (!interactive && !savedDriveToken()) break
+    if (gen !== generation || (!interactive && !savedDriveToken())) break
     try {
-      saved.set(id, await putCopy(cache, m, await fetchCopy(m)))
+      const blob = await fetchCopy(m)
+      if (gen !== generation) break
+      saved.set(id, await putCopy(cache, m, blob))
     } catch (e) {
       console.error(e)
       failed++
       error = e instanceof DriveError ? e.message : 'Не вдалося зберегти файл.'
       if (!navigator.onLine) break
     }
+    if (gen !== generation) break
     set({ saved: new Map(saved), done: state.done + 1 })
   }
+  if (gen !== generation) return
   set({
     running: false,
     error: failed ? `Не збережено файлів: ${failed}. ${error}` : '',
@@ -246,6 +253,14 @@ export async function clearAll() {
   await caches.delete(CACHE)
   set({ saved: new Map(), error: '' })
   savePrefs({ paused: true, skipped: new Set() })
+}
+
+/** Вихід з акаунта: стирає всі копії й налаштування пристрою, щоб наступний користувач не бачив чужих файлів. */
+export async function wipeForSignOut() {
+  generation++
+  set({ saved: new Map(), running: false, done: 0, total: 0, error: '' })
+  savePrefs({ paused: false, skipped: new Set() })
+  if (supported) await caches.delete(CACHE).catch(() => {})
 }
 
 // Ці типи браузер показує сам; решту віддаємо як файл, щоб відкрився відповідним застосунком.
