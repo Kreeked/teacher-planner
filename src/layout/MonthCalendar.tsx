@@ -1,5 +1,5 @@
 import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
-import { useRef, useState, type CSSProperties, type MouseEvent, type PointerEvent } from 'react'
+import { useLayoutEffect, useRef, useState, type CSSProperties, type MouseEvent, type PointerEvent } from 'react'
 import { flushSync } from 'react-dom'
 import { mondayOf } from '../data/day'
 import { addDays, toISO } from '../data/schedule'
@@ -67,12 +67,6 @@ function buildPane(anchor: ISODate, weekMode: boolean): Pane {
 export function MonthCalendar({ today, selected, onSelect, marked, min, max, collapsible, onToday }: Props) {
   // День, чий місяць (або тиждень) зараз показано.
   const [anchor, setAnchor] = useState<ISODate>(selected || today)
-  // Вибір дня в іншому місяці (стрілками над списком) перемикає й календар.
-  const [lastSelected, setLastSelected] = useState(selected)
-  if (selected !== lastSelected) {
-    setLastSelected(selected)
-    if (selected) setAnchor(selected)
-  }
   const [open, setOpen] = useState(false)
   const narrow = useNarrow()
   const toggle = !!collapsible && narrow
@@ -105,10 +99,27 @@ export function MonthCalendar({ today, selected, onSelect, marked, min, max, col
     setAnchor(neighbour(n))
   }
 
+  /** Показує тиждень чи місяць дня: сусідній — тим самим рухом, що й листання, далекий — одразу. */
+  function moveTo(date: ISODate) {
+    const key = buildPane(date, weekMode).key
+    if (key === current.key) return
+    const dir = ([-1, 1] as const).find((n) => panes.find((p) => p.n === n)!.key === key)
+    if (dir && !busy.current) settle(dir)
+    else if (!busy.current) setAnchor(date)
+  }
+
   function goToday() {
-    setAnchor(today)
+    moveTo(today)
     onToday?.()
   }
+
+  // Вибір дня в іншому тижні чи місяці (стрілками над списком, днем сусіднього місяця) пересуває й календар.
+  const synced = useRef(selected)
+  useLayoutEffect(() => {
+    if (selected === synced.current) return
+    synced.current = selected
+    if (selected) moveTo(selected)
+  })
 
   const [morph, setMorph] = useState(false)
   const morphTimer = useRef(0)
@@ -136,7 +147,8 @@ export function MonthCalendar({ today, selected, onSelect, marked, min, max, col
       el.style.transform = ''
       busy.current = false
     }
-    el.addEventListener('transitionend', finish, { once: true })
+    // transitionend спливає й від дочірніх елементів (натиснутий день), тож враховуємо лише власний.
+    el.addEventListener('transitionend', (e) => e.target === el && finish())
     window.setTimeout(finish, ms + 80)
   }
 
