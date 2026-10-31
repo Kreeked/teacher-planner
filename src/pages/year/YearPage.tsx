@@ -173,6 +173,7 @@ export function YearPage() {
               courses={courses}
               classes={classes}
               links={yearLinks}
+              daysOff={daysOff}
               shift={scheduleShift}
               onShift={setScheduleShift}
             />

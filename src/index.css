@@ -1275,6 +1275,18 @@ h2 {
   width: 200px;
 }
 
+.yp-issue {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  margin: 0 0 8px;
+}
+
+.yp-issue svg {
+  flex: none;
+  margin-top: 2px;
+}
+
 /* Предмети */
 .yp-subjects {
   display: flex;
@@ -3489,6 +3501,40 @@ h2.topic-title {
 
 .date-pill b {
   font-weight: 600;
+}
+
+.date-pill.warn {
+  background: #fdf1df;
+  color: var(--ink);
+  border: 0;
+  cursor: pointer;
+}
+
+.date-pill.warn svg {
+  flex: none;
+  color: #b4690e;
+}
+
+.date-hints {
+  gap: 8px;
+}
+
+.date-hints .warn {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  margin: 0;
+}
+
+.date-hints .warn svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+.date-hints-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .date-pill.past {

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { classWeekdays, dateProblem, type ScheduleData } from './mismatch'
+import type { LessonSchedule } from './types'
+import { classWeekdays, courseIssues, dateProblem, nearestDay, planFixes, type ScheduleData } from './mismatch'
 
 const meta = { owner_id: 'u' }
 const data: ScheduleData = {
@@ -30,5 +31,52 @@ describe('dateProblem', () => {
 describe('classWeekdays', () => {
   it('lists the days of the class, sorted', () => {
     expect(classWeekdays(data, 'A', 'C', '2025-09-02')).toEqual([2, 5])
+  })
+})
+
+const sch = (lesson: string, date: string, cls = 'A'): LessonSchedule => ({
+  ...meta,
+  id: `${lesson}_${cls}`,
+  course_id: 'C',
+  lesson_id: lesson,
+  class_group_id: cls,
+  planned_date: date,
+  actual_date: null,
+  status: 'planned',
+  note: '',
+})
+const bounds = { start: '2025-09-01', end: '2026-05-31' }
+
+describe('courseIssues', () => {
+  it('flags only mismatching dates from the given day', () => {
+    const list = [sch('1', '2025-09-02'), sch('2', '2025-09-03'), sch('3', '2025-09-10')]
+    const issues = courseIssues(list, 'C', data, '2025-09-04')
+    expect(issues.map((i) => [i.lessonId, i.problem])).toEqual([['3', 'weekday']])
+  })
+  it('flags two lessons on a day that has one cell', () => {
+    const list = [sch('1', '2025-09-09'), sch('2', '2025-09-09')]
+    expect(courseIssues(list, 'C', data, '2025-09-01').map((i) => i.problem)).toEqual(['overbooked', 'overbooked'])
+  })
+})
+
+describe('nearestDay', () => {
+  it('finds the closest scheduled weekday, preferring the later one on a tie', () => {
+    // середа 03.09: вівторок 02.09 і п'ятниця 05.09 — 1 і 2 дні
+    expect(nearestDay('2025-09-03', 'A', 'C', data, bounds, () => 0)).toBe('2025-09-02')
+    // субота 06.09: п'ятниця 05.09 за день
+    expect(nearestDay('2025-09-06', 'A', 'C', data, bounds, () => 0)).toBe('2025-09-05')
+  })
+  it('skips days off and busy cells', () => {
+    expect(nearestDay('2025-10-30', 'A', 'C', data, bounds, () => 0)).toBe('2025-11-04')
+    expect(nearestDay('2025-09-03', 'A', 'C', data, bounds, (day) => (day === '2025-09-02' ? 1 : 0))).toBe('2025-09-05')
+  })
+})
+
+describe('planFixes', () => {
+  it('does not put two lessons on the same free cell', () => {
+    const list = [sch('1', '2025-09-03'), sch('2', '2025-09-04')]
+    const issues = courseIssues(list, 'C', data, '2025-09-01')
+    const fixes = planFixes(issues, list, 'C', data, bounds)
+    expect(new Set([...fixes.values()]).size).toBe(2)
   })
 })

@@ -21,10 +21,11 @@ import {
   Trash2,
   TriangleAlert,
 } from 'lucide-react'
-import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { useContext, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom'
 import { DatePicker } from '../../components/DatePicker'
 import { toISO } from '../../data/schedule'
+import { classWeekdays, courseIssues, planFixes, type ScheduleData } from '../../data/mismatch'
 import { InlineText } from '../../components/InlineText'
 import { Menu, type MenuItem } from '../../components/Menu'
 import { useDragSensors, useSortableItem, type HandleProps } from '../../lib/drag'
@@ -66,6 +67,8 @@ import type {
   Topic,
 } from '../../data/types'
 import { gradeColor, shortDate } from '../../data/year'
+import { DateHintsBanner, IssuePill } from './dateHints'
+import { DateHintsContext, issueText } from './dateHintsContext'
 import { LessonShelves, MaterialsDialog } from './Materials'
 import { useClassifyLegacy } from '../../lib/useClassifyLegacy'
 import type { WriteBatch } from 'firebase/firestore'
@@ -107,6 +110,10 @@ export function CoursePage() {
     'class_groups',
     course ? { field: 'academic_year_id', value: course.academic_year_id } : null,
   )
+  const yearFilter = course ? { field: 'academic_year_id', value: course.academic_year_id } : null
+  const { items: timetables } = useCollection('timetables', yearFilter)
+  const { items: allEntries } = useCollection('timetable_entries')
+  const { items: daysOff } = useCollection('days_off', yearFilter)
   const { items: materials } = useCollection('lesson_materials', byCourse)
   // Старі файли уроків без типу розкладаємо по поличках (один раз).
   useClassifyLegacy(materials)
@@ -170,6 +177,22 @@ export function CoursePage() {
     .map((l) => yearClasses.find((c) => c.id === l.class_group_id))
     .filter((c): c is ClassGroup => !!c)
   const scheduleById = new Map(schedules.map((s) => [s.id, s]))
+  // Дати, що не збігаються з розкладом (лише майбутні): підказки біля дат і підсумок угорі.
+  const sched: ScheduleData = {
+    timetables,
+    entries: allEntries.filter((e) => timetables.some((t) => t.id === e.timetable_id)),
+    daysOff,
+  }
+  const issues = courseIssues(schedules, course.id, sched, today)
+  const fixes = planFixes(issues, schedules, course.id, sched, {
+    start: year && year.start_date > today ? year.start_date : today,
+    end: year?.end_date ?? '9999-12-31',
+  })
+  const hints = {
+    issues: new Map(issues.map((i) => [i.id, i])),
+    fixes,
+    weekdays: (classId: string, date: string) => classWeekdays(sched, classId, course.id, date),
+  }
   function addTopic() {
     const id = createDoc('topics', {
       course_id: courseId,
@@ -324,145 +347,149 @@ export function CoursePage() {
       : blocks.flatMap((b) => b.lessons).find((l) => lessonKey(l.id) === drag.id))
 
   return (
-    <div className="page">
-      <main className="main">
-        <div className="sec-head page-head">
-          <h1>{courseTitle(course)}</h1>
-          <span className="grow" />
-          <div className="actions">
-            {editing && (
-              <button className="btn ghost" onClick={addTopic}>
+    <DateHintsContext.Provider value={hints}>
+      <div className="page">
+        <main className="main">
+          <div className="sec-head page-head">
+            <h1>{courseTitle(course)}</h1>
+            <span className="grow" />
+            <div className="actions">
+              {editing && (
+                <button className="btn ghost" onClick={addTopic}>
+                  <Plus size={16} /> Нова тема
+                </button>
+              )}
+              <Link to="/ktp/year" className="btn ghost" title="Предмет, години й класи змінюються в налаштуваннях року">
+                <Settings2 size={16} /> Параметри
+              </Link>
+              <button className={editing ? 'btn' : 'btn ghost'} onClick={() => setEditing(!editing)}>
+                {editing ? (
+                  <>
+                    <Check size={16} /> Готово
+                  </>
+                ) : (
+                  <>
+                    <Pencil size={15} /> Редагувати
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          <div className="course-progress">
+            <span className="meter" aria-hidden>
+              <i style={{ width: `${Math.min(100, (countedLessons(lessons) / (course.total_hours || 1)) * 100)}%` }} />
+            </span>
+            <span className="pill">
+              <b className="num">{countedLessons(lessons)}</b>&nbsp;{lessonsWord(countedLessons(lessons))} з {course.total_hours} год
+            </span>
+            <span className="pill">{weeklyHours(course)} год/тиж</span>
+            {classes.map((c) => (
+              <span key={c.id} className="pill" style={{ background: color }}>
+                {c.display_name}
+              </span>
+            ))}
+          </div>
+
+          <DateHintsBanner issues={issues} fixes={fixes} />
+
+          {!editing ? (
+            <div className="ktp view">
+              {blocks.map((b) => (
+                <section key={b.topic.id} id={`topic-${b.topic.id}`} className="topic">
+                  <TopicHead block={b} warning={warnings.find((x) => x.topicId === b.topic.id)} />
+                  {b.lessons.map((l) => (
+                    <ViewLesson
+                      key={l.id}
+                      lesson={l}
+                      classes={classes}
+                      schedules={scheduleById}
+                      today={today}
+                      color={color}
+                      files={materialsOf(materials, l).own}
+                      onMaterials={() => setMaterialsFor(l.id)}
+                    />
+                  ))}
+                  {!b.lessons.length && <p className="ktp-empty">У темі ще немає уроків.</p>}
+                </section>
+              ))}
+              {!blocks.length && (
+                <p className="muted">
+                  КТП порожнє. Натисни «Редагувати», щоб додати теми й уроки, або імпортуй план з Word на сторінці КТП.
+                </p>
+              )}
+            </div>
+          ) : (
+            <>
+              <DndContext
+                sensors={sensors}
+                collisionDetection={collide}
+                onDragStart={dragStart}
+                onDragOver={dragOver}
+                onDragEnd={dragEnd}
+                onDragCancel={() => setDrag(null)}
+              >
+                <div className="ktp edit">
+                  <SortableContext items={blocks.map((b) => topicKey(b.topic.id))} strategy={verticalListSortingStrategy}>
+                    {blocks.map((b) => (
+                      <EditTopic
+                        key={b.topic.id}
+                        block={b}
+                        warning={warnings.find((x) => x.topicId === b.topic.id)}
+                        onRemove={() => removeTopic(b)}
+                        onAddLesson={() => addLesson(b.topic)}
+                      >
+                        {b.lessons.map((l) => (
+                          <EditLesson
+                            key={l.id}
+                            lesson={l}
+                            classes={classes}
+                            year={year}
+                            schedules={scheduleById}
+                            files={materialsOf(materials, l).own}
+                            color={color}
+                            autoFocus={l.id === newLessonId}
+                            onType={(t) => setType(l, t)}
+                            onMaterials={() => setMaterialsFor(l.id)}
+                            onRemove={() => removeLesson(l)}
+                          />
+                        ))}
+                      </EditTopic>
+                    ))}
+                  </SortableContext>
+                </div>
+                <DragOverlay>
+                  {dragged && (
+                    <div className="drag-ghost" style={{ background: color }}>
+                      {'title' in dragged && 'lesson_type' in dragged ? (
+                        <>
+                          <b>{lessonNo(dragged)}</b> {dragged.title || 'Без теми'}
+                        </>
+                      ) : (
+                        <b>{dragged.title}</b>
+                      )}
+                    </div>
+                  )}
+                </DragOverlay>
+              </DndContext>
+              <button className="add-topic" onClick={addTopic}>
                 <Plus size={16} /> Нова тема
               </button>
-            )}
-            <Link to="/ktp/year" className="btn ghost" title="Предмет, години й класи змінюються в налаштуваннях року">
-              <Settings2 size={16} /> Параметри
-            </Link>
-            <button className={editing ? 'btn' : 'btn ghost'} onClick={() => setEditing(!editing)}>
-              {editing ? (
-                <>
-                  <Check size={16} /> Готово
-                </>
-              ) : (
-                <>
-                  <Pencil size={15} /> Редагувати
-                </>
-              )}
-            </button>
-          </div>
-        </div>
+            </>
+          )}
 
-        <div className="course-progress">
-          <span className="meter" aria-hidden>
-            <i style={{ width: `${Math.min(100, (countedLessons(lessons) / (course.total_hours || 1)) * 100)}%` }} />
-          </span>
-          <span className="pill">
-            <b className="num">{countedLessons(lessons)}</b>&nbsp;{lessonsWord(countedLessons(lessons))} з {course.total_hours} год
-          </span>
-          <span className="pill">{weeklyHours(course)} год/тиж</span>
-          {classes.map((c) => (
-            <span key={c.id} className="pill" style={{ background: color }}>
-              {c.display_name}
-            </span>
-          ))}
-        </div>
-
-        {!editing ? (
-          <div className="ktp view">
-            {blocks.map((b) => (
-              <section key={b.topic.id} id={`topic-${b.topic.id}`} className="topic">
-                <TopicHead block={b} warning={warnings.find((x) => x.topicId === b.topic.id)} />
-                {b.lessons.map((l) => (
-                  <ViewLesson
-                    key={l.id}
-                    lesson={l}
-                    classes={classes}
-                    schedules={scheduleById}
-                    today={today}
-                    color={color}
-                    files={materialsOf(materials, l).own}
-                    onMaterials={() => setMaterialsFor(l.id)}
-                  />
-                ))}
-                {!b.lessons.length && <p className="ktp-empty">У темі ще немає уроків.</p>}
-              </section>
-            ))}
-            {!blocks.length && (
-              <p className="muted">
-                КТП порожнє. Натисни «Редагувати», щоб додати теми й уроки, або імпортуй план з Word на сторінці КТП.
-              </p>
-            )}
-          </div>
-        ) : (
-          <>
-            <DndContext
-              sensors={sensors}
-              collisionDetection={collide}
-              onDragStart={dragStart}
-              onDragOver={dragOver}
-              onDragEnd={dragEnd}
-              onDragCancel={() => setDrag(null)}
-            >
-              <div className="ktp edit">
-                <SortableContext items={blocks.map((b) => topicKey(b.topic.id))} strategy={verticalListSortingStrategy}>
-                  {blocks.map((b) => (
-                    <EditTopic
-                      key={b.topic.id}
-                      block={b}
-                      warning={warnings.find((x) => x.topicId === b.topic.id)}
-                      onRemove={() => removeTopic(b)}
-                      onAddLesson={() => addLesson(b.topic)}
-                    >
-                      {b.lessons.map((l) => (
-                        <EditLesson
-                          key={l.id}
-                          lesson={l}
-                          classes={classes}
-                          year={year}
-                          schedules={scheduleById}
-                          files={materialsOf(materials, l).own}
-                          color={color}
-                          autoFocus={l.id === newLessonId}
-                          onType={(t) => setType(l, t)}
-                          onMaterials={() => setMaterialsFor(l.id)}
-                          onRemove={() => removeLesson(l)}
-                        />
-                      ))}
-                    </EditTopic>
-                  ))}
-                </SortableContext>
-              </div>
-              <DragOverlay>
-                {dragged && (
-                  <div className="drag-ghost" style={{ background: color }}>
-                    {'title' in dragged && 'lesson_type' in dragged ? (
-                      <>
-                        <b>{lessonNo(dragged)}</b> {dragged.title || 'Без теми'}
-                      </>
-                    ) : (
-                      <b>{dragged.title}</b>
-                    )}
-                  </div>
-                )}
-              </DragOverlay>
-            </DndContext>
-            <button className="add-topic" onClick={addTopic}>
-              <Plus size={16} /> Нова тема
-            </button>
-          </>
-        )}
-
-        {materialsFor && lessons.some((l) => l.id === materialsFor) && (
-          <MaterialsDialog
-            course={course}
-            year={year}
-            lesson={lessons.find((l) => l.id === materialsFor)!}
-            materials={materials}
-            onClose={() => setMaterialsFor(null)}
-          />
-        )}
-      </main>
-    </div>
+          {materialsFor && lessons.some((l) => l.id === materialsFor) && (
+            <MaterialsDialog
+              course={course}
+              year={year}
+              lesson={lessons.find((l) => l.id === materialsFor)!}
+              materials={materials}
+              onClose={() => setMaterialsFor(null)}
+            />
+          )}
+        </main>
+      </div>
+    </DateHintsContext.Provider>
   )
 }
 
@@ -512,6 +539,7 @@ type ViewLessonProps = {
 }
 
 function ViewLesson({ lesson: l, classes, schedules, today, color, files, onMaterials }: ViewLessonProps) {
+  const hints = useContext(DateHintsContext)
   const label = l.lesson_type !== 'regular' ? typeLabel(l.lesson_type) : ''
   return (
     <div id={`lesson-${l.id}`} className={l.lesson_type === 'reserve' ? 'lesson-item reserve' : 'lesson-item'}>
@@ -535,6 +563,8 @@ function ViewLesson({ lesson: l, classes, schedules, today, color, files, onMate
           {classes.map((c) => {
             const d = schedules.get(`${l.id}_${c.id}`)?.planned_date
             if (!d) return null
+            if (hints.issues.has(`${l.id}_${c.id}`))
+              return <IssuePill key={c.id} id={`${l.id}_${c.id}`} className={c.display_name} date={d} />
             return (
               <span key={c.id} className={d < today ? 'date-pill past' : 'date-pill'}>
                 <span>{c.display_name}</span> <b className="num">{shortDate(d)}</b>
@@ -668,7 +698,7 @@ function EditLesson(props: EditLessonProps) {
   const { ref: sortRef, style, dragging, handle } = useSortableItem(lessonKey(l.id))
   const cls = ['lesson-item', 'editing', l.lesson_type === 'reserve' && 'reserve', dragging && 'placeholder-row']
   return (
-    <div ref={sortRef} className={cls.filter(Boolean).join(' ')} style={style}>
+    <div id={`lesson-${l.id}`} ref={sortRef} className={cls.filter(Boolean).join(' ')} style={style}>
       <Grip label={`Перемістити урок ${lessonNo(l)}`} handle={handle} />
       <span className="l-no num" style={{ background: color }}>
         {lessonNo(l)}
@@ -719,6 +749,8 @@ type DateCellProps = { lesson: Lesson; cls: ClassGroup; year?: AcademicYear; sch
 /** Дата уроку для одного класу; порожньо — урок цьому класу не призначено. */
 function DateCell({ lesson, cls, year, schedule }: DateCellProps) {
   const stored = schedule?.planned_date ?? null
+  const hints = useContext(DateHintsContext)
+  const issue = hints.issues.get(`${lesson.id}_${cls.id}`)
 
   function save(date: string | null) {
     const id = `${lesson.id}_${cls.id}`
@@ -737,7 +769,11 @@ function DateCell({ lesson, cls, year, schedule }: DateCellProps) {
   }
 
   return (
-    <span className={stored ? 'date-pill' : 'date-pill empty'}>
+    <span
+      className={issue ? 'date-pill warn' : stored ? 'date-pill' : 'date-pill empty'}
+      title={issue ? issueText(issue, hints.weekdays(cls.id, issue.date)) : undefined}
+    >
+      {issue && <TriangleAlert size={13} aria-hidden />}
       <span>{cls.display_name}</span>
       <DatePicker
         compact

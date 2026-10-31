@@ -1,9 +1,12 @@
-import { X } from 'lucide-react'
+import { TriangleAlert, X } from 'lucide-react'
 import { useState } from 'react'
-import { commit, createDoc, newBatch, removeDoc, updateFields } from '../../data/db'
+import { Link } from 'react-router-dom'
+import { commit, createDoc, newBatch, removeDoc, updateFields, useCollection } from '../../data/db'
+import { courseIssues } from '../../data/mismatch'
 import { WORKDAYS as DAYS, toISO, weekday } from '../../data/schedule'
 import { entryShift, shiftSlots, timetableOn, type Shift } from '../../data/timetable'
-import type { AcademicYear, BellSchedule, ClassGroup, Course, CourseClass, Timetable, TimetableEntry } from '../../data/types'
+import type { AcademicYear, BellSchedule, ClassGroup, Course, CourseClass, DayOff, Timetable, TimetableEntry } from '../../data/types'
+import { courseTitle } from '../../data/ktp'
 import { gradeColor } from '../../data/year'
 import { Menu } from '../../components/Menu'
 import { ShiftPills } from './ShiftPills'
@@ -16,12 +19,13 @@ type Props = {
   courses: Course[]
   classes: ClassGroup[]
   links: CourseClass[]
+  daysOff: DayOff[]
   shift: Shift
   onShift: (s: Shift) => void
 }
 
 /** Тижневий розклад: день × номер уроку → клас і КТП. Час уроку береться з дзвінків вибраної зміни. */
-export function ScheduleSection({ year, bells, timetables, entries, courses, classes, links, shift, onShift }: Props) {
+export function ScheduleSection({ year, bells, timetables, entries, courses, classes, links, daysOff, shift, onShift }: Props) {
   const [today] = useState(() => toISO(new Date()))
   const sorted = [...timetables].sort((a, b) => a.valid_from.localeCompare(b.valid_from))
   // Сторінка редагує один шаблон: чинний сьогодні, а коли такого немає — останній.
@@ -95,6 +99,10 @@ export function ScheduleSection({ year, bells, timetables, entries, courses, cla
         <ShiftPills value={shift} onChange={onShift} />
       </div>
 
+      {options.map((o) => (
+        <CourseIssues key={o.course.id} course={o.course} data={{ timetables, entries, daysOff }} from={today} />
+      ))}
+
       {!options.length && (
         <p className="warn">Спершу додай предмети в секції «Предмети й КТП»: тоді класи можна буде ставити в розклад.</p>
       )}
@@ -152,5 +160,21 @@ export function ScheduleSection({ year, bells, timetables, entries, courses, cla
         </div>
       )}
     </section>
+  )
+}
+
+/** Скільки майбутніх дат КТП не збігається з розкладом: підказка, що після зміни розкладу є що перевірити. */
+function CourseIssues({ course, data, from }: { course: Course; data: Parameters<typeof courseIssues>[2]; from: string }) {
+  const { items: schedules } = useCollection('lesson_schedules', { field: 'course_id', value: course.id })
+  const n = courseIssues(schedules, course.id, data, from).length
+  if (!n) return null
+  return (
+    <p className="warn yp-issue">
+      <TriangleAlert size={14} />
+      <span>
+        {courseTitle(course)}: дат, що не збігаються з розкладом, — <b className="num">{n}</b>.{' '}
+        <Link to={`/ktp/${course.id}`}>Відкрити КТП</Link>
+      </span>
+    </p>
   )
 }
