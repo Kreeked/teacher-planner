@@ -14,6 +14,7 @@ import {
   Inbox,
   Link2,
   ListChecks,
+  Pencil,
   Plus,
   Presentation,
   Shield,
@@ -94,7 +95,7 @@ export function MaterialLink({ m }: { m: LessonMaterial }) {
 }
 
 /**
- * Полички уроку: лише типи, у яких є файли, і в кінці «Додати файл». Поличка з одним файлом відкриває його,
+ * Полички уроку: лише типи, у яких є файли, і в кінці «Додати файл» (коли файли вже є — «Змінити файли»). Поличка з одним файлом відкриває його,
  * з кількома — меню з їхнім списком. Файли «Без типу» — поличка «Інше · N», теж відкриває вікно.
  */
 export function LessonShelves({ own, onOpen }: { own: LessonMaterial[]; onOpen: () => void }) {
@@ -163,7 +164,8 @@ export function LessonShelves({ own, onOpen }: { own: LessonMaterial[]; onOpen: 
         )
       })}
       <button type="button" className="shelf add" onClick={onOpen}>
-        <Plus size={12} aria-hidden /> Додати файл
+        {own.length ? <Pencil size={12} aria-hidden /> : <Plus size={12} aria-hidden />}
+        {own.length ? 'Змінити файли' : 'Додати файл'}
       </button>
     </div>
   )
