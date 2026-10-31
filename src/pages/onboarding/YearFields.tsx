@@ -24,7 +24,7 @@ export function YearFields({ title, start, end, error, onTitle, onTitleBlur, onS
       <div className="ob-dates">
         <div className="ob-field">
           Початок
-          <DatePicker numeric trailingIcon label="Початок року" value={start || null} onChange={onStart} />
+          <DatePicker numeric trailingIcon label="Початок року" value={start || null} max={end || undefined} onChange={onStart} />
         </div>
         <div className="ob-field">
           Кінець
