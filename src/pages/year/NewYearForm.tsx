@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { DatePicker } from '../../components/DatePicker'
 import { Dialog } from '../../components/Dialog'
-import { commit, createDoc, newBatch } from '../../data/db'
 import { defaultYear, defaultYearStart, validateYear } from '../../data/year'
+import { createYear } from './createYear'
 
 type Props = { onCreated: (id: string) => void; onClose: () => void }
 
@@ -18,28 +18,7 @@ export function NewYearForm({ onCreated, onClose }: Props) {
   function submit(e: React.FormEvent) {
     e.preventDefault()
     if (error || !title.trim()) return
-    const batch = newBatch()
-    const yearId = createDoc('academic_years', { title: title.trim(), start_date: start, end_date: end }, batch)
-    if (withSemesters) {
-      // Типові семестри підганяємо під введені дати року.
-      const tpl = defaultYear(Number(start.slice(0, 4))).semesters
-      tpl.forEach((s, i) =>
-        createDoc(
-          'periods',
-          {
-            academic_year_id: yearId,
-            parent_id: null,
-            kind: 'semester',
-            title: s.title,
-            start_date: i === 0 ? start : s.start_date,
-            end_date: i === tpl.length - 1 ? end : s.end_date,
-            position: i,
-          },
-          batch,
-        ),
-      )
-    }
-    commit(batch)
+    const yearId = createYear({ title, start, end, withSemesters })
     onCreated(yearId)
   }
 

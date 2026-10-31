@@ -4646,3 +4646,262 @@ a:not([class]):active {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
+
+/* ---------- Початкове налаштування ---------- */
+.ob {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  padding-left: max(12px, env(safe-area-inset-left));
+  padding-right: max(12px, env(safe-area-inset-right));
+  animation: fade-in 0.4s ease-out;
+}
+
+.ob-top {
+  width: 100%;
+  max-width: 880px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0;
+}
+
+.ob-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+
+.ob-brand .logo {
+  margin-bottom: 0;
+}
+
+.ob-main {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 24px 0 32px;
+}
+
+.ob-card {
+  width: 100%;
+  max-width: 880px;
+  background: var(--surface);
+  border-radius: var(--r-xl);
+  padding: 28px 32px 32px;
+}
+
+.ob-card.ob-welcome {
+  max-width: 600px;
+  margin-block: auto;
+}
+
+.ob-kicker {
+  margin: 28px 0 6px;
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ob-welcome .ob-kicker {
+  margin-top: 0;
+}
+
+.ob-title,
+.ob-welcome h1 {
+  font-size: 22px;
+  letter-spacing: -0.01em;
+}
+
+.ob-welcome h1 {
+  font-size: 26px;
+}
+
+.ob-lead {
+  margin: 6px 0 0;
+  color: var(--ink-2);
+  line-height: 1.45;
+  max-width: 62ch;
+}
+
+.ob-body {
+  margin-top: 24px;
+}
+
+/* Блоки сторінки року всередині екрана: без власної картки й заголовка, заголовок дає крок. */
+.ob-body .panel.yp-block {
+  background: none;
+  border-radius: 0;
+  padding: 0;
+}
+
+.ob-body .yp-block h2 {
+  display: none;
+}
+
+.ob-body .yp-head {
+  justify-content: flex-start;
+}
+
+/* Степер: по смужці на крок, пройдені й поточний залиті. */
+.ob-steps {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ob-steps li {
+  flex: 1;
+  min-width: 0;
+}
+
+.ob-steps button {
+  width: 100%;
+  border: 0;
+  background: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+  color: var(--ink-2);
+  font-size: 12px;
+}
+
+.ob-steps button:disabled {
+  cursor: default;
+}
+
+.ob-steps i {
+  display: block;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--line);
+}
+
+.ob-steps li.done i,
+.ob-steps li.on i {
+  background: var(--ink);
+}
+
+.ob-steps li.on button,
+.ob-steps li.done button {
+  color: var(--ink);
+}
+
+.ob-steps span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Вітання */
+.ob-features {
+  list-style: none;
+  margin: 24px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ob-features li {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.ob-features p {
+  margin: 2px 0 0;
+  color: var(--ink-2);
+  line-height: 1.4;
+}
+
+.ob-tile {
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+
+.ob-start {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.ob-start p {
+  margin: 0;
+  color: var(--ink-2);
+  line-height: 1.45;
+}
+
+.ob-start .btn {
+  height: 44px;
+  padding: 0 20px;
+  font-size: 14px;
+}
+
+/* Нижня панель кроків: липка, щоб «Далі» було під рукою на довгих екранах. */
+.ob-foot {
+  position: sticky;
+  bottom: 0;
+  margin: 0 -12px;
+  padding: 12px max(12px, env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+  z-index: 5;
+}
+
+.ob-foot-in {
+  width: 100%;
+  max-width: 880px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ob-hint {
+  flex: 1;
+  min-width: 0;
+  color: var(--ink-2);
+  font-size: 13px;
+  text-align: center;
+}
+
+@media (max-width: 760px) {
+  .ob-card {
+    padding: 20px 16px 24px;
+  }
+
+  .ob-steps {
+    gap: 4px;
+  }
+
+  /* На телефоні підписує лише номер кроку над заголовком: назви в смужках не вміщаються. */
+  .ob-steps span {
+    display: none;
+  }
+
+  .ob-steps button {
+    gap: 0;
+  }
+
+  .ob-hint {
+    font-size: 12px;
+  }
+}

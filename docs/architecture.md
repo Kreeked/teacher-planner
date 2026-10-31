@@ -36,7 +36,7 @@
 | `import/` | `docx.ts`, `ktpParser.ts`, `plan.ts` (що створити й які дати розходяться), `applyImport.ts` (запис) — імпорт КТП; `data/mismatch.ts` — чим дата не збігається з розкладом |
 | `lib/` | `firebase.ts`, `drive.ts`, `offlineFiles.ts`, `storageInfo.ts`, `viewer.ts`, `useOfflinePlan.ts`, `useOnline.ts`, `confirm.ts`, `saved.ts`, `drag.ts`, `dates.ts`, `useClassifyLegacy.ts` |
 | `components/` | `Dialog`, `Confirm`, `Menu`, `Sortable`, `DatePicker`, `InlineText`, `RangeRow`, `Saved`, `FileViewer`, `PdfSlide`, `PdfScroll`, `ViewerHost` |
-| `pages/` | `TodayPage`, `ktp/` (зокрема `Materials` — вікно й полички), `year/` (уся сторінка року: рік, семестри, дні без уроків, класи, предмети з КТП, дзвінки, розклад), `settings/`, `LoginPage`, `SettingsPage` |
+| `pages/` | `TodayPage`, `ktp/` (зокрема `Materials` — вікно й полички), `year/` (уся сторінка року: рік, семестри, дні без уроків, класи, предмети з КТП, дзвінки, розклад), `onboarding/` (вітання й степер початкового налаштування для порожнього акаунта; шлюз `OnboardingGate` у `App.tsx`), `settings/`, `LoginPage`, `SettingsPage` |
 | `layout/` | `AppLayout`, `TabPanes` (сторінки розділів), `nav.ts` (меню), `MonthCalendar`, `BellList` |
 | `index.css` | усі стилі, токени дизайну як CSS-змінні |
 

@@ -13,6 +13,7 @@ import { NewYearForm } from './NewYearForm'
 import { PeriodsSection } from './PeriodsSection'
 import { ScheduleSection } from './ScheduleSection'
 import { SubjectsSection } from './SubjectsSection'
+import { useYearData } from './useYearData'
 import { YearSection } from './YearSection'
 
 /** Підпис під вибором року: чи поточний він і що від цього залежить. */
@@ -25,7 +26,7 @@ function caption(year: AcademicYear, current: AcademicYear | undefined, today: s
 }
 
 export function YearPage() {
-  const { items: years, loading } = useCollection('academic_years')
+  const { items: years } = useCollection('academic_years')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
   const [bellShift, setBellShift] = useState<Shift>(1)
@@ -34,18 +35,7 @@ export function YearPage() {
 
   const current = pickCurrentYear(years, today)
   const year = years.find((y) => y.id === selectedId) ?? current
-  const filter = year ? { field: 'academic_year_id', value: year.id } : null
-  const { items: periods } = useCollection('periods', filter)
-  const { items: classes } = useCollection('class_groups', filter)
-  const { items: daysOff } = useCollection('days_off', filter)
-  const { items: bells } = useCollection('bell_schedules', filter)
-  const { items: timetables } = useCollection('timetables', filter)
-  const { items: courses } = useCollection('courses', filter)
-  const { items: allEntries } = useCollection('timetable_entries')
-  const { items: links } = useCollection('course_classes')
-
-  const yearLinks = links.filter((l) => courses.some((c) => c.id === l.course_id))
-  const entries = allEntries.filter((e) => timetables.some((t) => t.id === e.timetable_id))
+  const { periods, classes, daysOff, bells, timetables, courses, links: yearLinks, entries } = useYearData(year)
 
   async function removeYear(y: AcademicYear) {
     if (
@@ -88,18 +78,6 @@ export function YearPage() {
               setCreating(false)
             }}
           />
-        )}
-
-        {!loading && years.length === 0 && (
-          <section className="empty" style={{ background: 'var(--butter)' }}>
-            <div>
-              <h2>Ще немає навчального року</h2>
-              <p>Створи рік, і до нього одразу додадуться два семестри. Далі тут же: класи, предмети, дзвінки й розклад.</p>
-            </div>
-            <button className="btn" onClick={() => setCreating(true)}>
-              <Plus size={16} /> Створити рік
-            </button>
-          </section>
         )}
 
         {year && (
