@@ -334,14 +334,9 @@ h2 {
   margin-bottom: 8px;
 }
 
-.cal-title-wrap {
-  position: relative;
+.cal-head h3 {
   flex: 1;
   min-width: 0;
-  overflow: hidden;
-}
-
-.cal-head h3 {
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -4134,46 +4129,26 @@ a:not([class]):active {
   height: calc(var(--d) * 6 + var(--cal-gap) * 5);
 }
 
+/* Рядок тижня виставляється відступом, а не transform: у Safari перетворений вміст усередині обрізки
+   під час руху доріжки не домальовується, і цифри зникають до кінця руху. */
 .cal-pane .grid7 {
-  transform: translateY(calc(var(--row, 0) * (var(--d) + var(--cal-gap)) * -1));
+  margin-top: calc(var(--row, 0) * (var(--d) + var(--cal-gap)) * -1);
 }
 
 .cal.morph .cal-pane .grid7 {
-  transition: transform var(--cal-dur) var(--ease-out);
+  transition: margin-top var(--cal-dur) var(--ease-out);
 }
 
 .cal.open .cal-pane .grid7 {
-  transform: none;
+  margin-top: 0;
 }
 
 .dow-row {
   gap: 0;
 }
 
-/* Назва місяця: стара виїжджає в бік листання, нова приходить з протилежного боку. */
-.cal-title.in {
-  animation: title-in var(--dur-slow) var(--ease-out);
-}
-
-.cal-title.out {
-  position: absolute;
-  inset: 0 0 auto 0;
-  pointer-events: none;
-  animation: title-out var(--dur) var(--ease-out) forwards;
-}
-
-@keyframes title-in {
-  from {
-    opacity: 0;
-    transform: translateX(var(--tx, 0));
-  }
-}
-
-@keyframes title-out {
-  to {
-    opacity: 0;
-    transform: translateX(var(--tx, 0));
-  }
+.cal-title {
+  animation: fade-in var(--dur-slow) var(--ease-out);
 }
 
 .fold-chev {

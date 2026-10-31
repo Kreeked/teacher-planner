@@ -95,14 +95,6 @@ export function MonthCalendar({ today, selected, onSelect, marked, min, max, col
   title = title[0].toUpperCase() + title.slice(1)
   const unit = weekMode ? 'тиждень' : 'місяць'
 
-  // Зміна назви показується рухом у бік листання (без напрямку — просто проявляється).
-  const [shownTitle, setShownTitle] = useState(title)
-  const [ghost, setGhost] = useState<{ text: string; dir: number } | null>(null)
-  if (title !== shownTitle) {
-    setShownTitle(title)
-    setGhost({ text: shownTitle, dir: leaving })
-  }
-
   function shiftBy(n: number) {
     setAnchor(neighbour(n))
   }
@@ -142,10 +134,12 @@ export function MonthCalendar({ today, selected, onSelect, marked, min, max, col
     busy.current = true
     setLeaving(dir)
     // Web Animations замість CSS-переходу: однаково запускається в усіх браузерах, стартує з місця, де відпустили палець.
-    const from = getComputedStyle(el).transform
-    const to = `translateX(${-100 / 3 - (dir * 100) / 3}%)`
-    el.style.transform = to
-    const anim = el.animate([{ transform: from }, { transform: to }], {
+    // Лише пікселі: перехід між px і % у різних браузерах інтерполюється по-різному.
+    const pane = el.offsetWidth / 3
+    const from = new DOMMatrix(getComputedStyle(el).transform).m41
+    const to = -pane * (1 + dir)
+    el.style.transform = `translateX(${to}px)`
+    const anim = el.animate([{ transform: `translateX(${from}px)` }, { transform: `translateX(${to}px)` }], {
       duration: ms,
       easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
     })
@@ -215,7 +209,8 @@ export function MonthCalendar({ today, selected, onSelect, marked, min, max, col
     if (dt > 0) d.v = 0.8 * d.v + 0.2 * ((e.clientX - d.lastX) / dt)
     d.lastX = e.clientX
     d.lastT = e.timeStamp
-    el.style.transform = `translateX(calc(${-100 / 3}% + ${dx}px))`
+    const w = el.offsetWidth / 3
+    el.style.transform = `translateX(${-w + Math.max(-w, Math.min(w, dx))}px)`
   }
   function dragEnd(e: PointerEvent) {
     const d = drag.current
@@ -249,22 +244,9 @@ export function MonthCalendar({ today, selected, onSelect, marked, min, max, col
   return (
     <div className={`${toggle ? 'cal big' : 'cal'}${expanded ? ' open' : ''}${morph ? ' morph' : ''}`}>
       <div className="cal-head">
-        <div className="cal-title-wrap">
-          {ghost && (
-            <h3
-              key={`out-${ghost.text}`}
-              className="cal-title out"
-              style={{ '--tx': `${-ghost.dir * 24}px` } as CSSProperties}
-              aria-hidden
-              onAnimationEnd={() => setGhost(null)}
-            >
-              {ghost.text}
-            </h3>
-          )}
-          <h3 key={title} className="cal-title in" style={{ '--tx': `${(ghost?.dir ?? 0) * 24}px` } as CSSProperties}>
-            {title}
-          </h3>
-        </div>
+        <h3 key={title} className="cal-title">
+          {title}
+        </h3>
         {onToday &&
           !(
             selected === today &&
