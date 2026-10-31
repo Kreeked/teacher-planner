@@ -11,12 +11,20 @@ function p(title: string, start_date: string, end_date: string, position: number
 }
 
 describe('winterBreak', () => {
-  it('від дня після І семестру до дня перед ІІ, вихідні не враховуються', () => {
-    expect(winterBreak(sem1, sem2)).toEqual({ start_date: '2026-12-27', end_date: '2027-01-11' })
+  it('вихідні не враховуються: кінець у суботу, початок ІІ у вівторок', () => {
+    expect(winterBreak(sem1, sem2)).toEqual({ start_date: '2026-12-28', end_date: '2027-01-11' })
   })
 
-  it('семестри впритул: канікул немає', () => {
-    expect(winterBreak(sem1, { ...sem2, start_date: '2026-12-27' })).toBeNull()
+  it('кінець І семестру в п\'ятницю: канікули з понеділка', () => {
+    expect(winterBreak({ ...sem1, end_date: '2026-12-25' }, sem2)?.start_date).toBe('2026-12-28')
+  })
+
+  it('ІІ семестр з понеділка: канікули до п\'ятниці', () => {
+    expect(winterBreak(sem1, { ...sem2, start_date: '2027-01-11' })?.end_date).toBe('2027-01-08')
+  })
+
+  it('між семестрами лише вихідні: канікул немає', () => {
+    expect(winterBreak(sem1, { ...sem2, start_date: '2026-12-28' })).toBeNull()
   })
 })
 
@@ -52,7 +60,7 @@ describe('validateSemester', () => {
 })
 
 describe('validateVacation', () => {
-  const winter = { title: 'Зимові канікули', start_date: '2026-12-27', end_date: '2027-01-11' }
+  const winter = { title: 'Зимові канікули', start_date: '2026-12-28', end_date: '2027-01-11' }
 
   it('вимагає дати й порядок', () => {
     expect(validateVacation({ start_date: '', end_date: '2026-11-01' }, sem1, [])).toBe('Вкажи обидві дати')
@@ -79,7 +87,7 @@ describe('planVacations', () => {
   it('без канікул беруться типові, зимові вираховуються', () => {
     expect(planVacations(periods, {})).toEqual({
       autumn: defaultVacations(2026).autumn,
-      winter: { start_date: '2026-12-27', end_date: '2027-01-11' },
+      winter: { start_date: '2026-12-28', end_date: '2027-01-11' },
       spring: defaultVacations(2026).spring,
     })
   })

@@ -4,7 +4,7 @@ import { DatePicker } from '../../components/DatePicker'
 import { useRangeDraft } from '../../components/useRangeDraft'
 import { commit, createDoc, newBatch, updateFields } from '../../data/db'
 import type { AcademicYear, DayOff, ISODate, Period } from '../../data/types'
-import { VACATIONS, planVacations, validateSemester, validateVacation, winterBreak, type VacationKind } from '../../data/vacations'
+import { VACATIONS, planVacations, shiftDay, validateSemester, validateVacation, winterBreak, type VacationKind } from '../../data/vacations'
 import { formatDate, sortPeriods } from '../../data/year'
 import { notifySaved } from '../../lib/saved'
 import { syncVacations } from '../year/vacations'
@@ -67,12 +67,12 @@ function SemesterCard({ n, period, periods, daysOff, year, prev, next, vacation,
           {lockStart ? (
             <LockedDate value={r.draft.start_date} label={`Початок ${period.title}`} />
           ) : (
-            <DatePicker numeric trailingIcon label={`Початок ${period.title}`} value={r.draft.start_date || null} max={r.draft.end_date || undefined} onChange={r.setStart} />
+            <DatePicker numeric trailingIcon label={`Початок ${period.title}`} value={r.draft.start_date || null} min={prev ? shiftDay(prev.end_date, 1) : year.start_date} max={r.draft.end_date || undefined} onChange={r.setStart} />
           )}
           {lockEnd ? (
             <LockedDate value={r.draft.end_date} label={`Кінець ${period.title}`} />
           ) : (
-            <DatePicker numeric trailingIcon label={`Кінець ${period.title}`} value={r.draft.end_date || null} min={r.draft.start_date || undefined} onChange={r.setEnd} />
+            <DatePicker numeric trailingIcon label={`Кінець ${period.title}`} value={r.draft.end_date || null} min={r.draft.start_date || undefined} max={next ? shiftDay(next.start_date, -1) : year.end_date} onChange={r.setEnd} />
           )}
         </Dates>
       </div>
@@ -111,8 +111,8 @@ function VacationCard({ kind, doc, fallback, year, semester, others }: VacationP
       <div className="ob-sem-row">
         <b className="ob-sem-vac">{label}</b>
         <Dates>
-          <DatePicker numeric trailingIcon label={`Початок: ${label}`} value={r.draft.start_date || null} max={r.draft.end_date || undefined} onChange={r.setStart} />
-          <DatePicker numeric trailingIcon label={`Кінець: ${label}`} value={r.draft.end_date || null} min={r.draft.start_date || undefined} onChange={r.setEnd} />
+          <DatePicker numeric trailingIcon label={`Початок: ${label}`} value={r.draft.start_date || null} min={semester.start_date} max={r.draft.end_date && r.draft.end_date < semester.end_date ? r.draft.end_date : semester.end_date} onChange={r.setStart} />
+          <DatePicker numeric trailingIcon label={`Кінець: ${label}`} value={r.draft.end_date || null} min={r.draft.start_date && r.draft.start_date > semester.start_date ? r.draft.start_date : semester.start_date} max={semester.end_date} onChange={r.setEnd} />
         </Dates>
       </div>
       {r.error && (

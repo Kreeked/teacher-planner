@@ -17,26 +17,42 @@ export function vacationKind(title: string): VacationKind | undefined {
   return (Object.keys(VACATIONS) as VacationKind[]).find((k) => VACATIONS[k].title === title)
 }
 
-function shiftDay(d: ISODate, n: number): ISODate {
-  const [y, m, day] = d.split('-').map(Number)
-  return new Date(Date.UTC(y, m - 1, day + n)).toISOString().slice(0, 10)
-}
-
 function overlaps(a: Range, b: Range) {
   return a.start_date <= b.end_date && b.start_date <= a.end_date
 }
 
-/** Зимові канікули: від дня після кінця першого семестру до дня перед початком другого. Вихідні не враховуються. */
+export function shiftDay(d: ISODate, n: number): ISODate {
+  const [y, m, day] = d.split('-').map(Number)
+  return new Date(Date.UTC(y, m - 1, day + n)).toISOString().slice(0, 10)
+}
+
+function isWeekend(d: ISODate) {
+  const [y, m, day] = d.split('-').map(Number)
+  const w = new Date(Date.UTC(y, m - 1, day)).getUTCDay()
+  return w === 0 || w === 6
+}
+
+/** Найближчий робочий день від `d` (сам `d`, якщо він робочий) у бік `step` (1 вперед, -1 назад). */
+function weekday(d: ISODate, step: 1 | -1): ISODate {
+  let x = d
+  while (isWeekend(x)) x = shiftDay(x, step)
+  return x
+}
+
+/**
+ * Зимові канікули: від першого робочого дня після кінця першого семестру до останнього робочого дня
+ * перед початком другого. Вихідні в межі не потрапляють: кінець семестру в п'ятницю — канікули з понеділка.
+ */
 export function winterBreak(first: Range, second: Range): Range | null {
-  const r = { start_date: shiftDay(first.end_date, 1), end_date: shiftDay(second.start_date, -1) }
+  const r = { start_date: weekday(shiftDay(first.end_date, 1), 1), end_date: weekday(shiftDay(second.start_date, -1), -1) }
   return r.start_date <= r.end_date ? r : null
 }
 
-/** Типові осінні й весняні канікули (тиждень наприкінці жовтня та в кінці березня). */
+/** Типові осінні й весняні канікули (тиждень наприкінці жовтня й наприкінці березня). */
 export function defaultVacations(startYear: number): Record<'autumn' | 'spring', Range> {
   return {
     autumn: { start_date: `${startYear}-10-26`, end_date: `${startYear}-11-01` },
-    spring: { start_date: `${startYear + 1}-03-22`, end_date: `${startYear + 1}-03-28` },
+    spring: { start_date: `${startYear + 1}-03-27`, end_date: `${startYear + 1}-04-04` },
   }
 }
 
