@@ -107,6 +107,27 @@ export function validateYear(y: Range, periods: Period[], others: (Range & { tit
   return null
 }
 
+/**
+ * Семестри залежать від дат року, а не навпаки: після зміни меж року підганяємо періоди.
+ * Перший семестр починається з початку року, останній закінчується з кінцем року, решта не виходить за межі.
+ * Повертає лише ті періоди, дати яких змінилися.
+ */
+export function fitPeriods(periods: Period[], year: Range): { id: string; start_date: ISODate; end_date: ISODate }[] {
+  const semesters = sortPeriods(periods.filter((p) => !p.parent_id))
+  const first = semesters[0]
+  const last = semesters[semesters.length - 1]
+  const out: { id: string; start_date: ISODate; end_date: ISODate }[] = []
+  for (const p of periods) {
+    let start = p.id === first?.id ? year.start_date : p.start_date
+    let end = p.id === last?.id ? year.end_date : p.end_date
+    if (start < year.start_date) start = year.start_date
+    if (end > year.end_date) end = year.end_date
+    if (start > end) start = end
+    if (start !== p.start_date || end !== p.end_date) out.push({ id: p.id, start_date: start, end_date: end })
+  }
+  return out
+}
+
 export function sortPeriods(periods: Period[]) {
   return [...periods].sort((a, b) => a.position - b.position || a.start_date.localeCompare(b.start_date))
 }

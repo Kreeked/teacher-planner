@@ -4,12 +4,12 @@ import { useAuth } from '../../auth/context'
 import { ConfirmHost } from '../../components/Confirm'
 import { SavedToast } from '../../components/Saved'
 import { useRangeDraft } from '../../components/useRangeDraft'
-import { useCollection, updateFields } from '../../data/db'
+import { commit, newBatch, updateFields, useCollection } from '../../data/db'
 import { STEPS, canProceed, countsOf } from '../../data/onboarding'
 import { toISO } from '../../data/schedule'
 import type { Shift } from '../../data/timetable'
 import type { AcademicYear, Period } from '../../data/types'
-import { defaultYear, defaultYearStart, pickCurrentYear, validateYear } from '../../data/year'
+import { defaultYear, defaultYearStart, fitPeriods, pickCurrentYear, validateYear } from '../../data/year'
 import { notifySaved } from '../../lib/saved'
 import { clearOnboarding, getOnboardingStep, setOnboardingStep } from '../../lib/onboarding'
 import { hideSplash } from '../../lib/splash'
@@ -33,8 +33,15 @@ type Props = {
 function ExistingYear({ year, periods, others }: { year: AcademicYear; periods: Period[]; others: AcademicYear[] }) {
   const r = useRangeDraft({
     value: { title: year.title, start_date: year.start_date, end_date: year.end_date },
-    validate: (v) => (v.title.trim() ? validateYear(v, periods, others) : yearTitleError),
-    onSave: (v) => (updateFields('academic_years', year.id, v), notifySaved()),
+    // Семестри перевіряються на своєму кроці й залежать від дат року, тож тут їх не чіпаємо, а підганяємо.
+    validate: (v) => (v.title.trim() ? validateYear(v, [], others) : yearTitleError),
+    onSave: (v) => {
+      const batch = newBatch()
+      updateFields('academic_years', year.id, v, batch)
+      for (const { id, ...patch } of fitPeriods(periods, v)) updateFields('periods', id, patch, batch)
+      commit(batch)
+      notifySaved()
+    },
   })
   return (
     <YearFields

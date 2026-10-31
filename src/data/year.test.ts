@@ -10,6 +10,7 @@ import {
   shortDate,
   validateDayOff,
   validatePeriod,
+  fitPeriods,
   validateYear,
 } from './year'
 
@@ -188,5 +189,30 @@ describe('validateDayOff', () => {
     expect(validateDayOff({ start_date: '', end_date: '2025-11-02' }, year)).toBe('Вкажи обидві дати')
     expect(validateDayOff({ start_date: '2025-11-02', end_date: '2025-10-27' }, year)).toBe('Початок пізніше за кінець')
     expect(validateDayOff({ start_date: '2025-08-20', end_date: '2025-09-02' }, year)).toBe('Виходить за межі навчального року')
+  })
+})
+
+describe('fitPeriods', () => {
+  const mk = (id: string, start_date: string, end_date: string, position: number, parent_id: string | null = null) =>
+    ({ id, owner_id: 'u', academic_year_id: 'y', parent_id, kind: parent_id ? 'quarter' : 'semester', title: id, position, start_date, end_date }) as never
+  const a = mk('a', '2026-09-01', '2026-12-26', 0)
+  const b = mk('b', '2027-01-12', '2027-06-30', 1)
+
+  it('нічого не міняє, коли дати збігаються', () => {
+    expect(fitPeriods([a, b], { start_date: '2026-09-01', end_date: '2027-06-30' })).toEqual([])
+  })
+
+  it('перший семестр іде за початком року, останній за кінцем', () => {
+    expect(fitPeriods([a, b], { start_date: '2026-09-02', end_date: '2027-05-31' })).toEqual([
+      { id: 'a', start_date: '2026-09-02', end_date: '2026-12-26' },
+      { id: 'b', start_date: '2027-01-12', end_date: '2027-05-31' },
+    ])
+  })
+
+  it('середні періоди не виходять за межі року', () => {
+    const q = mk('q', '2026-08-20', '2026-10-30', 0, 'a')
+    expect(fitPeriods([a, b, q], { start_date: '2026-09-01', end_date: '2027-06-30' })).toEqual([
+      { id: 'q', start_date: '2026-09-01', end_date: '2026-10-30' },
+    ])
   })
 })
