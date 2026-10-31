@@ -14,8 +14,9 @@ import {
   type DocumentReference,
   type WriteBatch,
 } from 'firebase/firestore'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { auth, db } from '../lib/firebase'
+import { draftDocs, draftEntries, draftVersion, dropDraft, isDraft, patchDraft, putDraft, subscribeDraft } from './draft'
 import type { CollectionName, Collections, NewDoc } from './types'
 
 function uid() {
@@ -44,6 +45,10 @@ export function newRef(name: CollectionName): DocumentReference {
 
 export function createDoc<N extends CollectionName>(name: N, data: NewDoc<Collections[N]>, batch?: WriteBatch) {
   const r = newRef(name)
+  if (isDraft()) {
+    putDraft(name, r.id, { ...data, owner_id: uid() })
+    return r.id
+  }
   const payload = { ...data, owner_id: uid(), created_at: serverTimestamp(), updated_at: serverTimestamp() }
   if (batch) batch.set(r, payload)
   else setDoc(r, payload).catch(report)
@@ -52,6 +57,7 @@ export function createDoc<N extends CollectionName>(name: N, data: NewDoc<Collec
 
 /** Створює документ із заданим id (наприклад, дата уроку `${lesson_id}_${class_group_id}`). */
 export function putDoc<N extends CollectionName>(name: N, id: string, data: NewDoc<Collections[N]>, batch?: WriteBatch) {
+  if (isDraft()) return putDraft(name, id, { ...data, owner_id: uid() })
   const payload = { ...data, owner_id: uid(), created_at: serverTimestamp(), updated_at: serverTimestamp() }
   if (batch) batch.set(ref(name, id), payload)
   else setDoc(ref(name, id), payload).catch(report)
@@ -63,23 +69,33 @@ export function updateFields<N extends CollectionName>(
   patch: Partial<NewDoc<Collections[N]>>,
   batch?: WriteBatch,
 ) {
+  if (isDraft()) return patchDraft(name, id, patch)
   const payload = { ...patch, updated_at: serverTimestamp() }
   if (batch) batch.update(ref(name, id), payload)
   else updateDoc(ref(name, id), payload).catch(report)
 }
 
 export function removeDoc(name: CollectionName, id: string) {
+  if (isDraft()) return dropDraft(name, id)
   deleteDoc(ref(name, id)).catch(report)
+}
+
+function draftRefs(name: CollectionName, field: string, value: string) {
+  return draftDocs(name)
+    .filter((d) => d[field] === value)
+    .map((d) => ref(name, d.id))
 }
 
 /** Посилання на всі документи колекції з полем field == value (з кешу, якщо немає мережі). */
 export async function refsWhere(name: CollectionName, field: string, value: string) {
+  if (isDraft()) return draftRefs(name, field, value)
   const snap = await getDocs(query(col(name), where(field, '==', value)))
   return snap.docs.map((d) => d.ref)
 }
 
 /** Те саме, але з локального кешу: без очікування сервера (кеш підписок уже містить свіжі дані). */
 export async function refsWhereCached(name: CollectionName, field: string, value: string) {
+  if (isDraft()) return draftRefs(name, field, value)
   const q = query(col(name), where(field, '==', value))
   const snap = await getDocsFromCache(q).catch(() => getDocs(q))
   return snap.docs.map((d) => d.ref)
@@ -87,6 +103,10 @@ export async function refsWhereCached(name: CollectionName, field: string, value
 
 /** Видаляє документи пачками (у батчі Firestore не більше 500 операцій). */
 export function deleteRefs(refs: DocumentReference[]) {
+  if (isDraft()) {
+    for (const r of refs) dropDraft(r.parent.id as CollectionName, r.id)
+    return
+  }
   for (let i = 0; i < refs.length; i += 450) {
     const batch = writeBatch(db)
     for (const r of refs.slice(i, i + 450)) batch.delete(r)
@@ -113,8 +133,24 @@ export class BatchWriter {
   }
 }
 
+// Пачка в режимі чернетки застосовується одразу: у базу нічого не йде.
+const draftBatch = {
+  set: (r: DocumentReference, data: Record<string, unknown>) => putDraft(r.parent.id as CollectionName, r.id, data),
+  update: (r: DocumentReference, data: Record<string, unknown>) => patchDraft(r.parent.id as CollectionName, r.id, data),
+  delete: (r: DocumentReference) => dropDraft(r.parent.id as CollectionName, r.id),
+  commit: () => Promise.resolve(),
+}
+
 export function newBatch() {
-  return writeBatch(db)
+  return isDraft() ? (draftBatch as unknown as WriteBatch) : writeBatch(db)
+}
+
+/** Записує чернетку початкового налаштування у Firestore (без очікування відповіді, як і решту записів). */
+export function flushDraft() {
+  const w = new BatchWriter()
+  for (const [name, id, data] of draftEntries())
+    w.batch.set(ref(name, id), { ...data, created_at: serverTimestamp(), updated_at: serverTimestamp() })
+  w.commit()
 }
 
 export function commit(batch: WriteBatch) {
@@ -147,7 +183,15 @@ export function useCollection<N extends CollectionName>(name: N, filter?: Filter
     )
   }, [key, name, field, value])
 
-  // Поки нова підписка не віддала дані, старі не показуємо.
+  // Поки нова підписка не віддала дані, старі не показуємо; у режимі чернетки поверх бази лежать її документи.
   const ready = state.key === key
-  return { items: ready ? state.items : [], loading: key !== null && !ready }
+  const draftVer = useSyncExternalStore(subscribeDraft, draftVersion)
+  const items = useMemo(() => {
+    const base = ready ? state.items : []
+    if (key === null || !isDraft()) return base
+    const own = draftDocs(name).filter((d) => field === undefined || d[field] === value) as unknown as Collections[N][]
+    return [...base.filter((i) => !own.some((o) => o.id === i.id)), ...own]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, state.items, key, name, field, value, draftVer])
+  return { items, loading: key !== null && !ready }
 }
