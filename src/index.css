@@ -370,8 +370,8 @@ h2 {
 }
 
 .cal.big .d {
-  width: 40px;
-  height: 40px;
+  width: var(--d);
+  height: var(--d);
   font-size: 14px;
 }
 
@@ -4030,13 +4030,6 @@ a:not([class]):active {
   }
 }
 
-@keyframes slide-in-x {
-  from {
-    opacity: 0;
-    transform: translateX(var(--dx, 0));
-  }
-}
-
 /* Вікна: фон проявляється, вікно виринає; закриття — швидше. */
 .overlay {
   animation: fade-in var(--dur) var(--ease-out);
@@ -4099,9 +4092,81 @@ a:not([class]):active {
   animation-delay: 160ms;
 }
 
-/* Сітка календаря при гортанні й розгортанні. */
-.cal-in {
-  animation: slide-in-x var(--dur) var(--ease-out);
+/* Календар: тиждень і місяць — одна сітка; рядок тижня виглядає з-під обрізки, а місяць розгортає висоту.
+   Листання — доріжка з трьох сіток, що йде за пальцем (`MonthCalendar.tsx`). */
+.cal {
+  --d: 30px;
+  --cal-gap: 3px;
+  --cal-dur: 0.46s;
+}
+
+.cal.big {
+  --d: 40px;
+}
+
+.cal-viewport {
+  overflow: hidden;
+  touch-action: pan-y;
+}
+
+.cal-track {
+  display: flex;
+  width: 300%;
+  transform: translateX(-33.3333%);
+  will-change: transform;
+}
+
+.cal-track.single {
+  width: 100%;
+  transform: none;
+}
+
+.cal-pane {
+  flex: none;
+  width: 33.3333%;
+  height: var(--d);
+  overflow: hidden;
+}
+
+.cal.morph .cal-pane {
+  transition: height var(--cal-dur) var(--ease-out);
+}
+
+.cal-track.single .cal-pane {
+  width: 100%;
+  animation: fade-in var(--dur) var(--ease-out);
+}
+
+.cal.open .cal-pane {
+  height: calc(var(--d) * 6 + var(--cal-gap) * 5);
+}
+
+.cal-pane .grid7 {
+  transform: translateY(calc(var(--row, 0) * (var(--d) + var(--cal-gap)) * -1));
+}
+
+.cal.morph .cal-pane .grid7 {
+  transition: transform var(--cal-dur) var(--ease-out);
+}
+
+.cal.open .cal-pane .grid7 {
+  transform: none;
+}
+
+.dow-row {
+  gap: 0;
+}
+
+.cal-title {
+  animation: fade-in var(--dur-slow) var(--ease-out);
+}
+
+.fold-chev {
+  transition: transform var(--cal-dur) var(--ease-out);
+}
+
+.cal.open .fold-chev {
+  transform: rotate(180deg);
 }
 
 /* Натискання швидке (відпускання — пружне, у списку станів вище). */
