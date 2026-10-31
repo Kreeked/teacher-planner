@@ -1,6 +1,6 @@
 import { Plus } from 'lucide-react'
 import { useState } from 'react'
-import { createDoc, deleteRefs, ref, refsWhere } from '../../data/db'
+import { createDoc, deleteRefs, ref, refsWhereCached } from '../../data/db'
 import { classesWord } from '../../data/onboarding'
 import type { AcademicYear, ClassGroup } from '../../data/types'
 import { classDisplayName, gradeColor, parseLetters } from '../../data/year'
@@ -46,18 +46,28 @@ function OtherLetter({ grade, onAdd }: { grade: number; onAdd: (letter: string) 
 
 /** Таблиця «паралель × літера»: натиснута літера — клас додано, ще раз — прибрано. */
 export function ClassesStep({ year, classes }: { year: AcademicYear; classes: ClassGroup[] }) {
+  // Клас показуємо одразу після кліку, не чекаючи, поки запис дійде до підписки.
+  const [shown, setShown] = useState<Record<string, boolean>>({})
+  const [seen, setSeen] = useState(classes)
+  if (seen !== classes) {
+    setSeen(classes)
+    setShown({})
+  }
+
   function add(grade: number, letter: string) {
+    setShown((s) => ({ ...s, [classDisplayName(grade, letter)]: true }))
     createDoc('class_groups', { academic_year_id: year.id, grade, letter, display_name: classDisplayName(grade, letter) })
   }
 
   async function remove(c: ClassGroup) {
     // Разом із класом зникають його прив'язки до КТП, дати уроків і клітинки розкладу.
-    const links = [
-      ...(await refsWhere('course_classes', 'class_group_id', c.id)),
-      ...(await refsWhere('lesson_schedules', 'class_group_id', c.id)),
-      ...(await refsWhere('timetable_entries', 'class_group_id', c.id)),
-    ]
+    const links = (
+      await Promise.all(
+        (['course_classes', 'lesson_schedules', 'timetable_entries'] as const).map((n) => refsWhereCached(n, 'class_group_id', c.id)),
+      )
+    ).flat()
     if (links.length && !(await ask(`Видалити клас ${c.display_name} разом з його прив'язками до предметів і розкладу?`))) return
+    setShown((s) => ({ ...s, [c.display_name]: false }))
     deleteRefs([ref('class_groups', c.id), ...links])
   }
 
@@ -78,15 +88,16 @@ export function ClassesStep({ year, classes }: { year: AcademicYear; classes: Cl
               {[...LETTERS, ...extra].map((letter) => {
                 const c = byLetter.get(letter)
                 const name = classDisplayName(grade, letter)
+                const on = shown[name] ?? !!c
                 return (
                   <button
                     key={letter}
                     type="button"
-                    className={c ? 'ob-cls-letter on' : 'ob-cls-letter'}
-                    style={c ? { background: color } : undefined}
-                    aria-pressed={!!c}
-                    aria-label={`${name}, ${c ? 'додано' : 'не додано'}`}
-                    onClick={() => (c ? remove(c) : add(grade, letter))}
+                    className={on ? 'ob-cls-letter on' : 'ob-cls-letter'}
+                    style={on ? { background: color } : undefined}
+                    aria-pressed={on}
+                    aria-label={`${name}, ${on ? 'додано' : 'не додано'}`}
+                    onClick={() => (c ? remove(c) : on ? undefined : add(grade, letter))}
                   >
                     {letter || '—'}
                   </button>
