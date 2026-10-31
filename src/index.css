@@ -5028,6 +5028,102 @@ a:not([class]):active {
   margin-left: 0;
 }
 
+/* Крок «Класи» */
+.ob-block.cls {
+  margin-top: 24px;
+  padding: 14px 20px;
+}
+
+.ob-cls {
+  display: flex;
+  flex-direction: column;
+}
+
+.ob-cls-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 40px;
+}
+
+.ob-cls-grade {
+  width: 76px;
+  height: 28px;
+  flex: none;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ob-cls-letters {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.ob-cls-letter {
+  width: 40px;
+  height: 32px;
+  box-sizing: border-box;
+  border-radius: 10px;
+  border: 1.5px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.ob-cls-letter.on {
+  border-color: var(--ink);
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.ob-cls-plus {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.ob-cls-other {
+  width: 56px;
+  height: 32px;
+  box-sizing: border-box;
+  border: 1.5px solid var(--ink);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.ob-cls-count {
+  width: 56px;
+  flex: none;
+  text-align: right;
+  font-size: 12px;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
 @media (max-width: 760px) {
   .ob {
     padding: 20px 16px 24px;

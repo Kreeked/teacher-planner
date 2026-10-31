@@ -14,12 +14,12 @@ import { notifySaved } from '../../lib/saved'
 import { clearOnboarding, getOnboardingStep, setOnboardingStep } from '../../lib/onboarding'
 import { hideSplash } from '../../lib/splash'
 import { BellsSection } from '../year/BellsSection'
-import { ClassesSection } from '../year/ClassesSection'
 import { createYear } from '../year/createYear'
 import { ScheduleSection } from '../year/ScheduleSection'
 import { SubjectsSection } from '../year/SubjectsSection'
 import { useYearData } from '../year/useYearData'
 import { syncVacations } from '../year/vacations'
+import { ClassesStep } from './ClassesStep'
 import { SemestersStep } from './SemestersStep'
 import { YearFields, yearTitleError } from './YearFields'
 
@@ -140,8 +140,8 @@ export function Wizard({ onExit, onDone }: Props) {
             <p className="ob-lead">{current.lead}</p>
           </header>
 
-          <section className={current.id === 'year' ? 'ob-block year' : 'ob-block'} aria-labelledby="ob-title">
-            <div className={current.id === 'periods' ? 'ob-body ob-sem' : 'ob-body yp'} key={current.id}>
+          <section className={current.id === 'year' ? 'ob-block year' : current.id === 'classes' ? 'ob-block cls' : 'ob-block'} aria-labelledby="ob-title">
+            <div className={current.id === 'periods' ? 'ob-body ob-sem' : current.id === 'classes' ? 'ob-body ob-cls' : 'ob-body yp'} key={current.id}>
               {current.id === 'year' &&
                 (year ? (
                   <ExistingYear year={year} periods={data.periods} daysOff={data.daysOff} others={years.filter((y) => y.id !== year.id)} />
@@ -157,7 +157,7 @@ export function Wizard({ onExit, onDone }: Props) {
                   />
                 ))}
               {year && current.id === 'periods' && <SemestersStep year={year} periods={data.periods} daysOff={data.daysOff} />}
-              {year && current.id === 'classes' && <ClassesSection year={year} classes={data.classes} />}
+              {year && current.id === 'classes' && <ClassesStep year={year} classes={data.classes} />}
               {year && current.id === 'subjects' && (
                 <SubjectsSection year={year} courses={data.courses} classes={data.classes} links={data.links} />
               )}
