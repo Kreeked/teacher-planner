@@ -3250,6 +3250,57 @@ h2.topic-title {
   color: var(--ink-2);
 }
 
+.import-sec {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.import-sec .warn {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  margin: 0;
+}
+
+.import-sec .warn svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+.import-conflict {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--bg);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.import-conflict-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.import-conflict-head select {
+  margin-left: auto;
+  width: auto;
+}
+
+.import-pick span {
+  display: flex;
+  flex-direction: column;
+}
+
+.import-pick small {
+  color: var(--ink-2);
+  font-size: 12px;
+}
+
 .warn-box {
   background: #fdf1df;
   border-radius: 12px;
