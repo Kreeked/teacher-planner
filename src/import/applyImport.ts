@@ -1,33 +1,11 @@
-import { getDocs, query, serverTimestamp, where } from 'firebase/firestore'
+import { serverTimestamp } from 'firebase/firestore'
 import { auth } from '../lib/firebase'
-import { BatchWriter, col, createDoc, newRef, ref, updateFields } from '../data/db'
+import { BatchWriter, createDoc, newRef, ref, updateFields } from '../data/db'
 import { groupLessons, renumber } from '../data/ktp'
-import type { AcademicYear, ClassGroup, Collections, Course, Lesson, Period, Topic } from '../data/types'
-import { classDisplayName, ROMAN, validatePeriod } from '../data/year'
-import { sameTitle, type ParsedKtp } from './ktpParser'
-
-async function load<N extends keyof Collections>(name: N, field: string, value: string) {
-  const snap = await getDocs(query(col(name), where(field, '==', value)))
-  return snap.docs.map((d) => ({ ...(d.data() as object), id: d.id }) as Collections[N])
-}
-
-// Латинські двійники кириличних літер у назвах класів.
-const LATIN: Record<string, string> = { A: 'А', B: 'В', C: 'С', E: 'Е', H: 'Н', I: 'І', K: 'К', M: 'М', O: 'О', P: 'Р', T: 'Т', X: 'Х' }
-function splitClassName(name: string) {
-  const m = name.match(/^(\d+)\s*-?\s*(.*)$/)
-  const letter = (m?.[2] ?? '')
-    .toUpperCase()
-    .split('')
-    .map((ch) => LATIN[ch] ?? ch)
-    .join('')
-  return { grade: Number(m?.[1]), letter }
-}
-
-function semesterOf(p: Period) {
-  const m = p.title.match(/^(ІІ|II|І|I|1|2)/i)
-  return m ? ({ І: 1, I: 1, '1': 1, ІІ: 2, II: 2, '2': 2 } as Record<string, number>)[m[1].toUpperCase()] : null
-}
-
+import type { AcademicYear, Course, Lesson, LessonSchedule } from '../data/types'
+import { ROMAN, validatePeriod } from '../data/year'
+import { sameTitle, type ParsedKtp, type ParsedLesson } from './ktpParser'
+import { findTopic, isReplaced, scheduleId, semesterOf, type Decisions, type ImportContext, type ImportPlan } from './plan'
 
 export type ImportSummary = {
   courseId: string
@@ -35,37 +13,48 @@ export type ImportSummary = {
   topics: number
   lessons: number
   skipped: number
-  dates: number
+  dates: number // нових дат
+  replaced: number // дат, замінених датами з файлу
+  kept: number // дат, що розходилися з файлом і лишилися як були
 }
 
 /**
- * Записує розібране КТП: класи, семестр, курс (новий або наявний), теми, уроки, ОРН і дати по класах.
- * Уроки, що вже є в цій темі з такою самою назвою, пропускаються — повторний імпорт нічого не дублює.
+ * Записує розібране КТП: класи й семестри (лише ті, які дозволив користувач), курс (новий або наявний),
+ * теми, уроки і дати по класах. Уроки, що вже є в темі з такою самою назвою, не дублюються:
+ * їм лише додаються порожні дати, а ті, що розходяться з файлом, — за вибором користувача.
  */
 export async function applyImport(
   k: ParsedKtp,
   year: AcademicYear,
   target: Course | null,
+  ctx: ImportContext,
+  plan: ImportPlan,
+  decisions: Decisions,
 ): Promise<ImportSummary> {
   const uid = auth.currentUser!.uid
   const w = new BatchWriter()
-  const sum: ImportSummary = { courseId: '', classes: 0, topics: 0, lessons: 0, skipped: 0, dates: 0 }
+  const sum: ImportSummary = { courseId: '', classes: 0, topics: 0, lessons: 0, skipped: 0, dates: 0, replaced: 0, kept: 0 }
 
   // ---------- Класи ----------
-  const classes = await load('class_groups', 'academic_year_id', year.id)
-  const classIds = k.classNames.map((name) => {
-    const { grade, letter } = splitClassName(name)
-    const display = classDisplayName(grade, letter)
-    const found = classes.find((c: ClassGroup) => c.display_name === display)
-    if (found) return found.id
-    sum.classes++
-    const id = createDoc('class_groups', { academic_year_id: year.id, grade, letter, display_name: display }, w.batch)
-    classes.push({ id, owner_id: uid, academic_year_id: year.id, grade, letter, display_name: display })
+  const created = new Map<string, string>()
+  const classIds = plan.classes.map((c) => {
+    if (c.classId) return c.classId
+    if (!decisions.addClasses.has(c.index)) return null
+    let id = created.get(c.display)
+    if (!id) {
+      sum.classes++
+      id = createDoc(
+        'class_groups',
+        { academic_year_id: year.id, grade: c.grade, letter: c.letter, display_name: c.display },
+        w.batch,
+      )
+      created.set(c.display, id)
+    }
     return id
   })
 
   // ---------- Семестри ----------
-  const periods = await load('periods', 'academic_year_id', year.id)
+  const periods = [...ctx.periods]
   const semesterIds = new Map<number, string>()
   for (const s of k.semesters) {
     const found = periods.find((p) => !p.parent_id && semesterOf(p) === s.number)
@@ -73,6 +62,7 @@ export async function applyImport(
       semesterIds.set(s.number, found.id)
       continue
     }
+    if (!decisions.addSemesters.has(s.number)) continue
     const draft = { parent_id: null, start_date: s.start, end_date: s.end }
     if (validatePeriod(draft, year, periods)) continue
     const title = `${ROMAN[s.number - 1]} семестр`
@@ -113,20 +103,59 @@ export async function applyImport(
   }
   sum.courseId = courseId
 
-  const links = target ? await load('course_classes', 'course_id', courseId) : []
+  const links = [...ctx.links]
   for (const id of classIds)
-    if (!links.some((l) => l.class_group_id === id)) {
+    if (id && !links.some((l) => l.class_group_id === id)) {
       createDoc('course_classes', { course_id: courseId, class_group_id: id, position: links.length }, w.batch)
       links.push({ id: '', owner_id: uid, course_id: courseId, class_group_id: id, position: links.length })
     }
 
+  function putSchedule(lessonId: string, classId: string, date: string) {
+    w.batch.set(ref('lesson_schedules', scheduleId(lessonId, classId)), {
+      course_id: courseId,
+      lesson_id: lessonId,
+      class_group_id: classId,
+      planned_date: date,
+      actual_date: null,
+      status: 'planned',
+      note: '',
+      owner_id: uid,
+      created_at: serverTimestamp(),
+      updated_at: serverTimestamp(),
+    })
+  }
+
+  // Дати наявного уроку: порожні заповнюємо, ті, що розходяться з файлом, — як вирішив користувач.
+  function mergeDates(lessonId: string, pl: ParsedLesson) {
+    pl.dates.forEach((date, i) => {
+      const classId = classIds[i]
+      if (!date || !classId) return
+      const id = scheduleId(lessonId, classId)
+      const cur: LessonSchedule | undefined = ctx.schedules.find((x) => x.id === id)
+      if (!cur) {
+        putSchedule(lessonId, classId, date)
+        sum.dates++
+      } else if (!cur.planned_date) {
+        updateFields('lesson_schedules', id, { planned_date: date }, w.batch)
+        sum.dates++
+      } else if (cur.planned_date !== date) {
+        const conflict = plan.conflicts.find((c) => c.key === id)
+        if (conflict && isReplaced(conflict, decisions)) {
+          updateFields('lesson_schedules', id, { planned_date: date }, w.batch)
+          sum.replaced++
+        } else sum.kept++
+      }
+    })
+  }
+
   // ---------- Теми й уроки ----------
-  const topics: Topic[] = target ? await load('topics', 'course_id', courseId) : []
-  const lessons: Lesson[] = target ? await load('lessons', 'course_id', courseId) : []
+  const topics = [...ctx.topics]
+  const lessons: Lesson[] = [...ctx.lessons]
+  const known = new Set(ctx.lessons.map((l) => l.id))
   const newLessons = new Map<string, Omit<Lesson, 'id' | 'owner_id'>>()
 
   for (const pt of k.topics) {
-    let topic = topics.find((t) => sameTitle(t.title, pt.title) || (pt.altTitle !== null && sameTitle(t.title, pt.altTitle)))
+    let topic = findTopic(topics, pt)
     if (!topic) {
       const data = { course_id: courseId, position: topics.length, title: pt.title, planned_hours: pt.hours }
       const id = createDoc('topics', data, w.batch)
@@ -139,7 +168,10 @@ export async function applyImport(
 
     for (const pl of pt.lessons) {
       const inTopic = lessons.filter((l) => l.topic_id === topic.id)
-      if (inTopic.some((l) => sameTitle(l.title, pl.title))) {
+      const same = inTopic.find((l) => sameTitle(l.title, pl.title))
+      if (same) {
+        // Урок уже є: не дублюємо, лише донесемо дати з файлу.
+        if (known.has(same.id)) mergeDates(same.id, pl)
         sum.skipped++
         continue
       }
@@ -162,20 +194,9 @@ export async function applyImport(
       sum.lessons++
 
       pl.dates.forEach((date, i) => {
-        if (!date) return
         const classId = classIds[i]
-        w.batch.set(ref('lesson_schedules', `${r.id}_${classId}`), {
-          course_id: courseId,
-          lesson_id: r.id,
-          class_group_id: classId,
-          planned_date: date,
-          actual_date: null,
-          status: 'planned',
-          note: '',
-          owner_id: uid,
-          created_at: serverTimestamp(),
-          updated_at: serverTimestamp(),
-        })
+        if (!date || !classId) return
+        putSchedule(r.id, classId, date)
         sum.dates++
       })
     }

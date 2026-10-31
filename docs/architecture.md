@@ -33,7 +33,7 @@
 | Папка | Вміст |
 | --- | --- |
 | `data/` | `types.ts` (усі типи й список колекцій), `db.ts` (доступ до Firestore, хуки), логіка: `ktp.ts`, `day.ts`, `year.ts`, `schedule.ts`, `timetable.ts`, `materials.ts` (зокрема типи файлів уроку), `offline.ts`, `backup.ts`; поруч `*.test.ts` |
-| `import/` | `docx.ts`, `ktpParser.ts`, `applyImport.ts` (імпорт КТП) |
+| `import/` | `docx.ts`, `ktpParser.ts`, `plan.ts` (що створити й які дати розходяться), `applyImport.ts` (запис) — імпорт КТП; `data/mismatch.ts` — чим дата не збігається з розкладом |
 | `lib/` | `firebase.ts`, `drive.ts`, `offlineFiles.ts`, `storageInfo.ts`, `viewer.ts`, `useOfflinePlan.ts`, `useOnline.ts`, `confirm.ts`, `saved.ts`, `drag.ts`, `dates.ts`, `useClassifyLegacy.ts` |
 | `components/` | `Dialog`, `Confirm`, `Menu`, `Sortable`, `DatePicker`, `InlineText`, `RangeRow`, `Saved`, `FileViewer`, `PdfSlide`, `PdfScroll`, `ViewerHost` |
 | `pages/` | `TodayPage`, `ktp/` (зокрема `Materials` — вікно й полички), `year/` (уся сторінка року: рік, семестри, дні без уроків, класи, предмети з КТП, дзвінки, розклад), `settings/`, `LoginPage`, `SettingsPage` |
