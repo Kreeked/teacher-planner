@@ -1,5 +1,5 @@
 import { ChevronDown, Plus, Trash2 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createDoc, deleteRefs, ref, refsWhereCached, removeDoc, updateFields } from '../../data/db'
 import { hoursMismatch, parseHours, semesterWeeks, subjectIssue, type SubjectDraft } from '../../data/subjects'
 import type { AcademicYear, ClassGroup, Course, CourseClass, DayOff, Period } from '../../data/types'
@@ -24,9 +24,12 @@ type Props = {
 
 const byLetter = (a: ClassGroup, b: ClassGroup) => a.letter.localeCompare(b.letter, 'uk')
 
+/** Паралель картки — з першого обраного класу; без класів її немає. */
+const gradeOf = (classIds: string[], classes: ClassGroup[]) => classes.find((c) => c.id === classIds[0])?.grade ?? null
+
 const allValid = (cards: Card[]) => cards.length > 0 && cards.every((c) => !subjectIssue(c, cards.filter((o) => o !== c)))
 
-/** Предмети року: картка на предмет і клас-паралель, годин на тиждень у кожному семестрі й за рік, літери. */
+/** Предмети року: картка на КТП — назва, класи однієї паралелі, години на тиждень у кожному семестрі й за рік. */
 export function SubjectsStep({ year, courses, classes, links, periods, daysOff, onValid }: Props) {
   const [cards, setCards] = useState<Card[]>(() =>
     [...courses]
@@ -46,8 +49,24 @@ export function SubjectsStep({ year, courses, classes, links, periods, daysOff, 
         }
       }),
   )
+  const [open, setOpen] = useState<number | null>(null)
   const grades = [...new Set(classes.map((c) => c.grade))].sort((a, b) => a - b)
   const weeks = semesterWeeks(periods, daysOff)
+
+  // Список класів закривається кліком повз нього й клавішею Esc.
+  useEffect(() => {
+    if (open === null) return
+    const onDown = (e: PointerEvent) => {
+      if (!(e.target as Element).closest('.ob-sub-cls')) setOpen(null)
+    }
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(null)
+    document.addEventListener('pointerdown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('pointerdown', onDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
 
   /** Заповнену картку записуємо в КТП; недописану лишаємо тільки на екрані. */
   function persist(card: Card, all: Card[]): Card {
@@ -80,20 +99,16 @@ export function SubjectsStep({ year, courses, classes, links, periods, daysOff, 
     onValid(allValid(next))
   }
 
-  function pickGrade(key: number, value: string) {
-    const grade = value ? Number(value) : null
-    // Нова паралель — усі її літери, зайві знімаються.
-    change(key, { grade, classIds: classes.filter((c) => c.grade === grade).map((c) => c.id) })
-  }
-
   function toggle(card: Card, id: string) {
-    change(card.key, { classIds: card.classIds.includes(id) ? card.classIds.filter((x) => x !== id) : [...card.classIds, id] })
+    const classIds = card.classIds.includes(id) ? card.classIds.filter((x) => x !== id) : [...card.classIds, id]
+    change(card.key, { classIds, grade: gradeOf(classIds, classes) })
   }
 
   function add() {
     const next = [...cards, { key: ++seq, courseId: null, subject: '', grade: null, h1: '', h2: '', year: '', classIds: [], linked: {} }]
     setCards(next)
     onValid(false)
+    setOpen(null)
   }
 
   async function remove(card: Card) {
@@ -114,10 +129,12 @@ export function SubjectsStep({ year, courses, classes, links, periods, daysOff, 
     <>
       {cards.map((card) => {
         const others = cards.filter((o) => o !== card)
-        const taken = subjectIssue(card, others) === 'taken'
-        const zero = subjectIssue(card, others) === 'zero'
+        const issue = subjectIssue(card, others)
         const mismatch = hoursMismatch(card, weeks)
-        const own = classes.filter((c) => c.grade === card.grade).sort(byLetter)
+        const picked = card.classIds
+          .map((id) => classes.find((c) => c.id === id))
+          .filter((c): c is ClassGroup => !!c)
+          .sort((a, b) => a.grade - b.grade || byLetter(a, b))
         const color = card.grade === null ? undefined : gradeColor(card.grade)
         const hours = (field: 'h1' | 'h2' | 'year', label: string, max: number) => (
           <label className="ob-sub-f">
@@ -144,25 +161,58 @@ export function SubjectsStep({ year, courses, classes, links, periods, daysOff, 
                   onChange={(e) => change(card.key, { subject: e.target.value })}
                 />
               </label>
-              <label className="ob-sub-f grade">
-                Клас
-                <span className={card.grade === null ? 'ob-sub-sel' : 'ob-sub-sel on'}>
-                  {color && <i style={{ background: color }} />}
-                  <select value={card.grade ?? ''} aria-label="Клас" onChange={(e) => pickGrade(card.key, e.target.value)}>
-                    <option value="" disabled>
-                      Оберіть клас
-                    </option>
-                    {[...new Set([...grades, ...(card.grade === null ? [] : [card.grade])])]
-                      .sort((a, b) => a - b)
-                      .map((g) => (
-                        <option key={g} value={g}>
-                          {g} клас
-                        </option>
+              <div className="ob-sub-f cls">
+                Класи
+                <div className="ob-sub-cls">
+                  <button
+                    type="button"
+                    className={open === card.key ? 'ob-sub-dd open' : 'ob-sub-dd'}
+                    aria-haspopup="dialog"
+                    aria-expanded={open === card.key}
+                    onClick={() => setOpen(open === card.key ? null : card.key)}
+                  >
+                    <span className={picked.length ? undefined : 'empty'}>
+                      {color && <i style={{ background: color }} />}
+                      {picked.length ? picked.map((c) => c.display_name).join(', ') : 'Оберіть класи'}
+                    </span>
+                    <ChevronDown size={14} strokeWidth={2} aria-hidden />
+                  </button>
+                  {open === card.key && (
+                    <div className="ob-sub-pop" role="dialog" aria-label="Класи для цього предмета">
+                      <p>Класи для цього предмета</p>
+                      {grades.map((g) => (
+                        <div key={g} className={card.grade !== null && card.grade !== g ? 'ob-sub-grade dim' : 'ob-sub-grade'}>
+                          <span>{g} клас</span>
+                          <div>
+                            {classes
+                              .filter((c) => c.grade === g)
+                              .sort(byLetter)
+                              .map((c) => {
+                                const on = card.classIds.includes(c.id)
+                                const taken = !on && others.some((o) => o.classIds.includes(c.id))
+                                const off = !on && card.grade !== null && card.grade !== g
+                                return (
+                                  <button
+                                    key={c.id}
+                                    type="button"
+                                    className={on ? 'ob-sub-chip on' : taken ? 'ob-sub-chip taken' : 'ob-sub-chip'}
+                                    style={on ? { background: gradeColor(g) } : undefined}
+                                    aria-pressed={on}
+                                    aria-label={`${c.display_name}${taken ? ', уже в іншому предметі' : ''}`}
+                                    disabled={taken || off}
+                                    onClick={() => toggle(card, c.id)}
+                                  >
+                                    {c.letter || '—'}
+                                  </button>
+                                )
+                              })}
+                          </div>
+                        </div>
                       ))}
-                  </select>
-                  <ChevronDown size={14} strokeWidth={2} aria-hidden />
-                </span>
-              </label>
+                    </div>
+                  )}
+                </div>
+              </div>
               <button type="button" className="ob-sub-del" aria-label="Видалити предмет" onClick={() => remove(card)}>
                 <Trash2 size={16} strokeWidth={1.8} aria-hidden />
               </button>
@@ -174,28 +224,8 @@ export function SubjectsStep({ year, courses, classes, links, periods, daysOff, 
               {hours('year', 'Годин за рік', 3)}
             </div>
 
-            <div className="ob-sub-classes" role="group" aria-label="Класи">
-              <span className="ob-sub-cap">Класи</span>
-              {card.grade === null && <span className="ob-sub-hint">Обери клас, і з’являться його літери</span>}
-              {own.map((c) => {
-                const on = card.classIds.includes(c.id)
-                return (
-                  <button
-                    key={c.id}
-                    type="button"
-                    className={on ? 'ob-sub-chip on' : 'ob-sub-chip'}
-                    style={on ? { background: color } : undefined}
-                    aria-pressed={on}
-                    onClick={() => toggle(card, c.id)}
-                  >
-                    {c.display_name}
-                  </button>
-                )
-              })}
-            </div>
-
-            {taken && <p className="field-error ob-sub-err">Такий предмет для цього класу вже є</p>}
-            {zero && <p className="field-error ob-sub-err">Вкажи, скільки годин за рік</p>}
+            {issue === 'taken' && <p className="field-error ob-sub-err">У цій паралелі вже є КТП з такою назвою. Дай іншу</p>}
+            {issue === 'zero' && <p className="field-error ob-sub-err">Вкажи, скільки годин за рік</p>}
             {mismatch && <p className="field-error ob-sub-err">{mismatch}</p>}
           </div>
         )

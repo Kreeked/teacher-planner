@@ -5327,6 +5327,7 @@ a:not([class]):active {
 }
 
 .ob-sub {
+  position: relative;
   border: 1px solid var(--line);
   border-radius: 14px;
   padding: 16px;
@@ -5355,8 +5356,8 @@ a:not([class]):active {
   min-width: 0;
 }
 
-.ob-sub-f.grade {
-  width: 140px;
+.ob-sub-f.cls {
+  width: 176px;
   flex: none;
 }
 
@@ -5387,63 +5388,137 @@ a:not([class]):active {
   color: #a3a3ad;
 }
 
-.ob-sub-sel {
+.ob-sub-cls {
   position: relative;
+}
+
+.ob-sub-dd {
+  width: 100%;
   height: 36px;
   box-sizing: border-box;
-  display: flex;
-  align-items: center;
   border: 1.5px solid var(--line);
   border-radius: 10px;
   background: var(--surface);
-  color: #8a8a94;
-}
-
-.ob-sub-sel.on {
   color: var(--ink);
-}
-
-.ob-sub-sel:focus-within {
-  border-color: var(--ink);
-}
-
-.ob-sub-sel i {
-  position: absolute;
-  left: 12px;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  pointer-events: none;
-}
-
-.ob-sub-sel select {
-  width: 100%;
-  height: 100%;
-  appearance: none;
-  border: 0;
-  border-radius: 10px;
-  background: transparent;
-  color: inherit;
   font: inherit;
   font-size: 14px;
   font-weight: 500;
-  padding: 0 32px 0 12px;
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
   cursor: pointer;
 }
 
-.ob-sub-sel.on i + select {
-  padding-left: 30px;
-}
-
-.ob-sub-sel select:focus {
+.ob-sub-dd.open,
+.ob-sub-dd:focus-visible {
   outline: none;
+  border-color: var(--ink);
 }
 
-.ob-sub-sel svg {
-  position: absolute;
-  right: 12px;
+.ob-sub-dd span {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.ob-sub-dd span.empty {
+  color: #8a8a94;
+}
+
+.ob-sub-dd i {
+  width: 10px;
+  height: 10px;
+  flex: none;
+  border-radius: 50%;
+}
+
+.ob-sub-dd svg {
+  flex: none;
   color: var(--ink-2);
-  pointer-events: none;
+}
+
+.ob-sub-pop {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 260px;
+  box-sizing: border-box;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px;
+  box-shadow: 0 12px 32px rgba(31, 31, 36, 0.14);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ob-sub-pop p {
+  margin: 0 0 2px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+.ob-sub-grade {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ob-sub-grade.dim {
+  opacity: 0.35;
+}
+
+.ob-sub-grade > span {
+  width: 56px;
+  flex: none;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ob-sub-grade > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ob-sub-chip {
+  width: 38px;
+  height: 30px;
+  box-sizing: border-box;
+  padding: 0;
+  border-radius: 999px;
+  border: 1.5px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.ob-sub-chip.on {
+  border-color: var(--ink);
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.ob-sub-chip.taken {
+  opacity: 0.45;
+  text-decoration: line-through;
+  text-decoration-color: #a3a3ad;
+}
+
+.ob-sub-chip:disabled {
+  cursor: default;
 }
 
 .ob-sub-del {
@@ -5460,50 +5535,12 @@ a:not([class]):active {
   cursor: pointer;
 }
 
+/* Під полями «Назва» і «Класи»: праворуч лишається місце кнопки видалення. */
 .ob-sub-hours {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
-}
-
-.ob-sub-classes {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  min-height: 30px;
-}
-
-.ob-sub-cap {
-  margin-right: 4px;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--ink-2);
-}
-
-.ob-sub-hint {
-  font-size: 13px;
-  color: #8a8a94;
-}
-
-.ob-sub-chip {
-  height: 30px;
-  box-sizing: border-box;
-  padding: 0 14px;
-  border-radius: 999px;
-  border: 1.5px solid var(--line);
-  background: var(--surface);
-  color: var(--ink-2);
-  font: inherit;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.ob-sub-chip.on {
-  border-color: var(--ink);
-  color: var(--ink);
-  font-weight: 700;
+  margin-right: 46px;
 }
 
 .ob-sub-err {
