@@ -8,6 +8,7 @@ import { commit, flushDraft, newBatch, updateFields, useCollection } from '../..
 import { discardDraft, hasDraft, stopDraft } from '../../data/draft'
 import { STEPS, canProceed, countsOf } from '../../data/onboarding'
 import { toISO } from '../../data/schedule'
+import { unscheduledBySemester } from '../../data/semesterSchedule'
 import { unassignedClasses } from '../../data/subjects'
 import type { Shift } from '../../data/timetable'
 import type { AcademicYear, DayOff, Period } from '../../data/types'
@@ -17,11 +18,11 @@ import { notifySaved } from '../../lib/saved'
 import { clearOnboarding, getOnboardingStep, setOnboardingStep } from '../../lib/onboarding'
 import { hideSplash } from '../../lib/splash'
 import { createYear } from '../year/createYear'
-import { ScheduleSection } from '../year/ScheduleSection'
 import { useYearData } from '../year/useYearData'
 import { syncVacations } from '../year/vacations'
 import { BellsStep } from './BellsStep'
 import { ClassesStep } from './ClassesStep'
+import { ScheduleStep } from './ScheduleStep'
 import { SemestersStep } from './SemestersStep'
 import { SubjectsStep } from './SubjectsStep'
 import { YearFields, yearTitleError } from './YearFields'
@@ -105,7 +106,7 @@ export function Wizard({ onExit, onDone }: Props) {
       const list = names.length > 8 ? `${names.slice(0, 8).join(', ')} та ще ${names.length - 8}` : names.join(', ')
       if (
         free.length &&
-        !(await ask(`Не всі класи розподілено між предметами: ${list}. Для них не буде КТП. Продовжити без них чи повернутися й розподілити?`, {
+        !(await ask(`Не всі класи розподілено між предметами: ${list}. Для них не буде створено КТП. Продовжити без них чи повернутися й розподілити?`, {
           title: 'Не всі класи розподілено',
           ok: 'Продовжити',
           cancel: 'Повернутися',
@@ -125,6 +126,22 @@ export function Wizard({ onExit, onDone }: Props) {
       commit(batch)
       go(step + 1)
     } else if (last) {
+      const missing = unscheduledBySemester({
+        periods: data.periods,
+        timetables: data.timetables,
+        entries: data.entries,
+        courses: data.courses,
+        classes: data.classes,
+        links: data.links,
+      })
+      if (
+        missing.length &&
+        !(await ask(
+          `Не всі класи розподілено в розкладі: ${missing.map((m) => `${m.semester.title} — ${m.classes.map((c) => c.display_name).join(', ')}`).join('; ')}. Розпочати роботу з таким розкладом чи повернутися й розподілити?`,
+          { title: 'Не всі класи розподілено', ok: 'Почати роботу', cancel: 'Повернутися', danger: false },
+        ))
+      )
+        return
       // Лише тепер рік потрапляє в базу.
       flushDraft()
       stopDraft()
@@ -156,7 +173,7 @@ export function Wizard({ onExit, onDone }: Props) {
       </div>
 
       <div className="ob-center">
-        <main className="ob-main">
+        <main className={current.id === 'schedule' ? 'ob-main wide' : 'ob-main'}>
           <header className="ob-head">
             <p>
               Крок <span className="num">{step + 1}</span> з {STEPS.length}
@@ -165,8 +182,8 @@ export function Wizard({ onExit, onDone }: Props) {
             <p className="ob-lead">{current.lead}</p>
           </header>
 
-          <section className={current.id === 'year' ? 'ob-block year' : current.id === 'classes' ? 'ob-block cls' : current.id === 'subjects' ? 'ob-block subj' : current.id === 'bells' ? 'ob-block bells' : 'ob-block'} aria-labelledby="ob-title">
-            <div className={current.id === 'periods' ? 'ob-body ob-sem' : current.id === 'classes' ? 'ob-body ob-cls' : current.id === 'subjects' ? 'ob-body ob-subj' : current.id === 'bells' ? 'ob-body ob-bell' : 'ob-body yp'} key={current.id}>
+          <section className={current.id === 'year' ? 'ob-block year' : current.id === 'classes' ? 'ob-block cls' : current.id === 'subjects' ? 'ob-block subj' : current.id === 'bells' ? 'ob-block bells' : current.id === 'schedule' ? 'ob-block sch' : 'ob-block'} aria-labelledby="ob-title">
+            <div className={current.id === 'periods' ? 'ob-body ob-sem' : current.id === 'classes' ? 'ob-body ob-cls' : current.id === 'subjects' ? 'ob-body ob-subj' : current.id === 'bells' ? 'ob-body ob-bell' : current.id === 'schedule' ? 'ob-body ob-sch' : 'ob-body yp'} key={current.id}>
               {current.id === 'year' &&
                 (year ? (
                   <ExistingYear year={year} periods={data.periods} daysOff={data.daysOff} others={years.filter((y) => y.id !== year.id)} />
@@ -198,15 +215,15 @@ export function Wizard({ onExit, onDone }: Props) {
                 <BellsStep year={year} bells={data.bells[0]} entries={data.entries} shift={bellShift} onShift={setBellShift} />
               )}
               {year && current.id === 'schedule' && (
-                <ScheduleSection
+                <ScheduleStep
                   year={year}
+                  periods={data.periods}
                   bells={data.bells[0]}
                   timetables={data.timetables}
                   entries={data.entries}
                   courses={data.courses}
                   classes={data.classes}
                   links={data.links}
-                  daysOff={data.daysOff}
                   shift={scheduleShift}
                   onShift={setScheduleShift}
                 />

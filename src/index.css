@@ -5866,3 +5866,108 @@ a:not([class]):active {
   color: var(--ink-2);
   text-align: center;
 }
+
+/* Крок «Розклад» */
+.ob-main.wide {
+  max-width: 760px;
+}
+
+.ob-block.sch {
+  margin-top: 24px;
+}
+
+.ob-sch {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ob-sch-top {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+}
+
+.ob-sch-grid {
+  display: grid;
+  grid-template-columns: 64px repeat(5, minmax(0, 1fr));
+  gap: 6px;
+  align-items: center;
+}
+
+.ob-sch-grid .day {
+  padding-bottom: 2px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.ob-sch-grid .slot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ob-sch-grid .slot b {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--bg);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ob-sch-grid .slot > span {
+  display: flex;
+  flex-direction: column;
+  font-size: 11px;
+  line-height: 1.25;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.ob-sch-cell {
+  height: 40px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 0 8px;
+  border: 1.5px dashed var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.ob-sch-cell.filled {
+  border-color: transparent;
+}
+
+.ob-sch-cell.on {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.ob-sch-note {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+
+.menu-item:disabled {
+  opacity: 0.4;
+  cursor: default;
+}

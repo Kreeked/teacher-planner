@@ -13,6 +13,8 @@ export type MenuItem = {
   // Дрібний текст праворуч, наприклад кількість файлів.
   hint?: string
   danger?: boolean
+  // Пункт видно, але вибрати його не можна.
+  disabled?: boolean
 }
 
 // Групи пунктів розділяються лінією. trigger — власний вміст кнопки (наприклад, «Додати») замість «⋯».
@@ -45,7 +47,7 @@ export function Menu({ label, groups, trigger, triggerClass = 'icon-btn menu-btn
       top: below ? r.bottom + 4 : Math.max(8, r.top - 4 - h),
       left: Math.max(8, Math.min(align === 'start' ? r.left : r.right - w, window.innerWidth - w - 8)),
     })
-    pop.current.querySelector('button')?.focus()
+    pop.current.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus()
   }, [open, align])
 
   useEffect(() => {
@@ -64,7 +66,7 @@ export function Menu({ label, groups, trigger, triggerClass = 'icon-btn menu-btn
       }
       if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return
       e.preventDefault()
-      const items = [...(pop.current?.querySelectorAll('button') ?? [])]
+      const items = [...(pop.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)') ?? [])]
       const i = items.indexOf(document.activeElement as HTMLButtonElement)
       const next = e.key === 'ArrowDown' ? i + 1 : i - 1
       items[(next + items.length) % items.length]?.focus()
@@ -119,6 +121,7 @@ export function Menu({ label, groups, trigger, triggerClass = 'icon-btn menu-btn
                     role={item.checked === undefined ? 'menuitem' : 'menuitemradio'}
                     aria-checked={item.checked}
                     className={['menu-item', item.danger && 'danger', item.checked && 'sel'].filter(Boolean).join(' ')}
+                    disabled={item.disabled}
                     onClick={() => pick(item)}
                   >
                     {item.swatch ? (
