@@ -30,6 +30,7 @@ export const ROMAN = ['І', 'ІІ', 'ІІІ', 'ІV', 'V', 'VI']
 type Range = { start_date: ISODate; end_date: ISODate }
 
 function overlaps(a: Range, b: Range) {
+  if (!a.start_date || !a.end_date || !b.start_date || !b.end_date) return false
   return a.start_date <= b.end_date && b.start_date <= a.end_date
 }
 

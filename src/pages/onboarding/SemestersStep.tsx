@@ -58,6 +58,9 @@ function SemesterCard({ n, period, periods, daysOff, year, prev, next, vacation,
       notifySaved()
     },
   })
+  // Календар не дає вибрати дату, після якої семестр випустить свої канікули за межі.
+  const startMax = [r.draft.end_date, vacation?.start_date].filter(Boolean).sort()[0] || undefined
+  const endMin = [r.draft.start_date, vacation?.end_date].filter(Boolean).sort().reverse()[0] || undefined
   return (
     <div className="ob-sem-card">
       <div className="ob-sem-row">
@@ -67,21 +70,16 @@ function SemesterCard({ n, period, periods, daysOff, year, prev, next, vacation,
           {lockStart ? (
             <LockedDate value={r.draft.start_date} label={`Початок ${period.title}`} />
           ) : (
-            <DatePicker numeric trailingIcon label={`Початок ${period.title}`} value={r.draft.start_date || null} min={prev?.end_date ? shiftDay(prev.end_date, 1) : year.start_date} max={r.draft.end_date || undefined} onChange={r.setStart} />
+            <DatePicker numeric trailingIcon label={`Початок ${period.title}`} value={r.draft.start_date || null} min={prev?.end_date ? shiftDay(prev.end_date, 1) : year.start_date} max={startMax} onChange={r.setStart} />
           )}
           {lockEnd ? (
             <LockedDate value={r.draft.end_date} label={`Кінець ${period.title}`} />
           ) : (
-            <DatePicker numeric trailingIcon label={`Кінець ${period.title}`} value={r.draft.end_date || null} min={r.draft.start_date || undefined} max={next?.start_date ? shiftDay(next.start_date, -1) : year.end_date} onChange={r.setEnd} />
+            <DatePicker numeric trailingIcon label={`Кінець ${period.title}`} value={r.draft.end_date || null} min={endMin} max={next?.start_date ? shiftDay(next.start_date, -1) : year.end_date} onChange={r.setEnd} />
           )}
         </Dates>
       </div>
       {caption && <p className="ob-sem-caption">{caption}</p>}
-      {r.error && (
-        <p className="field-error ob-sem-error" role="alert">
-          {r.error}
-        </p>
-      )}
     </div>
   )
 }
@@ -106,20 +104,17 @@ function VacationCard({ kind, doc, fallback, year, semester, others }: VacationP
       notifySaved()
     },
   })
+  // Доки не вказано дати семестру, канікули в ньому вибрати нема з чим порівняти.
+  const ready = !!semester.start_date && !!semester.end_date
   return (
     <div className="ob-sem-card slim">
       <div className="ob-sem-row">
         <b className="ob-sem-vac">{label}</b>
         <Dates>
-          <DatePicker numeric trailingIcon label={`Початок: ${label}`} value={r.draft.start_date || null} min={semester.start_date || undefined} max={r.draft.end_date && r.draft.end_date < semester.end_date ? r.draft.end_date : semester.end_date || undefined} onChange={r.setStart} />
-          <DatePicker numeric trailingIcon label={`Кінець: ${label}`} value={r.draft.end_date || null} min={r.draft.start_date && r.draft.start_date > semester.start_date ? r.draft.start_date : semester.start_date || undefined} max={semester.end_date || undefined} onChange={r.setEnd} />
+          <DatePicker numeric trailingIcon disabled={!ready} label={`Початок: ${label}`} value={r.draft.start_date || null} min={semester.start_date || undefined} max={r.draft.end_date && r.draft.end_date < semester.end_date ? r.draft.end_date : semester.end_date || undefined} onChange={r.setStart} />
+          <DatePicker numeric trailingIcon disabled={!ready} label={`Кінець: ${label}`} value={r.draft.end_date || null} min={r.draft.start_date && r.draft.start_date > semester.start_date ? r.draft.start_date : semester.start_date || undefined} max={semester.end_date || undefined} onChange={r.setEnd} />
         </Dates>
       </div>
-      {r.error && (
-        <p className="field-error ob-sem-error" role="alert">
-          {r.error}
-        </p>
-      )}
     </div>
   )
 }

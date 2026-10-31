@@ -18,6 +18,8 @@ export function vacationKind(title: string): VacationKind | undefined {
 }
 
 function overlaps(a: Range, b: Range) {
+  // Ще не вказана дата ні з чим не перетинається.
+  if (!a.start_date || !a.end_date || !b.start_date || !b.end_date) return false
   return a.start_date <= b.end_date && b.start_date <= a.end_date
 }
 
