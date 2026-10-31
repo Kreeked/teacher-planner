@@ -78,6 +78,11 @@ function saveToken(t: Token | null) {
   }
 }
 
+/** Забуває токен Диска: після виходу з акаунта його не має підхопити інший користувач. */
+export function forgetDriveToken() {
+  saveToken(null)
+}
+
 /** Чинний токен без вікна Google, або null. Для фонової роботи. */
 export function savedDriveToken() {
   return token && token.expires > Date.now() + 5 * 60_000 ? token.value : null
@@ -184,9 +189,19 @@ async function fetchAuthed(url: string, init: RequestInit = {}) {
   return r
 }
 
+/** Зрозуміле пояснення помилки Диска; reason — з тіла відповіді. */
+async function failure(r: Response) {
+  const body = (await r.clone().json().catch(() => null)) as { error?: { errors?: { reason?: string }[] } } | null
+  const reason = body?.error?.errors?.[0]?.reason
+  if (reason === 'exportSizeLimitExceeded') return new DriveError('Файл завеликий, щоб Google зробив із нього PDF (понад 10 МБ).')
+  if (r.status === 404) return new DriveError('Файл не знайдено на Диску або застосунок не має до нього доступу. Додай файл з Диска ще раз.')
+  if (r.status === 403) return new DriveError('Google Диск не дозволив доступ до файлу.')
+  return new DriveError(`Google Диск відповів помилкою ${r.status}.`)
+}
+
 async function api<T>(url: string, init: RequestInit = {}): Promise<T> {
   const r = await fetchAuthed(url, init)
-  if (!r.ok) throw new DriveError(`Google Диск відповів помилкою ${r.status}.`)
+  if (!r.ok) throw await failure(r)
   return r.json() as Promise<T>
 }
 
@@ -287,7 +302,7 @@ const GOOGLE_APPS = 'application/vnd.google-apps.'
 
 async function authorized(url: string, init: RequestInit = {}) {
   const r = await fetchAuthed(url, init)
-  if (!r.ok) throw new DriveError(`Google Диск відповів помилкою ${r.status}.`)
+  if (!r.ok) throw await failure(r)
   return r
 }
 

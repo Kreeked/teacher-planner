@@ -132,6 +132,8 @@ export async function syncOffline(all: LessonMaterial[], interactive: boolean) {
   let error = ''
   for (const m of missing) {
     const id = m.drive_file_id!
+    // Токен діє годину: у фоні не відкриваємо вікно Google посеред синхронізації, а просто зупиняємось.
+    if (!interactive && !savedDriveToken()) break
     try {
       saved.set(id, await putCopy(cache, m, await fetchCopy(m)))
     } catch (e) {
