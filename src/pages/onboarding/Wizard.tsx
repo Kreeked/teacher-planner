@@ -14,11 +14,11 @@ import { defaultYear, defaultYearStart, fitPeriods, pickCurrentYear, validateYea
 import { notifySaved } from '../../lib/saved'
 import { clearOnboarding, getOnboardingStep, setOnboardingStep } from '../../lib/onboarding'
 import { hideSplash } from '../../lib/splash'
-import { BellsSection } from '../year/BellsSection'
 import { createYear } from '../year/createYear'
 import { ScheduleSection } from '../year/ScheduleSection'
 import { useYearData } from '../year/useYearData'
 import { syncVacations } from '../year/vacations'
+import { BellsStep } from './BellsStep'
 import { ClassesStep } from './ClassesStep'
 import { SemestersStep } from './SemestersStep'
 import { SubjectsStep } from './SubjectsStep'
@@ -148,8 +148,8 @@ export function Wizard({ onExit, onDone }: Props) {
             <p className="ob-lead">{current.lead}</p>
           </header>
 
-          <section className={current.id === 'year' ? 'ob-block year' : current.id === 'classes' ? 'ob-block cls' : current.id === 'subjects' ? 'ob-block subj' : 'ob-block'} aria-labelledby="ob-title">
-            <div className={current.id === 'periods' ? 'ob-body ob-sem' : current.id === 'classes' ? 'ob-body ob-cls' : current.id === 'subjects' ? 'ob-body ob-subj' : 'ob-body yp'} key={current.id}>
+          <section className={current.id === 'year' ? 'ob-block year' : current.id === 'classes' ? 'ob-block cls' : current.id === 'subjects' ? 'ob-block subj' : current.id === 'bells' ? 'ob-block bells' : 'ob-block'} aria-labelledby="ob-title">
+            <div className={current.id === 'periods' ? 'ob-body ob-sem' : current.id === 'classes' ? 'ob-body ob-cls' : current.id === 'subjects' ? 'ob-body ob-subj' : current.id === 'bells' ? 'ob-body ob-bell' : 'ob-body yp'} key={current.id}>
               {current.id === 'year' &&
                 (year ? (
                   <ExistingYear year={year} periods={data.periods} daysOff={data.daysOff} others={years.filter((y) => y.id !== year.id)} />
@@ -178,7 +178,7 @@ export function Wizard({ onExit, onDone }: Props) {
                 />
               )}
               {year && current.id === 'bells' && (
-                <BellsSection year={year} bells={data.bells[0]} entries={data.entries} shift={bellShift} onShift={setBellShift} />
+                <BellsStep year={year} bells={data.bells[0]} entries={data.entries} shift={bellShift} onShift={setBellShift} />
               )}
               {year && current.id === 'schedule' && (
                 <ScheduleSection

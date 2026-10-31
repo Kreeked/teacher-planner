@@ -10,8 +10,8 @@ export const SHIFTS: { value: Shift; label: string }[] = [
 
 /** Типові дзвінки зміни: початок, тривалість уроку й перерви після кожного уроку (після останнього — 0). */
 export const DEFAULT_BELLS: Record<Shift, { start: string; minutes: number; breaks: number[] }> = {
-  1: { start: '08:30', minutes: 45, breaks: [10, 10, 20, 20, 10, 10, 0] },
-  2: { start: '14:10', minutes: 45, breaks: [10, 10, 15, 10, 0] },
+  1: { start: '08:00', minutes: 45, breaks: [5, 10, 10, 10, 10, 10, 0] },
+  2: { start: '14:15', minutes: 45, breaks: [5, 10, 10, 5, 5, 0] },
 }
 
 export function defaultSlots(shift: Shift) {
@@ -70,6 +70,47 @@ export function validateBells(slots: BellSlot[]): string | null {
     if (next && toMinutes(next.start) < toMinutes(s.end)) return `Урок ${next.number} починається до кінця уроку ${s.number}`
   }
   return null
+}
+
+/** Параметри зміни, з яких рахується час усіх уроків: початок першого, тривалість уроку й перерви після кожного. */
+export function shiftParams(slots: BellSlot[], shift: Shift) {
+  const first = slots[0]
+  const d = DEFAULT_BELLS[shift]
+  return {
+    start: first?.start ?? d.start,
+    minutes: first ? minutesBetween(first.start, first.end) : d.minutes,
+    breaks: slots.map((s) => s.break_after),
+  }
+}
+
+/** Дзвінки зміни з її параметрів (перерва після останнього уроку — 0); null, якщо день їх не вміщає. */
+export function buildBells(start: string, minutes: number, breaks: number[]): BellSlot[] | null {
+  const own = breaks.map((b, i) => (i === breaks.length - 1 ? 0 : b))
+  if (toMinutes(start) + own.reduce((sum, b) => sum + minutes + b, 0) >= 24 * 60) return null
+  return computeBells(start, minutes, own)
+}
+
+/** Кінець останнього уроку зміни, якщо в ній є уроки. */
+export function lastEnd(slots: BellSlot[]) {
+  return slots.length ? slots[slots.length - 1].end : undefined
+}
+
+/** Друга зміна починається раніше, ніж закінчується перша. */
+export function shiftsOverlap(first: BellSlot[], second: BellSlot[]) {
+  return first.length > 0 && second.length > 0 && toMinutes(second[0].start) < toMinutes(first[first.length - 1].end)
+}
+
+/**
+ * Між якими часами може починатися перший урок зміни: друга зміна не раніше за кінець першої,
+ * а перша має встигнути закінчитися до початку другої.
+ */
+export function startLimits(bells: Pick<BellSchedule, 'slots' | 'second_shift'> | undefined, shift: Shift): { min?: string; max?: string } {
+  const first = shiftSlots(bells, 1)
+  const second = shiftSlots(bells, 2)
+  if (shift === 2) return first.length ? { min: lastEnd(first) } : {}
+  if (!first.length || !second.length) return {}
+  const span = minutesBetween(first[0].start, first[first.length - 1].end)
+  return { max: toTime(Math.max(0, toMinutes(second[0].start) - span)) }
 }
 
 /** Шаблон, що діє в цей день. */

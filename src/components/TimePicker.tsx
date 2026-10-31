@@ -8,6 +8,10 @@ type Props = {
   label: string
   // Повертає false, коли час не підходить (наприклад, ламає порядок уроків).
   onChange: (time: string) => boolean | void
+  // Межі, поза якими час недоступний («HH:MM», включно).
+  min?: string
+  max?: string
+  className?: string
 }
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i)
@@ -16,15 +20,22 @@ const POP_W = 168
 const POP_H = 264
 
 const two = (n: number) => String(n).padStart(2, '0')
+const toMin = (t: string) => {
+  const [hh, mm] = t.split(':').map(Number)
+  return hh * 60 + mm
+}
 
 /** Поле часу з випадаючим вибором години й хвилини в стилі застосунку замість системного вікна. */
-export function TimePicker({ value, label, onChange }: Props) {
+export function TimePicker({ value, label, onChange, min, max, className = 'date-btn field time-btn' }: Props) {
   const [open, setOpen] = useState(false)
   const [hour, setHour] = useState(0)
   const [pos, setPos] = useState<CSSProperties>({})
   const button = useRef<HTMLButtonElement>(null)
   const pop = useRef<HTMLDivElement>(null)
   const [h, m] = value.split(':').map(Number)
+  const lo = min ? toMin(min) : 0
+  const hi = max ? toMin(max) : 24 * 60
+  const outside = (minutes: number) => minutes < lo || minutes > hi
 
   // Список під полем, а якщо внизу мало місця — над ним; не виходить за край екрана.
   useLayoutEffect(() => {
@@ -78,7 +89,7 @@ export function TimePicker({ value, label, onChange }: Props) {
       <button
         ref={button}
         type="button"
-        className="date-btn field time-btn"
+        className={className}
         aria-label={`${label}: ${value}`}
         aria-haspopup="dialog"
         aria-expanded={open}
@@ -100,6 +111,7 @@ export function TimePicker({ value, label, onChange }: Props) {
                   type="button"
                   role="option"
                   aria-selected={x === hour}
+                  disabled={x * 60 + 59 < lo || x * 60 > hi}
                   className={x === hour ? 'time-opt sel' : 'time-opt'}
                   onClick={() => setHour(x)}
                 >
@@ -114,6 +126,7 @@ export function TimePicker({ value, label, onChange }: Props) {
                   type="button"
                   role="option"
                   aria-selected={x === m && hour === h}
+                  disabled={outside(hour * 60 + x)}
                   className={x === m && hour === h ? 'time-opt sel' : 'time-opt'}
                   onClick={() => pickMinute(x)}
                 >
