@@ -74,6 +74,11 @@ h2 {
   min-height: 100dvh;
 }
 
+/* Після заставки застосунок з'являється плавно. */
+.shell {
+  animation: fade-in 0.4s ease-out;
+}
+
 /* ---------- Каркас ---------- */
 .shell {
   min-height: 100dvh;

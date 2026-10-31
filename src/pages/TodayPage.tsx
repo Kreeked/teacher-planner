@@ -8,6 +8,7 @@ import { toISO } from '../data/schedule'
 import { materialsOf } from '../data/materials'
 import type { AcademicYear, ISODate, LessonMaterial, Topic } from '../data/types'
 import { LessonShelves, MaterialsDialog } from './ktp/Materials'
+import { hideSplash } from '../lib/splash'
 import { useClassifyLegacy } from '../lib/useClassifyLegacy'
 import { gradeColor, shortDate } from '../data/year'
 import { BellList } from '../layout/BellList'
@@ -49,6 +50,9 @@ export function TodayPage() {
   const { items: materials } = useCollection('lesson_materials')
   const { items: years } = useCollection('academic_years')
   useClassifyLegacy(materials)
+  useEffect(() => {
+    if (!loading) hideSplash()
+  }, [loading])
   const data: DayData = { schedules, lessons, courses, classes, timetables, entries, bells }
 
   const marked = new Set(schedules.flatMap((s) => (s.planned_date ? [s.planned_date] : [])))

@@ -12,9 +12,54 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&display=swap" />
     <title>Планер</title>
+    <style>
+      /* Заставка: видна ще до завантаження скриптів, зникає, коли готовий перший екран. */
+      #splash {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: grid;
+        place-items: center;
+        background: #f3f3f0;
+        transition: opacity 0.35s ease;
+      }
+      #splash.hide {
+        opacity: 0;
+        pointer-events: none;
+      }
+      #splash svg {
+        width: 84px;
+        height: 84px;
+        animation: splash-breathe 1.6s ease-in-out infinite;
+      }
+      @keyframes splash-breathe {
+        50% {
+          transform: scale(1.08);
+          opacity: 0.85;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #splash svg {
+          animation: none;
+        }
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
+    <div id="splash" aria-hidden="true">
+      <svg viewBox="0 0 100 100">
+        <path d="M47 32C38 23 22 21 9 26V72C22 67 38 68 47 78Z" fill="#f4cf5c" stroke="#f4cf5c" stroke-width="6" stroke-linejoin="round" />
+        <path d="M53 32C62 23 78 21 91 26V72C78 67 62 68 53 78Z" fill="#b9a2ea" stroke="#b9a2ea" stroke-width="6" stroke-linejoin="round" />
+      </svg>
+    </div>
+    <script>
+      // Запасний вихід: якщо застосунок не відгукнувся, заставка не лишається назавжди.
+      setTimeout(function () {
+        var el = document.getElementById('splash')
+        if (el) el.classList.add('hide')
+      }, 8000)
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
