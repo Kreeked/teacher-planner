@@ -123,7 +123,7 @@ export function ScheduleStep({ year, periods, bells, timetables, entries, course
         </div>
       )}
 
-      <div className={index === 0 || sems.length < 2 ? 'ob-sch-panel first' : 'ob-sch-panel'}>
+      <div className="ob-sch-panel">
       {!missing && (
         <div className="ob-sch-top">
           <Pills label="Зміна" items={SHIFTS} value={shift} onChange={onShift} />
@@ -144,13 +144,6 @@ export function ScheduleStep({ year, periods, bells, timetables, entries, course
         </div>
       ) : (
         <>
-          {unplaced.length > 0 && (
-            <p className="ob-sub-warn">
-              <TriangleAlert size={16} strokeWidth={2} aria-hidden />
-              Не розставлено {classesWord(unplaced.length)}: {unplaced.map((c) => c.display_name).join(', ')}
-            </p>
-          )}
-
           {rows.length === 0 ? (
             <p className="ob-bell-empty">Додай уроки в «Дзвінках» цієї зміни: тоді їх можна буде поставити в розклад.</p>
           ) : (
@@ -210,6 +203,13 @@ export function ScheduleStep({ year, periods, bells, timetables, entries, course
                 ]
               })}
             </div>
+          )}
+
+          {unplaced.length > 0 && (
+            <p className="ob-sub-warn">
+              <TriangleAlert size={16} strokeWidth={2} aria-hidden />
+              Не розставлено {classesWord(unplaced.length)}: {unplaced.map((c) => c.display_name).join(', ')}
+            </p>
           )}
         </>
       )}

@@ -5889,7 +5889,7 @@ a:not([class]):active {
   display: flex;
   align-items: flex-end;
   gap: 4px;
-  padding-left: 12px;
+  padding-left: var(--r-xl);
 }
 
 .ob-sch-tabs button {
@@ -5934,10 +5934,6 @@ a:not([class]):active {
   gap: 14px;
   border-radius: var(--r-xl);
   background: var(--surface);
-}
-
-.ob-sch-panel.first {
-  border-top-left-radius: 0;
 }
 
 .ob-sch-top {
