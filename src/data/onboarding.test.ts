@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { canProceed, classesWord, countsOf, type Counts } from './onboarding'
 
-const empty: Counts = { year: false, semesters: 0, classes: 0, courses: 0, slots: 0, placed: 0 }
+const empty: Counts = { year: false, semesters: 0, classes: 0, courses: 0, slots: 0 }
 
 describe('canProceed', () => {
   it('без року не можна піти далі', () => {
@@ -9,9 +9,8 @@ describe('canProceed', () => {
     expect(canProceed('year', { ...empty, year: true })).toBe(true)
   })
 
-  it('розклад не може бути порожнім', () => {
-    expect(canProceed('schedule', empty)).toBe(false)
-    expect(canProceed('schedule', { ...empty, placed: 1 })).toBe(true)
+  it('розклад сам по собі не блокує: його перевіряє майстер', () => {
+    expect(canProceed('schedule', empty)).toBe(true)
   })
 
   it('класи, предмети й дзвінки обовʼязкові', () => {
@@ -37,8 +36,7 @@ describe('countsOf', () => {
       classes: [1],
       courses: [],
       bells: { slots: [slot], second_shift: [slot, slot] },
-      entries: [1, 2],
     })
-    expect(c).toEqual({ year: true, semesters: 1, classes: 1, courses: 0, slots: 3, placed: 2 })
+    expect(c).toEqual({ year: true, semesters: 1, classes: 1, courses: 0, slots: 3 })
   })
 })

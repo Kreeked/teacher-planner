@@ -5889,6 +5889,49 @@ a:not([class]):active {
   gap: 8px 20px;
 }
 
+.ob-sch-del {
+  margin-left: auto;
+  height: 32px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.ob-sch-del:hover {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.ob-sch-empty {
+  box-sizing: border-box;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  border: 1.5px dashed var(--line);
+  border-radius: 16px;
+  color: var(--ink-2);
+  font-size: 14px;
+}
+
+.ob-sch-empty p {
+  margin: 0;
+}
+
+.ob-sch-empty .ob-sub-add {
+  padding: 0 20px;
+}
+
 .ob-sch-grid {
   display: grid;
   grid-template-columns: 64px repeat(5, minmax(0, 1fr));

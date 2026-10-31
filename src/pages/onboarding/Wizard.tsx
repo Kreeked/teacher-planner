@@ -8,7 +8,7 @@ import { commit, flushDraft, newBatch, updateFields, useCollection } from '../..
 import { discardDraft, hasDraft, stopDraft } from '../../data/draft'
 import { STEPS, canProceed, countsOf } from '../../data/onboarding'
 import { toISO } from '../../data/schedule'
-import { emptySemesters } from '../../data/semesterSchedule'
+import { scheduleComplete } from '../../data/semesterSchedule'
 import { unassignedClasses } from '../../data/subjects'
 import type { Shift } from '../../data/timetable'
 import type { AcademicYear, DayOff, Period } from '../../data/types'
@@ -74,7 +74,7 @@ export function Wizard({ onExit, onDone }: Props) {
   const [yearId, setYearId] = useState<string | null>(null)
   const year = years.find((y) => y.id === yearId) ?? pickCurrentYear(years, today)
   const data = useYearData(year)
-  const counts = countsOf({ year, periods: data.periods, classes: data.classes, courses: data.courses, bells: data.bells[0], entries: data.entries })
+  const counts = countsOf({ year, periods: data.periods, classes: data.classes, courses: data.courses, bells: data.bells[0] })
 
   // Нова чернетка року порожня: усе вказує користувач.
   const [draft, setDraft] = useState({ title: '', start: '', end: '' })
@@ -92,7 +92,7 @@ export function Wizard({ onExit, onDone }: Props) {
 
   const current = STEPS[step]
   const last = step === STEPS.length - 1
-  const ready = year ? canProceed(current.id, counts) && (current.id !== 'subjects' || subjectsValid) && (current.id !== 'semesters' || semestersComplete(data.periods)) && (current.id !== 'vacations' || vacationsComplete(data.periods, data.daysOff)) : !draftError
+  const ready = year ? canProceed(current.id, counts) && (current.id !== 'subjects' || subjectsValid) && (current.id !== 'semesters' || semestersComplete(data.periods)) && (current.id !== 'vacations' || vacationsComplete(data.periods, data.daysOff)) && (current.id !== 'schedule' || scheduleComplete(data)) : !draftError
 
   function go(n: number) {
     setSubjectsValid(true)
@@ -129,22 +129,6 @@ export function Wizard({ onExit, onDone }: Props) {
       commit(batch)
       go(step + 1)
     } else if (last) {
-      const empty = emptySemesters({
-        periods: data.periods,
-        timetables: data.timetables,
-        entries: data.entries,
-        courses: data.courses,
-        classes: data.classes,
-        links: data.links,
-      })
-      if (
-        empty.length &&
-        !(await ask(
-          `${empty.length > 1 ? 'Розклад порожній у семестрах' : 'Розклад порожній у семестрі'}: ${empty.map((x) => x.title).join(', ')}. Почати роботу без нього чи повернутися й розставити класи?`,
-          { title: 'Розклад семестру порожній', ok: 'Почати роботу', cancel: 'Повернутися', danger: false },
-        ))
-      )
-        return
       // Лише тепер рік потрапляє в базу.
       flushDraft()
       stopDraft()
