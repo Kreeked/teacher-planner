@@ -3,6 +3,7 @@ import {
   deleteDoc,
   doc,
   getDocs,
+  getDocsFromCache,
   onSnapshot,
   query,
   serverTimestamp,
@@ -74,6 +75,13 @@ export function removeDoc(name: CollectionName, id: string) {
 /** Посилання на всі документи колекції з полем field == value (з кешу, якщо немає мережі). */
 export async function refsWhere(name: CollectionName, field: string, value: string) {
   const snap = await getDocs(query(col(name), where(field, '==', value)))
+  return snap.docs.map((d) => d.ref)
+}
+
+/** Те саме, але з локального кешу: без очікування сервера (кеш підписок уже містить свіжі дані). */
+export async function refsWhereCached(name: CollectionName, field: string, value: string) {
+  const q = query(col(name), where(field, '==', value))
+  const snap = await getDocsFromCache(q).catch(() => getDocs(q))
   return snap.docs.map((d) => d.ref)
 }
 
