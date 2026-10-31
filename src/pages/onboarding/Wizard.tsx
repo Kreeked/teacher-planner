@@ -20,11 +20,11 @@ import { hideSplash } from '../../lib/splash'
 import { createYear } from '../year/createYear'
 import { useYearData } from '../year/useYearData'
 import { syncVacations } from '../year/vacations'
-import { periodsComplete } from '../../data/vacations'
+import { semestersComplete, vacationsComplete } from '../../data/vacations'
 import { BellsStep } from './BellsStep'
 import { ClassesStep } from './ClassesStep'
 import { ScheduleStep } from './ScheduleStep'
-import { SemestersStep } from './SemestersStep'
+import { SemestersStep, VacationsStep } from './SemestersStep'
 import { SubjectsStep } from './SubjectsStep'
 import { YearFields, yearTitleError } from './YearFields'
 
@@ -46,7 +46,7 @@ function ExistingYear({ year, periods, daysOff, others }: { year: AcademicYear; 
       const fitted = fitPeriods(periods, v)
       for (const { id, ...patch } of fitted) updateFields('periods', id, patch, batch)
       // Канікули йдуть за семестрами: осінні й весняні не лишаються поза ними, зимові перераховуються.
-      syncVacations(year.id, periods.map((p) => ({ ...p, ...fitted.find((f) => f.id === p.id) })), daysOff, batch)
+      syncVacations(year.id, periods.map((p) => ({ ...p, ...fitted.find((f) => f.id === p.id) })), daysOff, batch, false)
       commit(batch)
       notifySaved()
     },
@@ -92,7 +92,7 @@ export function Wizard({ onExit, onDone }: Props) {
 
   const current = STEPS[step]
   const last = step === STEPS.length - 1
-  const ready = year ? canProceed(current.id, counts) && (current.id !== 'subjects' || subjectsValid) && (current.id !== 'periods' || periodsComplete(data.periods, data.daysOff)) : !draftError
+  const ready = year ? canProceed(current.id, counts) && (current.id !== 'subjects' || subjectsValid) && (current.id !== 'semesters' || semestersComplete(data.periods)) && (current.id !== 'vacations' || vacationsComplete(data.periods, data.daysOff)) : !draftError
 
   function go(n: number) {
     setSubjectsValid(true)
@@ -122,10 +122,10 @@ export function Wizard({ onExit, onDone }: Props) {
       const id = createYear({ ...draft, withSemesters: true, blank: true })
       setYearId(id)
       go(1)
-    } else if (current.id === 'periods') {
+    } else if (current.id === 'vacations') {
       // Рік міг бути створений раніше без канікул: доводимо їх до ладу перед наступним кроком.
       const batch = newBatch()
-      syncVacations(year.id, data.periods, data.daysOff, batch)
+      syncVacations(year.id, data.periods, data.daysOff, batch, false)
       commit(batch)
       go(step + 1)
     } else if (last) {
@@ -186,7 +186,7 @@ export function Wizard({ onExit, onDone }: Props) {
           </header>
 
           <section className={current.id === 'year' ? 'ob-block year' : current.id === 'classes' ? 'ob-block cls' : current.id === 'subjects' ? 'ob-block subj' : current.id === 'bells' ? 'ob-block bells' : current.id === 'schedule' ? 'ob-block sch' : 'ob-block'} aria-labelledby="ob-title">
-            <div className={current.id === 'periods' ? 'ob-body ob-sem' : current.id === 'classes' ? 'ob-body ob-cls' : current.id === 'subjects' ? 'ob-body ob-subj' : current.id === 'bells' ? 'ob-body ob-bell' : current.id === 'schedule' ? 'ob-body ob-sch' : 'ob-body yp'} key={current.id}>
+            <div className={current.id === 'semesters' || current.id === 'vacations' ? 'ob-body ob-sem' : current.id === 'classes' ? 'ob-body ob-cls' : current.id === 'subjects' ? 'ob-body ob-subj' : current.id === 'bells' ? 'ob-body ob-bell' : current.id === 'schedule' ? 'ob-body ob-sch' : 'ob-body yp'} key={current.id}>
               {current.id === 'year' &&
                 (year ? (
                   <ExistingYear year={year} periods={data.periods} daysOff={data.daysOff} others={years.filter((y) => y.id !== year.id)} />
@@ -201,7 +201,8 @@ export function Wizard({ onExit, onDone }: Props) {
                     onEnd={(d) => setDraft({ ...draft, end: d ?? '' })}
                   />
                 ))}
-              {year && current.id === 'periods' && <SemestersStep year={year} periods={data.periods} daysOff={data.daysOff} />}
+              {year && current.id === 'semesters' && <SemestersStep year={year} periods={data.periods} daysOff={data.daysOff} />}
+              {year && current.id === 'vacations' && <VacationsStep year={year} periods={data.periods} daysOff={data.daysOff} />}
               {year && current.id === 'classes' && <ClassesStep year={year} classes={data.classes} />}
               {year && current.id === 'subjects' && (
                 <SubjectsStep

@@ -1,7 +1,7 @@
 import type { BellSchedule } from './types'
 import { shiftSlots } from './timetable'
 
-export type StepId = 'year' | 'periods' | 'classes' | 'subjects' | 'bells' | 'schedule'
+export type StepId = 'year' | 'semesters' | 'vacations' | 'classes' | 'subjects' | 'bells' | 'schedule'
 
 export type Step = {
   id: StepId
@@ -17,7 +17,8 @@ export type Step = {
 /** Екрани початкового налаштування: по одному на блок сторінки «Налаштування навчального року». */
 export const STEPS: Step[] = [
   { id: 'year', title: 'Рік', heading: 'Навчальний рік', lead: 'Назва й межі навчального року. Усе інше налаштовується всередині цих дат.', need: 'Вкажи назву й дати року' },
-  { id: 'periods', title: 'Семестри', heading: 'Семестри й канікули', lead: 'Початок року й кінець останнього семестру беруться з попереднього кроку. У канікули уроків не буде.', need: 'Вкажи всі дати семестрів і канікул' },
+  { id: 'semesters', title: 'Семестри', lead: 'Початок року й кінець останнього семестру беруться з попереднього кроку.', need: 'Вкажи всі дати семестрів' },
+  { id: 'vacations', title: 'Канікули', lead: 'У канікули уроків не буде. Зимові визначаються самі: між семестрами.', need: 'Вкажи осінні й весняні канікули' },
   { id: 'classes', title: 'Класи', lead: 'Натисни літеру, щоб додати клас. Натисни ще раз, щоб прибрати.', need: 'Додай хоча б один клас' },
   { id: 'subjects', title: 'Предмети', lead: 'Кожен предмет — це КТП: спершу порожнє. Теми й уроки додаш пізніше або імпортуєш із Word.', need: 'Додай хоча б один предмет' },
   { id: 'bells', title: 'Дзвінки', lead: 'Час уроків і перерв кожної зміни.', need: 'Додай уроки хоча б однієї зміни' },
@@ -60,7 +61,8 @@ export function canProceed(id: StepId, c: Counts): boolean {
   switch (id) {
     case 'year':
       return c.year
-    case 'periods':
+    case 'semesters':
+    case 'vacations':
       return c.semesters > 0
     case 'classes':
       return c.classes > 0
