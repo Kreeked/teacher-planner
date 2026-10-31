@@ -35,20 +35,21 @@ export type SubjectDraft = {
   classIds: string[]
 }
 
-/** Чому картку ще не можна зберегти; `null` — з нею все гаразд. */
-export function subjectIssue(c: SubjectDraft, others: SubjectDraft[]): 'incomplete' | 'taken' | 'zero' | null {
+/**
+ * Чому картку ще не можна зберегти; `null` — з нею все гаразд. Назви можуть повторюватися (два КТП з інформатики
+ * для різних літер): КТП розрізняє id, а не назва, тож єдина вимога до класів — не бути в двох КТП одразу.
+ */
+export function subjectIssue(c: SubjectDraft): 'incomplete' | 'zero' | null {
   const [h1, h2, year] = [c.h1, c.h2, c.year].map(parseHours)
   if (!c.subject.trim() || c.grade === null || h1 === null || h2 === null || year === null || !c.classIds.length) return 'incomplete'
-  const name = c.subject.trim().toLowerCase()
-  if (others.some((o) => o.grade === c.grade && o.subject.trim().toLowerCase() === name)) return 'taken'
   return year === 0 ? 'zero' : null
 }
 
-/** Розбіжність годин з календарем: текст помилки або `null`. Лише попередження, зберегти можна й так. */
+/** Розбіжність годин з календарем: текст попередження або `null`. Не блокує, зберегти можна й так. */
 export function hoursMismatch(c: Pick<SubjectDraft, 'h1' | 'h2' | 'year'>, weeks: { w1: number; w2: number }): string | null {
   const [h1, h2, year] = [c.h1, c.h2, c.year].map(parseHours)
   if (h1 === null || h2 === null || year === null) return null
   const expected = h1 * weeks.w1 + h2 * weeks.w2
   if (expected === year) return null
-  return `Не збігається з календарем: ${h1} × ${weeks.w1} + ${h2} × ${weeks.w2} = ${expected} год, а вказано ${year}`
+  return `Загальна кількість годин не збігається з розрахованою за вашими датами семестрів і канікул: за календарем виходить ${expected} год, а вказано ${year}. Зберегти можна й так.`
 }
