@@ -4,6 +4,7 @@ import { useAuth } from './auth/context'
 import { hideSplash } from './lib/splash'
 import { AppLayout } from './layout/AppLayout'
 import { LoginPage } from './pages/LoginPage'
+import { OnboardingGate } from './pages/onboarding/OnboardingGate'
 export default function App() {
   const { user, loading } = useAuth()
 
@@ -16,11 +17,13 @@ export default function App() {
   if (!user) return <LoginPage />
 
   return (
-    // HashRouter: адреси виду …/#/ktp працюють на будь-якому статичному хостингу без налаштувань.
-    <HashRouter>
-      <Routes>
-        <Route path="*" element={<AppLayout />} />
-      </Routes>
-    </HashRouter>
+    <OnboardingGate>
+      {/* HashRouter: адреси виду …/#/ktp працюють на будь-якому статичному хостингу без налаштувань. */}
+      <HashRouter>
+        <Routes>
+          <Route path="*" element={<AppLayout />} />
+        </Routes>
+      </HashRouter>
+    </OnboardingGate>
   )
 }
