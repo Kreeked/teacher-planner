@@ -1,4 +1,4 @@
-import { ChevronDown, Plus, Trash2 } from 'lucide-react'
+import { ChevronDown, Plus, Trash2, TriangleAlert } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { createDoc, deleteRefs, ref, refsWhereCached, removeDoc, updateFields } from '../../data/db'
 import { hoursMismatch, parseHours, semesterWeeks, subjectIssue, type SubjectDraft } from '../../data/subjects'
@@ -27,7 +27,7 @@ const byLetter = (a: ClassGroup, b: ClassGroup) => a.letter.localeCompare(b.lett
 /** Паралель картки — з першого обраного класу; без класів її немає. */
 const gradeOf = (classIds: string[], classes: ClassGroup[]) => classes.find((c) => c.id === classIds[0])?.grade ?? null
 
-const allValid = (cards: Card[]) => cards.length > 0 && cards.every((c) => !subjectIssue(c, cards.filter((o) => o !== c)))
+const allValid = (cards: Card[]) => cards.length > 0 && cards.every((c) => !subjectIssue(c))
 
 /** Предмети року: картка на КТП — назва, класи однієї паралелі, години на тиждень у кожному семестрі й за рік. */
 export function SubjectsStep({ year, courses, classes, links, periods, daysOff, onValid }: Props) {
@@ -69,8 +69,8 @@ export function SubjectsStep({ year, courses, classes, links, periods, daysOff, 
   }, [open])
 
   /** Заповнену картку записуємо в КТП; недописану лишаємо тільки на екрані. */
-  function persist(card: Card, all: Card[]): Card {
-    if (subjectIssue(card, all.filter((o) => o.key !== card.key))) return card
+  function persist(card: Card): Card {
+    if (subjectIssue(card)) return card
     const fields = {
       subject: card.subject.trim(),
       grade: card.grade!,
@@ -94,7 +94,7 @@ export function SubjectsStep({ year, courses, classes, links, periods, daysOff, 
 
   function change(key: number, patch: Partial<Card>) {
     const edited = cards.map((c) => (c.key === key ? { ...c, ...patch } : c))
-    const next = edited.map((c) => (c.key === key ? persist(c, edited) : c))
+    const next = edited.map((c) => (c.key === key ? persist(c) : c))
     setCards(next)
     onValid(allValid(next))
   }
@@ -129,7 +129,7 @@ export function SubjectsStep({ year, courses, classes, links, periods, daysOff, 
     <>
       {cards.map((card) => {
         const others = cards.filter((o) => o !== card)
-        const issue = subjectIssue(card, others)
+        const issue = subjectIssue(card)
         const mismatch = hoursMismatch(card, weeks)
         const picked = card.classIds
           .map((id) => classes.find((c) => c.id === id))
@@ -224,9 +224,13 @@ export function SubjectsStep({ year, courses, classes, links, periods, daysOff, 
               {hours('year', 'Годин за рік', 3)}
             </div>
 
-            {issue === 'taken' && <p className="field-error ob-sub-err">У цій паралелі вже є КТП з такою назвою. Дай іншу</p>}
             {issue === 'zero' && <p className="field-error ob-sub-err">Вкажи, скільки годин за рік</p>}
-            {mismatch && <p className="field-error ob-sub-err">{mismatch}</p>}
+            {mismatch && (
+              <p className="ob-sub-warn">
+                <TriangleAlert size={16} strokeWidth={2} aria-hidden />
+                {mismatch}
+              </p>
+            )}
           </div>
         )
       })}

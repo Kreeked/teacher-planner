@@ -44,27 +44,23 @@ describe('parseHours', () => {
 
 describe('subjectIssue', () => {
   it('повна картка готова', () => {
-    expect(subjectIssue(ok, [])).toBeNull()
+    expect(subjectIssue(ok)).toBeNull()
   })
 
   it('порожні поля, клас чи літери — недописано', () => {
-    expect(subjectIssue({ ...ok, subject: ' ' }, [])).toBe('incomplete')
-    expect(subjectIssue({ ...ok, grade: null }, [])).toBe('incomplete')
-    expect(subjectIssue({ ...ok, h1: '' }, [])).toBe('incomplete')
-    expect(subjectIssue({ ...ok, h2: '' }, [])).toBe('incomplete')
-    expect(subjectIssue({ ...ok, year: '' }, [])).toBe('incomplete')
-    expect(subjectIssue({ ...ok, classIds: [] }, [])).toBe('incomplete')
+    expect(subjectIssue({ ...ok, subject: ' ' })).toBe('incomplete')
+    expect(subjectIssue({ ...ok, grade: null })).toBe('incomplete')
+    expect(subjectIssue({ ...ok, h1: '' })).toBe('incomplete')
+    expect(subjectIssue({ ...ok, h2: '' })).toBe('incomplete')
+    expect(subjectIssue({ ...ok, year: '' })).toBe('incomplete')
+    expect(subjectIssue({ ...ok, classIds: [] })).toBe('incomplete')
   })
 
   it('нуль годин у семестрі дозволений, нуль за рік — ні', () => {
-    expect(subjectIssue({ ...ok, h2: '0' }, [])).toBeNull()
-    expect(subjectIssue({ ...ok, year: '0' }, [])).toBe('zero')
+    expect(subjectIssue({ ...ok, h2: '0' })).toBeNull()
+    expect(subjectIssue({ ...ok, year: '0' })).toBe('zero')
   })
 
-  it('той самий предмет у тій самій паралелі', () => {
-    expect(subjectIssue(ok, [{ ...ok, subject: 'інформатика' }])).toBe('taken')
-    expect(subjectIssue(ok, [{ ...ok, grade: 6 }])).toBeNull()
-  })
 })
 
 describe('hoursMismatch', () => {
@@ -75,7 +71,9 @@ describe('hoursMismatch', () => {
   })
 
   it('не збігається — текст з розрахунком, не блокує', () => {
-    expect(hoursMismatch({ ...ok, year: '40' }, weeks)).toBe('Не збігається з календарем: 1 × 17 + 1 × 18 = 35 год, а вказано 40')
+    expect(hoursMismatch({ ...ok, year: '40' }, weeks)).toBe(
+      'Загальна кількість годин не збігається з розрахованою за вашими датами семестрів і канікул: за календарем виходить 35 год, а вказано 40. Зберегти можна й так.',
+    )
   })
 
   it('порожні поля не перевіряються', () => {
