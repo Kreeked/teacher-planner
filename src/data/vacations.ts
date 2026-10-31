@@ -117,10 +117,16 @@ export function validateVacation(r: Range, semester: Named, others: Named[]): st
   return null
 }
 
-/** Чи вказано всі дати семестрів і, коли їх два й більше, осінні та весняні канікули. */
-export function periodsComplete(periods: Pick<Period, 'parent_id' | 'position' | 'start_date' | 'end_date'>[], daysOff: Named[]): boolean {
+type Dated = Pick<Period, 'parent_id' | 'position' | 'start_date' | 'end_date'>
+
+/** Чи вказано обидві дати кожного семестру. */
+export function semestersComplete(periods: Dated[]): boolean {
   const sems = periods.filter((p) => !p.parent_id)
-  if (!sems.length || sems.some((s) => !s.start_date || !s.end_date)) return false
-  if (sems.length < 2) return true
+  return sems.length > 0 && sems.every((s) => s.start_date && s.end_date)
+}
+
+/** Чи вказано осінні й весняні канікули (потрібні, коли семестрів два й більше). */
+export function vacationsComplete(periods: Dated[], daysOff: Named[]): boolean {
+  if (periods.filter((p) => !p.parent_id).length < 2) return true
   return (['autumn', 'spring'] as const).every((k) => daysOff.some((d) => d.title === VACATIONS[k].title && d.start_date && d.end_date))
 }

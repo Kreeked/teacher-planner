@@ -14,6 +14,8 @@ export function syncVacations(
   periods: Pick<Period, 'parent_id' | 'position' | 'start_date' | 'end_date'>[],
   daysOff: DayOff[],
   batch: WriteBatch,
+  /** Чи створювати відсутні осінні й весняні канікули типовими датами (в онбордингу їх вказує користувач). */
+  defaults = true,
 ) {
   const find = (k: VacationKind) => daysOff.find((d) => d.title === VACATIONS[k].title)
   const plan = planVacations(periods, { autumn: find('autumn'), spring: find('spring') })
@@ -23,7 +25,7 @@ export function syncVacations(
     const want = plan[k]
     if (want && doc) {
       if (doc.start_date !== want.start_date || doc.end_date !== want.end_date) updateFields('days_off', doc.id, want, batch)
-    } else if (want) {
+    } else if (want && (defaults || k === 'winter')) {
       createDoc('days_off', { academic_year_id: yearId, title: VACATIONS[k].title, ...want }, batch)
     } else if (doc) {
       batch.delete(ref('days_off', doc.id))
