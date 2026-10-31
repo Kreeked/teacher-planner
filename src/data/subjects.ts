@@ -1,5 +1,5 @@
 import { addDays, weekday } from './schedule'
-import type { ISODate, Period } from './types'
+import type { ClassGroup, CourseClass, ISODate, Period } from './types'
 import { sortPeriods } from './year'
 
 type Range = { start_date: ISODate; end_date: ISODate }
@@ -52,4 +52,12 @@ export function hoursMismatch(c: Pick<SubjectDraft, 'h1' | 'h2' | 'year'>, weeks
   const expected = h1 * weeks.w1 + h2 * weeks.w2
   if (expected === year) return null
   return `Загальна кількість годин не збігається з розрахованою за вашими датами семестрів і канікул: за календарем виходить ${expected} год, а вказано ${year}. Зберегти можна й так.`
+}
+
+/** Класи, яких немає в жодному КТП, у порядку «паралель, літера». */
+export function unassignedClasses(classes: ClassGroup[], links: Pick<CourseClass, 'class_group_id'>[]): ClassGroup[] {
+  const used = new Set(links.map((l) => l.class_group_id))
+  return classes
+    .filter((c) => !used.has(c.id))
+    .sort((a, b) => a.grade - b.grade || a.letter.localeCompare(b.letter, 'uk'))
 }
