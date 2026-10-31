@@ -4897,6 +4897,137 @@ a:not([class]):active {
   cursor: default;
 }
 
+/* Крок «Семестри й канікули» */
+.ob-sem {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ob-sem-h {
+  margin: 0 0 2px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.ob-sem-h.gap {
+  margin-top: 12px;
+}
+
+.ob-sem-card {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ob-sem-card.slim {
+  padding: 10px 16px;
+}
+
+.ob-sem-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ob-sem-n {
+  width: 24px;
+  height: 24px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--bg);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ob-sem-name,
+.ob-sem-vac {
+  flex: 1;
+  min-width: 0;
+}
+
+.ob-sem-name {
+  font-size: 15px;
+}
+
+.ob-sem-vac {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.ob-sem-dates {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ob-sem-dash {
+  color: #4b4b55;
+}
+
+.ob-sem-dates .date-btn,
+.ob-sem-date {
+  height: 34px;
+  width: 130px;
+  min-width: 0;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  padding: 0 10px;
+  text-align: left;
+}
+
+.ob-sem-dates .date-btn svg,
+.ob-sem-date svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  color: var(--ink-2);
+}
+
+.ob-sem-dates .date-btn[aria-expanded='true'] {
+  border-color: var(--ink);
+}
+
+.ob-sem-date.locked {
+  background: var(--bg);
+  color: var(--ink-2);
+  cursor: not-allowed;
+}
+
+.ob-sem-caption {
+  margin: 0 0 0 36px;
+  font-size: 12px;
+  color: #4b4b55;
+}
+
+.ob-sem-caption.flush {
+  margin-left: 0;
+}
+
+.ob-sem-error {
+  margin: 0 0 0 36px;
+}
+
+.ob-sem-card.slim .ob-sem-error {
+  margin-left: 0;
+}
+
 @media (max-width: 760px) {
   .ob {
     padding: 20px 16px 24px;

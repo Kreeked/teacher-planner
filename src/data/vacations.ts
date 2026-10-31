@@ -1,0 +1,96 @@
+import type { ISODate, Period } from './types'
+import { sortPeriods } from './year'
+
+type Range = { start_date: ISODate; end_date: ISODate }
+type Named = Range & { title: string }
+
+export type VacationKind = 'autumn' | 'winter' | 'spring'
+
+/** Назва в `days_off` (за нею канікули впізнаються) і короткий підпис на екрані. */
+export const VACATIONS: Record<VacationKind, { title: string; label: string }> = {
+  autumn: { title: 'Осінні канікули', label: 'Осінні' },
+  winter: { title: 'Зимові канікули', label: 'Зимові' },
+  spring: { title: 'Весняні канікули', label: 'Весняні' },
+}
+
+export function vacationKind(title: string): VacationKind | undefined {
+  return (Object.keys(VACATIONS) as VacationKind[]).find((k) => VACATIONS[k].title === title)
+}
+
+function shiftDay(d: ISODate, n: number): ISODate {
+  const [y, m, day] = d.split('-').map(Number)
+  return new Date(Date.UTC(y, m - 1, day + n)).toISOString().slice(0, 10)
+}
+
+function overlaps(a: Range, b: Range) {
+  return a.start_date <= b.end_date && b.start_date <= a.end_date
+}
+
+/** Зимові канікули: від дня після кінця першого семестру до дня перед початком другого. Вихідні не враховуються. */
+export function winterBreak(first: Range, second: Range): Range | null {
+  const r = { start_date: shiftDay(first.end_date, 1), end_date: shiftDay(second.start_date, -1) }
+  return r.start_date <= r.end_date ? r : null
+}
+
+/** Типові осінні й весняні канікули (тиждень наприкінці жовтня та в кінці березня). */
+export function defaultVacations(startYear: number): Record<'autumn' | 'spring', Range> {
+  return {
+    autumn: { start_date: `${startYear}-10-26`, end_date: `${startYear}-11-01` },
+    spring: { start_date: `${startYear + 1}-03-22`, end_date: `${startYear + 1}-03-28` },
+  }
+}
+
+/** Діапазон, затиснутий у межі семестру; якщо повністю поза ними, лишається один день на краю. */
+function fit(r: Range, sem: Range): Range {
+  const start = r.start_date < sem.start_date ? sem.start_date : r.start_date
+  const end = r.end_date > sem.end_date ? sem.end_date : r.end_date
+  return start > end ? { start_date: end, end_date: end } : { start_date: start, end_date: end }
+}
+
+export type VacationPlan = Record<VacationKind, Range | null>
+
+/**
+ * Якими мають бути канікули при цих семестрах: зимові рахуються з семестрів, осінні й весняні беруться
+ * з наявних (або типових) і не виходять за свій семестр. Без двох семестрів канікул немає (null).
+ */
+export function planVacations(
+  periods: Pick<Period, 'parent_id' | 'position' | 'start_date' | 'end_date'>[],
+  existing: Partial<Record<'autumn' | 'spring', Range>>,
+): VacationPlan | null {
+  const sems = sortPeriods(periods.filter((p) => !p.parent_id) as Period[])
+  if (sems.length < 2) return null
+  const first = sems[0]
+  const second = sems[1]
+  const last = sems[sems.length - 1]
+  const def = defaultVacations(Number(first.start_date.slice(0, 4)))
+  return {
+    autumn: fit(existing.autumn ?? def.autumn, first),
+    winter: winterBreak(first, second),
+    spring: fit(existing.spring ?? def.spring, last),
+  }
+}
+
+/** Дати семестру: по порядку, у межах року, без перетину з сусідніми семестрами й так, щоб його канікули лишились усередині. */
+export function validateSemester(
+  r: Range,
+  ctx: { year: Range; prev?: Named; next?: Named; vacation?: Named },
+): string | null {
+  if (!r.start_date || !r.end_date) return 'Вкажи обидві дати'
+  if (r.start_date > r.end_date) return 'Початок пізніше за кінець'
+  if (r.start_date < ctx.year.start_date || r.end_date > ctx.year.end_date) return 'Виходить за межі навчального року'
+  const clash = [ctx.prev, ctx.next].find((s) => s && overlaps(s, r))
+  if (clash) return `Дати перетинаються з: ${clash.title}`
+  const v = ctx.vacation
+  if (v && (v.start_date < r.start_date || v.end_date > r.end_date)) return `${v.title} виходять за ці межі`
+  return null
+}
+
+/** Осінні чи весняні канікули: по порядку, в межах свого семестру, без перетину з іншими канікулами. */
+export function validateVacation(r: Range, semester: Named, others: Named[]): string | null {
+  if (!r.start_date || !r.end_date) return 'Вкажи обидві дати'
+  if (r.start_date > r.end_date) return 'Початок пізніше за кінець'
+  if (r.start_date < semester.start_date || r.end_date > semester.end_date) return `Виходить за межі: ${semester.title}`
+  const clash = others.find((o) => overlaps(o, r))
+  if (clash) return `Перетинається з: ${clash.title}`
+  return null
+}

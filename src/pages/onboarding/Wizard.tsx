@@ -8,7 +8,7 @@ import { commit, newBatch, updateFields, useCollection } from '../../data/db'
 import { STEPS, canProceed, countsOf } from '../../data/onboarding'
 import { toISO } from '../../data/schedule'
 import type { Shift } from '../../data/timetable'
-import type { AcademicYear, Period } from '../../data/types'
+import type { AcademicYear, DayOff, Period } from '../../data/types'
 import { defaultYear, defaultYearStart, fitPeriods, pickCurrentYear, validateYear } from '../../data/year'
 import { notifySaved } from '../../lib/saved'
 import { clearOnboarding, getOnboardingStep, setOnboardingStep } from '../../lib/onboarding'
@@ -16,11 +16,11 @@ import { hideSplash } from '../../lib/splash'
 import { BellsSection } from '../year/BellsSection'
 import { ClassesSection } from '../year/ClassesSection'
 import { createYear } from '../year/createYear'
-import { DaysOffSection } from '../year/DaysOffSection'
-import { PeriodsSection } from '../year/PeriodsSection'
 import { ScheduleSection } from '../year/ScheduleSection'
 import { SubjectsSection } from '../year/SubjectsSection'
 import { useYearData } from '../year/useYearData'
+import { syncVacations } from '../year/vacations'
+import { SemestersStep } from './SemestersStep'
 import { YearFields, yearTitleError } from './YearFields'
 
 type Props = {
@@ -30,7 +30,7 @@ type Props = {
 }
 
 /** Існуючий рік на першому кроці: правиться на місці, зберігається, щойно значення коректні. */
-function ExistingYear({ year, periods, others }: { year: AcademicYear; periods: Period[]; others: AcademicYear[] }) {
+function ExistingYear({ year, periods, daysOff, others }: { year: AcademicYear; periods: Period[]; daysOff: DayOff[]; others: AcademicYear[] }) {
   const r = useRangeDraft({
     value: { title: year.title, start_date: year.start_date, end_date: year.end_date },
     // Семестри перевіряються на своєму кроці й залежать від дат року, тож тут їх не чіпаємо, а підганяємо.
@@ -38,7 +38,10 @@ function ExistingYear({ year, periods, others }: { year: AcademicYear; periods: 
     onSave: (v) => {
       const batch = newBatch()
       updateFields('academic_years', year.id, v, batch)
-      for (const { id, ...patch } of fitPeriods(periods, v)) updateFields('periods', id, patch, batch)
+      const fitted = fitPeriods(periods, v)
+      for (const { id, ...patch } of fitted) updateFields('periods', id, patch, batch)
+      // Канікули йдуть за семестрами: осінні й весняні не лишаються поза ними, зимові перераховуються.
+      syncVacations(year.id, periods.map((p) => ({ ...p, ...fitted.find((f) => f.id === p.id) })), daysOff, batch)
       commit(batch)
       notifySaved()
     },
@@ -94,6 +97,12 @@ export function Wizard({ onExit, onDone }: Props) {
       const id = createYear({ ...draft, withSemesters: true })
       setYearId(id)
       go(1)
+    } else if (current.id === 'periods') {
+      // Рік міг бути створений раніше без канікул: доводимо їх до ладу перед наступним кроком.
+      const batch = newBatch()
+      syncVacations(year.id, data.periods, data.daysOff, batch)
+      commit(batch)
+      go(step + 1)
     } else if (last) {
       clearOnboarding(uid)
       onDone()
@@ -132,10 +141,10 @@ export function Wizard({ onExit, onDone }: Props) {
           </header>
 
           <section className={current.id === 'year' ? 'ob-block year' : 'ob-block'} aria-labelledby="ob-title">
-            <div className="ob-body yp" key={current.id}>
+            <div className={current.id === 'periods' ? 'ob-body ob-sem' : 'ob-body yp'} key={current.id}>
               {current.id === 'year' &&
                 (year ? (
-                  <ExistingYear year={year} periods={data.periods} others={years.filter((y) => y.id !== year.id)} />
+                  <ExistingYear year={year} periods={data.periods} daysOff={data.daysOff} others={years.filter((y) => y.id !== year.id)} />
                 ) : (
                   <YearFields
                     title={draft.title}
@@ -147,8 +156,7 @@ export function Wizard({ onExit, onDone }: Props) {
                     onEnd={(d) => setDraft({ ...draft, end: d ?? '' })}
                   />
                 ))}
-              {year && current.id === 'periods' && <PeriodsSection year={year} periods={data.periods} />}
-              {year && current.id === 'daysoff' && <DaysOffSection year={year} daysOff={data.daysOff} />}
+              {year && current.id === 'periods' && <SemestersStep year={year} periods={data.periods} daysOff={data.daysOff} />}
               {year && current.id === 'classes' && <ClassesSection year={year} classes={data.classes} />}
               {year && current.id === 'subjects' && (
                 <SubjectsSection year={year} courses={data.courses} classes={data.classes} links={data.links} />
