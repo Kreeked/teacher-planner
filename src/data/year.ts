@@ -96,9 +96,12 @@ export function validateDayOff(d: Range, year: Range): string | null {
   return null
 }
 
-export function validateYear(y: Range, periods: Period[]): string | null {
+/** Назва, обидві дати, початок не пізніше за кінець, жоден семестр не поза межами, рік не перетинається з іншими. */
+export function validateYear(y: Range, periods: Period[], others: (Range & { title: string })[] = []): string | null {
   if (!y.start_date || !y.end_date) return 'Вкажи обидві дати'
   if (y.start_date > y.end_date) return 'Початок пізніше за кінець'
+  const clash = others.find((o) => overlaps(o, y))
+  if (clash) return `Дати перетинаються з навчальним роком ${clash.title}`
   const out = periods.find((p) => p.start_date < y.start_date || p.end_date > y.end_date)
   if (out) return `${out.title} виходить за ці межі`
   return null

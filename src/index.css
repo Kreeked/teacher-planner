@@ -4652,70 +4652,72 @@ a:not([class]):active {
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  padding: 12px;
-  padding-left: max(12px, env(safe-area-inset-left));
-  padding-right: max(12px, env(safe-area-inset-right));
+  padding: 28px 32px 32px;
   animation: fade-in 0.4s ease-out;
 }
 
-.ob-top {
+/* Степер закріплено вгорі екрана, окремо від решти вмісту. */
+.ob-stepper {
   width: 100%;
   max-width: 880px;
   margin: 0 auto;
+  flex: none;
+}
+
+.ob-center {
+  flex: 1;
+  min-height: 0;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 4px 0;
-}
-
-.ob-brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  font-weight: 600;
-}
-
-.ob-brand .logo {
-  margin-bottom: 0;
+  justify-content: center;
+  padding: 24px 0;
 }
 
 .ob-main {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  padding: 24px 0 32px;
-}
-
-.ob-card {
   width: 100%;
-  max-width: 880px;
-  background: var(--surface);
-  border-radius: var(--r-xl);
-  padding: 28px 32px 32px;
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
 }
 
-.ob-kicker {
-  margin: 28px 0 6px;
-  color: var(--ink-2);
+.ob-head {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.ob-head p {
+  margin: 0;
   font-size: 12px;
   font-weight: 600;
-}
-
-.ob-title {
-  font-size: 26px;
-}
-
-.ob-lead {
-  margin: 6px 0 0;
   color: var(--ink-2);
-  line-height: 1.45;
-  max-width: 62ch;
 }
 
-.ob-body {
-  margin-top: 24px;
+.ob-head h1 {
+  font-size: 36px;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.ob-head .ob-lead {
+  max-width: 440px;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+.ob-block {
+  margin-top: 28px;
+  background: var(--surface);
+  border-radius: var(--r-xl);
+  padding: 20px;
+}
+
+.ob-block.year {
+  padding: 28px;
 }
 
 /* Блоки сторінки року всередині екрана: без власної картки й заголовка, заголовок дає крок. */
@@ -4731,6 +4733,67 @@ a:not([class]):active {
 
 .ob-body .yp-head {
   justify-content: flex-start;
+}
+
+/* Крок «Рік» */
+.ob-year-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ob-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+.ob-input,
+.ob-field .date-btn {
+  height: 40px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  padding: 0 12px;
+}
+
+.ob-input:focus,
+.ob-field .date-btn[aria-expanded='true'] {
+  outline: none;
+  border-color: var(--ink);
+}
+
+.ob-field .date-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+}
+
+.ob-field .date-btn svg {
+  color: var(--ink-2);
+  flex: none;
+}
+
+.ob-dates {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.ob-year-fields .field-error {
+  margin: 0;
 }
 
 /* Степер: по смужці на крок, пройдені й поточний залиті. */
@@ -4758,6 +4821,7 @@ a:not([class]):active {
   text-align: left;
   color: var(--ink-2);
   font-size: 12px;
+  font-weight: 500;
 }
 
 .ob-steps button:disabled {
@@ -4781,43 +4845,65 @@ a:not([class]):active {
   color: var(--ink);
 }
 
+.ob-steps li.on button {
+  font-weight: 600;
+}
+
 .ob-steps span {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-/* Нижня панель кроків: липка, щоб «Далі» було під рукою на довгих екранах. */
-.ob-foot {
-  position: sticky;
-  bottom: 0;
-  margin: 0 -12px;
-  padding: 12px max(12px, env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
-  background: var(--surface);
-  border-top: 1px solid var(--line);
-  z-index: 5;
-}
-
-.ob-foot-in {
-  width: 100%;
-  max-width: 880px;
-  margin: 0 auto;
+/* Навігація під блоком налаштувань. */
+.ob-nav {
+  margin-top: 16px;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
 }
 
-.ob-hint {
-  flex: 1;
-  min-width: 0;
-  color: var(--ink-2);
+.ob-back,
+.ob-next {
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-size: 13px;
-  text-align: center;
+  font-weight: 600;
+  border-radius: 999px;
+}
+
+.ob-back {
+  gap: 4px;
+  padding: 0 14px 0 10px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: 0 4px 12px rgba(31, 31, 36, 0.06);
+  color: var(--ink-2);
+}
+
+.ob-next {
+  gap: 6px;
+  padding: 0 18px;
+  border: 0;
+  background: var(--ink);
+  color: #fff;
+}
+
+.ob-next:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 
 @media (max-width: 760px) {
-  .ob-card {
+  .ob {
     padding: 20px 16px 24px;
+  }
+
+  .ob-block.year {
+    padding: 20px;
   }
 
   .ob-steps {
@@ -4833,8 +4919,8 @@ a:not([class]):active {
     gap: 0;
   }
 
-  .ob-hint {
-    font-size: 12px;
+  .ob-head h1 {
+    font-size: 30px;
   }
 }
 

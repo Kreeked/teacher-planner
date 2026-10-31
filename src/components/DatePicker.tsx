@@ -23,6 +23,8 @@ type Props = {
   compact?: boolean
   // Числами «01.09.2026» і без значка календаря — для полів, що стоять поруч із текстовими.
   numeric?: boolean
+  // Значок календаря після дати (разом із `numeric`).
+  trailingIcon?: boolean
   clearable?: boolean
   placeholder?: string
   className?: string
@@ -32,7 +34,7 @@ const POP_W = 272
 const POP_H = 330
 
 /** Поле дати з календарем у стилі застосунку замість системного вікна браузера. */
-export function DatePicker({ value, onChange, label, min, max, compact, numeric, clearable, placeholder, className }: Props) {
+export function DatePicker({ value, onChange, label, min, max, compact, numeric, trailingIcon, clearable, placeholder, className }: Props) {
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState<CSSProperties>({})
   const button = useRef<HTMLButtonElement>(null)
@@ -103,6 +105,7 @@ export function DatePicker({ value, onChange, label, min, max, compact, numeric,
       >
         {!compact && !numeric && <CalendarDays size={14} />}
         <span>{text}</span>
+        {trailingIcon && <CalendarDays size={16} aria-hidden />}
       </button>
       {open &&
         createPortal(

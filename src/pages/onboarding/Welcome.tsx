@@ -42,7 +42,7 @@ const FEATURES = [
 ]
 
 /** Перший екран порожнього акаунта: що це за застосунок і кнопка створення першого навчального року. */
-export function Welcome({ onStart }: { onStart: () => void }) {
+export function Welcome({ resume, onStart }: { resume: boolean; onStart: () => void }) {
   const { signOut } = useAuth()
   useEffect(hideSplash, [])
 
@@ -83,7 +83,7 @@ export function Welcome({ onStart }: { onStart: () => void }) {
 
           <div className="wl-start">
             <button type="button" className="btn wl-cta" onClick={onStart}>
-              Створити перший навчальний рік <ArrowRight size={16} strokeWidth={2} />
+              {resume ? 'Продовжити створення навчального року' : 'Створити перший навчальний рік'} <ArrowRight size={16} strokeWidth={2} />
             </button>
             <p>Налаштування року займе кілька хвилин: 6 кроків від семестрів до розкладу.</p>
           </div>
