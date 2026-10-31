@@ -3,7 +3,11 @@ import type { Timetable, TimetableEntry } from './types'
 import {
   addSlot,
   computeBells,
+  buildBells,
   defaultSlots,
+  shiftParams,
+  shiftsOverlap,
+  startLimits,
   minutesBetween,
   removeSlot,
   setSlotBreak,
@@ -60,8 +64,8 @@ describe('bell editing', () => {
     expect(added[3]).toMatchObject({ number: 4, start: '11:25', end: '12:10' })
     expect(addSlot([], 2)![0]).toMatchObject({
       number: 1,
-      start: '14:10',
-      end: '14:55',
+      start: '14:15',
+      end: '15:00',
     })
     const removed = removeSlot(slots, 0)
     expect(removed.map((x) => `${x.number} ${x.start}`)).toEqual(['1 09:25', '2 10:30'])
@@ -69,7 +73,9 @@ describe('bell editing', () => {
 
   it('has default bells for both shifts', () => {
     expect(defaultSlots(1)).toHaveLength(7)
-    expect(defaultSlots(2)[0].start).toBe('14:10')
+    expect(defaultSlots(2)[0].start).toBe('14:15')
+    expect(defaultSlots(1)[6].end).toBe('14:10')
+    expect(defaultSlots(2)[5].end).toBe('19:20')
     expect(shiftSlots({ slots: defaultSlots(1) }, 2)).toEqual([])
   })
 })
@@ -107,5 +113,36 @@ describe('timetable', () => {
       { slot: 1, shift: 2 },
     ])
     expect(m.get('9b_k')).toEqual([{ slot: 5, shift: 1 }])
+  })
+})
+
+describe('зміни', () => {
+  const first = defaultSlots(1)
+  const second = defaultSlots(2)
+
+  it('параметри зміни повертають початок, тривалість і перерви', () => {
+    expect(shiftParams(first, 1)).toEqual({ start: '08:00', minutes: 45, breaks: [5, 10, 10, 10, 10, 10, 0] })
+    expect(shiftParams([], 2)).toEqual({ start: '14:15', minutes: 45, breaks: [] })
+  })
+
+  it('buildBells: перерва після останнього уроку нульова, а доба не переповнюється', () => {
+    expect(buildBells('08:00', 45, [5, 10])?.map((s) => s.break_after)).toEqual([5, 0])
+    expect(buildBells('23:00', 45, [10, 10])).toBeNull()
+    expect(buildBells('08:00', 45, [])).toEqual([])
+  })
+
+  it('друга зміна не починається раніше, ніж закінчиться перша', () => {
+    expect(shiftsOverlap(first, second)).toBe(false)
+    expect(shiftsOverlap(first, buildBells('14:05', 45, [0])!)).toBe(true)
+    expect(shiftsOverlap(first, buildBells('14:10', 45, [0])!)).toBe(false)
+    expect(shiftsOverlap([], second)).toBe(false)
+  })
+
+  it('межі початку: друга зміна не раніше кінця першої, перша — не пізніше, ніж вмістить друга', () => {
+    expect(startLimits({ slots: first }, 2)).toEqual({ min: '14:10' })
+    expect(startLimits({ slots: [] }, 2)).toEqual({})
+    // перша триває 08:00–14:10 (370 хв), друга з 14:15: початок першої не пізніше за 08:05
+    expect(startLimits({ slots: first, second_shift: second }, 1)).toEqual({ max: '08:05' })
+    expect(startLimits({ slots: first }, 1)).toEqual({})
   })
 })
