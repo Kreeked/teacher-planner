@@ -4121,8 +4121,14 @@ a:not([class]):active {
   overflow: hidden;
 }
 
+/* Під час розгортання висоту й рядок веде Web Animations (MonthCalendar.tsx); обрізку тримає вікно, а не панелі,
+   і дні не анімують колір, щоб не рахувати 42 переходи на кожному кадрі. */
 .cal.morph .cal-pane {
-  transition: height var(--cal-dur) var(--ease-out);
+  overflow: visible;
+}
+
+.cal.morph .d {
+  transition: none;
 }
 
 .cal.open .cal-pane {
@@ -4133,10 +4139,6 @@ a:not([class]):active {
    під час руху доріжки не домальовується, і цифри зникають до кінця руху. */
 .cal-pane .grid7 {
   margin-top: calc(var(--row, 0) * (var(--d) + var(--cal-gap)) * -1);
-}
-
-.cal.morph .cal-pane .grid7 {
-  transition: margin-top var(--cal-dur) var(--ease-out);
 }
 
 .cal.open .cal-pane .grid7 {

@@ -39,6 +39,8 @@ function asDate(d: ISODate) {
 // Тривалість перемикання тижня чи місяця (мс) і розгортання; з reduced-motion — без руху.
 const SETTLE_MS = 420
 const SNAP_MS = 300
+const MORPH_MS = 480
+const MORPH_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)'
 
 function reduced() {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -124,6 +126,7 @@ export function MonthCalendar({ today, selected, onSelect, marked, min, max, col
   const [morph, setMorph] = useState(false)
   const morphTimer = useRef(0)
   const track = useRef<HTMLDivElement>(null)
+  const viewport = useRef<HTMLDivElement>(null)
   const busy = useRef(false)
 
   /** Докочує доріжку до сусідньої сітки (dir ±1) чи повертає назад (0), потім змінює показаний тиждень. */
@@ -231,14 +234,45 @@ export function MonthCalendar({ today, selected, onSelect, marked, min, max, col
     drag.current = null
   }
   // Згортання повертає тиждень до вибраного дня.
+  // Початкові розміри для плавного розгортання: знімаються до зміни стану, анімація стартує після неї.
+  const flip = useRef<{ h: number; mt: number } | null>(null)
   function toggleOpen() {
+    const vp = viewport.current
+    const grid = vp?.querySelector<HTMLElement>('.cal-pane.now .grid7')
+    if (vp && grid && !reduced())
+      flip.current = { h: vp.getBoundingClientRect().height, mt: parseFloat(getComputedStyle(grid).marginTop) || 0 }
     if (open && selected) setAnchor(selected)
     setOpen(!open)
-    // Плавність висоти й рядка — лише під час згортання чи розгортання, не при листанні.
-    setMorph(true)
-    window.clearTimeout(morphTimer.current)
-    morphTimer.current = window.setTimeout(() => setMorph(false), 600)
   }
+
+  // Висота й рядок тижня анімуються Web Animations: одна анімація висоти замість переходів на всіх сітках,
+  // нижній вміст на час руху виноситься в окремі шари, щоб не перемальовуватися на кожному кадрі.
+  useLayoutEffect(() => {
+    const f = flip.current
+    const vp = viewport.current
+    const grid = vp?.querySelector<HTMLElement>('.cal-pane.now .grid7')
+    flip.current = null
+    if (!f || !vp || !grid) return
+    const h1 = vp.getBoundingClientRect().height
+    const mt1 = parseFloat(getComputedStyle(grid).marginTop) || 0
+    if (Math.abs(h1 - f.h) < 1) return
+    setMorph(true)
+    const opts = { duration: MORPH_MS, easing: MORPH_EASE }
+    vp.animate([{ height: `${f.h}px` }, { height: `${h1}px` }], opts)
+    grid.animate([{ marginTop: `${f.mt}px` }, { marginTop: `${mt1}px` }], opts)
+    // Усе, що йде далі за календарем, на час руху в окремих шарах.
+    const after: HTMLElement[] = []
+    for (let node: HTMLElement | null = vp, depth = 0; node && depth < 6 && !node.matches('.tab-pane'); depth++) {
+      for (let n = node.nextElementSibling; n; n = n.nextElementSibling) if (n instanceof HTMLElement) after.push(n)
+      node = node.parentElement
+    }
+    after.forEach((n) => (n.style.willChange = 'transform'))
+    window.clearTimeout(morphTimer.current)
+    morphTimer.current = window.setTimeout(() => {
+      setMorph(false)
+      after.forEach((n) => (n.style.willChange = ''))
+    }, MORPH_MS + 60)
+  }, [open])
 
   const expanded = !toggle || open
   return (
@@ -273,6 +307,7 @@ export function MonthCalendar({ today, selected, onSelect, marked, min, max, col
         ))}
       </div>
       <div
+        ref={viewport}
         className="cal-viewport"
         onPointerDown={dragStart}
         onPointerMove={dragMove}
