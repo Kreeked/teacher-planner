@@ -1,67 +1,94 @@
-import { ArrowRight, BookOpen, CalendarDays, FolderOpen } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { useEffect } from 'react'
 import { useAuth } from '../../auth/context'
 import { Logo } from '../../components/Logo'
 import { hideSplash } from '../../lib/splash'
-import { STEPS } from '../../data/onboarding'
+
+const ICON = { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true } as const
 
 const FEATURES = [
-  { icon: BookOpen, color: 'var(--mint)', title: 'КТП', text: 'Теми й уроки за семестрами, імпорт готового планування з Word.' },
-  { icon: CalendarDays, color: 'var(--butter)', title: 'Розклад і «Сьогодні»', text: 'Уроки дня за розкладом і датами КТП: що, у якому класі й коли.' },
-  { icon: FolderOpen, color: 'var(--lilac)', title: 'Матеріали до уроків', text: 'Презентації, картки й файли до кожного уроку, доступні навіть без інтернету.' },
+  {
+    color: 'var(--mint)',
+    title: 'КТП',
+    text: 'Теми й уроки за семестрами. Готове планування імпортується з Word.',
+    icon: (
+      <svg {...ICON}>
+        <path d="M3 5.5C5.5 4.5 9 4.6 12 6.5c3-1.9 6.5-2 9-1v13c-2.5-1-6-.9-9 1-3-1.9-6.5-2-9-1z" />
+        <path d="M12 6.5v13" />
+      </svg>
+    ),
+  },
+  {
+    color: 'var(--butter)',
+    title: 'Розклад і «Сьогодні»',
+    text: 'Уроки дня за розкладом і датами КТП: що, у якому класі й коли.',
+    icon: (
+      <svg {...ICON}>
+        <rect x="3" y="4.5" width="18" height="16.5" rx="3" />
+        <path d="M8 2.5v4M16 2.5v4M3 10h18" />
+      </svg>
+    ),
+  },
+  {
+    color: 'var(--lilac)',
+    title: 'Матеріали до уроків',
+    text: 'Презентації, картки й файли до кожного уроку, доступні навіть без інтернету.',
+    icon: (
+      <svg {...ICON}>
+        <path d="M3 7a2 2 0 0 1 2-2h4l2 2.5h8a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+      </svg>
+    ),
+  },
 ]
 
 /** Перший екран порожнього акаунта: що це за застосунок і кнопка створення першого навчального року. */
 export function Welcome({ onStart }: { onStart: () => void }) {
-  const { user, signOut } = useAuth()
+  const { signOut } = useAuth()
   useEffect(hideSplash, [])
 
   return (
-    <div className="ob">
-      <header className="ob-top">
-        <span className="ob-brand">
-          <span className="logo" aria-hidden>
-            <Logo />
-          </span>
-          Планер для вчителя
+    <div className="wl">
+      <div className="wl-top">
+        <span className="logo" aria-label="Планер для вчителя" role="img">
+          <Logo />
         </span>
-        <button type="button" className="btn ghost small" onClick={() => signOut()}>
+        <button type="button" className="wl-exit" onClick={() => signOut()}>
           Вийти
         </button>
-      </header>
+      </div>
 
-      <main className="ob-main">
-        <section className="ob-card ob-welcome" aria-labelledby="ob-welcome">
-          <p className="ob-kicker">Ласкаво просимо{user?.displayName ? `, ${user.displayName.split(' ')[0]}` : ''}</p>
-          <h1 id="ob-welcome">Усе для уроків в одному місці</h1>
-          <p className="ob-lead">
-            Планер збирає календарно-тематичне планування, розклад і матеріали до уроків. Працює на комп’ютері й телефоні, навіть без інтернету.
-          </p>
+      <div className="wl-body">
+        <main className="wl-main">
+          <header className="wl-head">
+            <p>Ласкаво просимо</p>
+            <h1>Усе для уроків в одному місці</h1>
+            <p className="wl-lead">
+              Планер збирає календарно-тематичне планування, розклад і матеріали до уроків. Працює на комп’ютері й телефоні, навіть без інтернету.
+            </p>
+          </header>
 
-          <ul className="ob-features">
-            {FEATURES.map(({ icon: Icon, color, title, text }) => (
-              <li key={title}>
-                <span className="ob-tile" style={{ background: color }}>
-                  <Icon size={18} strokeWidth={1.8} />
+          <ul className="wl-cards">
+            {FEATURES.map((f) => (
+              <li key={f.title}>
+                <span className="wl-tile" style={{ background: f.color }}>
+                  {f.icon}
                 </span>
                 <div>
-                  <b>{title}</b>
-                  <p>{text}</p>
+                  <b>{f.title}</b>
+                  <span>{f.text}</span>
                 </div>
               </li>
             ))}
           </ul>
 
-          <div className="ob-start">
-            <p>
-              Спершу створимо навчальний рік і налаштуємо його за {STEPS.length} кроками: семестри, класи, предмети, дзвінки й розклад. Це кілька хвилин.
-            </p>
-            <button type="button" className="btn" onClick={onStart}>
-              Створити перший навчальний рік <ArrowRight size={16} />
+          <div className="wl-start">
+            <button type="button" className="btn wl-cta" onClick={onStart}>
+              Створити перший навчальний рік <ArrowRight size={16} strokeWidth={2} />
             </button>
+            <p>Налаштування року займе кілька хвилин: 6 кроків від семестрів до розкладу.</p>
           </div>
-        </section>
-      </main>
+        </main>
+      </div>
     </div>
   )
 }
