@@ -334,9 +334,14 @@ h2 {
   margin-bottom: 8px;
 }
 
-.cal-head h3 {
+.cal-title-wrap {
+  position: relative;
   flex: 1;
   min-width: 0;
+  overflow: hidden;
+}
+
+.cal-head h3 {
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -3925,7 +3930,6 @@ a.stat,
 .menu-item:not(:disabled):active,
 .pick:not(:disabled):active,
 .d:not(.sel):not(:disabled):active,
-.fold-toggle:not(:disabled):active,
 .pagebar-back:not(:disabled):active,
 a.arrow:not(:disabled):active,
 a.stat:not(:disabled):active,
@@ -4113,7 +4117,6 @@ a:not([class]):active {
   display: flex;
   width: 300%;
   transform: translateX(-33.3333%);
-  will-change: transform;
 }
 
 .cal-pane {
@@ -4147,8 +4150,30 @@ a:not([class]):active {
   gap: 0;
 }
 
-.cal-title {
-  animation: fade-in var(--dur-slow) var(--ease-out);
+/* Назва місяця: стара виїжджає в бік листання, нова приходить з протилежного боку. */
+.cal-title.in {
+  animation: title-in var(--dur-slow) var(--ease-out);
+}
+
+.cal-title.out {
+  position: absolute;
+  inset: 0 0 auto 0;
+  pointer-events: none;
+  animation: title-out var(--dur) var(--ease-out) forwards;
+}
+
+@keyframes title-in {
+  from {
+    opacity: 0;
+    transform: translateX(var(--tx, 0));
+  }
+}
+
+@keyframes title-out {
+  to {
+    opacity: 0;
+    transform: translateX(var(--tx, 0));
+  }
 }
 
 .fold-chev {

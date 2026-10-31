@@ -95,6 +95,14 @@ export function MonthCalendar({ today, selected, onSelect, marked, min, max, col
   title = title[0].toUpperCase() + title.slice(1)
   const unit = weekMode ? 'тиждень' : 'місяць'
 
+  // Зміна назви показується рухом у бік листання (без напрямку — просто проявляється).
+  const [shownTitle, setShownTitle] = useState(title)
+  const [ghost, setGhost] = useState<{ text: string; dir: number } | null>(null)
+  if (title !== shownTitle) {
+    setShownTitle(title)
+    setGhost({ text: shownTitle, dir: leaving })
+  }
+
   function shiftBy(n: number) {
     setAnchor(neighbour(n))
   }
@@ -133,23 +141,30 @@ export function MonthCalendar({ today, selected, onSelect, marked, min, max, col
     const ms = reduced() ? 0 : dir ? SETTLE_MS : SNAP_MS
     busy.current = true
     setLeaving(dir)
-    el.style.transition = `transform ${ms}ms cubic-bezier(0.22, 1, 0.36, 1)`
-    el.style.transform = `translateX(${-100 / 3 - (dir * 100) / 3}%)`
+    // Web Animations замість CSS-переходу: однаково запускається в усіх браузерах, стартує з місця, де відпустили палець.
+    const from = getComputedStyle(el).transform
+    const to = `translateX(${-100 / 3 - (dir * 100) / 3}%)`
+    el.style.transform = to
+    const anim = el.animate([{ transform: from }, { transform: to }], {
+      duration: ms,
+      easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+    })
     let done = false
     const finish = () => {
       if (done) return
       done = true
+      // Нова сітка стає поточною й одразу ж доріжка повертається до середини: між цими кроками кадру немає.
       flushSync(() => {
         if (dir) shiftBy(dir)
         setLeaving(0)
       })
-      el.style.transition = 'none'
       el.style.transform = ''
+      anim.cancel()
       busy.current = false
     }
-    // transitionend спливає й від дочірніх елементів (натиснутий день), тож враховуємо лише власний.
-    el.addEventListener('transitionend', (e) => e.target === el && finish())
-    window.setTimeout(finish, ms + 80)
+    anim.onfinish = finish
+    // Запасний вихід, якщо вкладку приховано й подія не прийшла.
+    window.setTimeout(finish, ms + 120)
   }
 
   function go(n: -1 | 1) {
@@ -195,7 +210,6 @@ export function MonthCalendar({ today, selected, onSelect, marked, min, max, col
       if (Math.abs(dx) < 8 || Math.abs(dx) < 1.5 * Math.abs(dy)) return
       d.on = d.moved = true
       e.currentTarget.setPointerCapture(e.pointerId)
-      el.style.transition = 'none'
     }
     const dt = e.timeStamp - d.lastT
     if (dt > 0) d.v = 0.8 * d.v + 0.2 * ((e.clientX - d.lastX) / dt)
@@ -235,9 +249,22 @@ export function MonthCalendar({ today, selected, onSelect, marked, min, max, col
   return (
     <div className={`${toggle ? 'cal big' : 'cal'}${expanded ? ' open' : ''}${morph ? ' morph' : ''}`}>
       <div className="cal-head">
-        <h3 key={title} className="cal-title">
-          {title}
-        </h3>
+        <div className="cal-title-wrap">
+          {ghost && (
+            <h3
+              key={`out-${ghost.text}`}
+              className="cal-title out"
+              style={{ '--tx': `${-ghost.dir * 24}px` } as CSSProperties}
+              aria-hidden
+              onAnimationEnd={() => setGhost(null)}
+            >
+              {ghost.text}
+            </h3>
+          )}
+          <h3 key={title} className="cal-title in" style={{ '--tx': `${(ghost?.dir ?? 0) * 24}px` } as CSSProperties}>
+            {title}
+          </h3>
+        </div>
         {onToday &&
           !(
             selected === today &&
