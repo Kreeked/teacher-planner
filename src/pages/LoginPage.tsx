@@ -19,7 +19,14 @@ export function LoginPage() {
     } catch (e) {
       const code = (e as { code?: string }).code
       if (code !== 'auth/popup-closed-by-user' && code !== 'auth/cancelled-popup-request') {
-        setError(navigator.onLine ? 'Не вдалося увійти. Спробуй ще раз.' : 'Для першого входу потрібен інтернет.')
+        const blocked = e instanceof Error && /заблокував|popup-blocked/i.test(`${e.message} ${code ?? ''}`)
+        setError(
+          !navigator.onLine
+            ? 'Для першого входу потрібен інтернет.'
+            : blocked
+              ? 'Браузер заблокував вікно Google. Дозволь спливні вікна для цього сайту (на iPhone: Налаштування → Safari → «Блокувати спливні вікна») і натисни ще раз.'
+              : `Не вдалося увійти. Натисни ще раз.${code ? ` (${code})` : ''}`,
+        )
       }
     } finally {
       setBusy(false)
