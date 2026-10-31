@@ -4,7 +4,7 @@ import type { ISODate, Lesson, LessonMaterial, LessonSchedule } from './types'
 
 /** Скільки днів наперед тримати файли уроків на пристрої (сьогодні включно). */
 export const OFFLINE_DAYS = 7
-export const OFFLINE_LIMIT = 1024 * 1024 * 1024
+export const OFFLINE_LIMIT = 2 * 1024 * 1024 * 1024
 
 /** Файл, який варто мати офлайн: date — найближчий урок з ним, null — позначено «завжди офлайн». */
 export type OfflineItem = { material: LessonMaterial; date: ISODate | null }

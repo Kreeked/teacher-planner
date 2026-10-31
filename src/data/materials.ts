@@ -201,6 +201,11 @@ export function inAppViewable(m: LessonMaterial): boolean {
   return materialType(m) === 'pdf' || googleTarget(m) !== null
 }
 
+/** Як показувати матеріал спочатку: презентації — слайдами, решту (документи, таблиці, PDF) — прокруткою. */
+export function viewMode(m: Pick<LessonMaterial, 'kind' | 'mime_type' | 'title'>): 'slide' | 'scroll' {
+  return materialType(m) === 'slides' ? 'slide' : 'scroll'
+}
+
 /** Посилання «показ у Google»: для Google Презентації — одразу режим показу, для решти — перегляд на Диску. */
 export function googleShowUrl(m: LessonMaterial): { url: string; label: string } {
   if (m.drive_file_id && m.mime_type === `${GOOGLE_APPS}presentation`)

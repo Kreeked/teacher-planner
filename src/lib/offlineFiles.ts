@@ -7,7 +7,8 @@ import { googleTarget, inAppViewable } from '../data/materials'
 import type { LessonMaterial } from '../data/types'
 import { DriveError, convertToPdf, downloadFile, savedDriveToken } from './drive'
 
-const CACHE = 'planner-files'
+export const FILES_CACHE = 'planner-files'
+const CACHE = FILES_CACHE
 const PREFIX = '/__offline/'
 
 export type SavedFile = { id: string; name: string; type: string; size: number }
