@@ -22,30 +22,31 @@ type Props = {
   trigger?: ReactNode
   triggerClass?: string
   triggerStyle?: CSSProperties
+  // З якого краю кнопки відкривається меню: «start» — від лівого, «end» — від правого (для «⋯» біля краю).
+  align?: 'start' | 'end'
 }
 
-const WIDTH = 220
-
 /** Кнопка «⋯» з випадаючим меню дій у стилі застосунку. */
-export function Menu({ label, groups, trigger, triggerClass = 'icon-btn menu-btn', triggerStyle }: Props) {
+export function Menu({ label, groups, trigger, triggerClass = 'icon-btn menu-btn', triggerStyle, align = 'end' }: Props) {
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState<CSSProperties>({ visibility: 'hidden' })
   const button = useRef<HTMLButtonElement>(null)
   const pop = useRef<HTMLDivElement>(null)
   const visible = groups.filter((g) => g.length)
 
-  // Меню під кнопкою, праворуч вирівняне по ній; якщо внизу мало місця — над нею. Не виходить за край екрана.
+  // Меню під кнопкою, вирівняне по її краю (align); якщо внизу мало місця — над нею. Не виходить за край екрана.
   useLayoutEffect(() => {
     if (!open || !button.current || !pop.current) return
     const r = button.current.getBoundingClientRect()
     const h = pop.current.offsetHeight
+    const w = pop.current.offsetWidth
     const below = r.bottom + 4 + h <= window.innerHeight - 8
     setPos({
       top: below ? r.bottom + 4 : Math.max(8, r.top - 4 - h),
-      left: Math.max(8, Math.min(r.right - WIDTH, window.innerWidth - WIDTH - 8)),
+      left: Math.max(8, Math.min(align === 'start' ? r.left : r.right - w, window.innerWidth - w - 8)),
     })
     pop.current.querySelector('button')?.focus()
-  }, [open])
+  }, [open, align])
 
   useEffect(() => {
     if (!open) return
@@ -107,7 +108,7 @@ export function Menu({ label, groups, trigger, triggerClass = 'icon-btn menu-btn
       </button>
       {open &&
         createPortal(
-          <div ref={pop} className="menu-pop" role="menu" aria-label={label} style={{ ...pos, width: WIDTH }}>
+          <div ref={pop} className="menu-pop" role="menu" aria-label={label} style={pos}>
             {visible.map((group, gi) => (
               <Fragment key={gi}>
                 {gi > 0 && <hr className="menu-sep" />}
