@@ -85,12 +85,14 @@ export function savedDriveToken() {
 
 /** Вікно дозволу Google не відкрилося (браузер заблокував) або його закрито. */
 class PopupBlocked extends DriveError {}
+/** Користувач увійшов, але не дозволив доступ до Диска (знятий прапорець у вікні Google). */
+class NoDriveAccess extends DriveError {}
 export class PopupClosed extends DriveError {
   code = 'auth/popup-closed-by-user'
 }
 
 /** Просить токен у Google. Відкриває вікно, тож викликати слід одразу з обробника натискання. */
-function requestToken(scope: string, prompt: string): Promise<Token> {
+function requestToken(scope: string, prompt: string): Promise<Token & { drive: boolean }> {
   return new Promise((resolve, reject) => {
     const client = google.accounts.oauth2.initTokenClient({
       client_id: DRIVE_CLIENT_ID,
@@ -102,8 +104,10 @@ function requestToken(scope: string, prompt: string): Promise<Token> {
           return
         }
         const t = { value: r.access_token, expires: Date.now() + Number(r.expires_in) * 1000 }
-        saveToken(t)
-        resolve(t)
+        // Google дозволяє зняти окремий прапорець доступу до Диска: такий токен для Диска марний.
+        const drive = google.accounts.oauth2.hasGrantedAllScopes(r, SCOPE)
+        if (drive) saveToken(t)
+        resolve({ ...t, drive })
       },
       error_callback: (e) =>
         reject(
@@ -128,29 +132,60 @@ export async function googleSignInToken(): Promise<string> {
   return t.value
 }
 
-/** Токен для Drive API; уперше (і коли сплив) — вікно дозволу Google. Викликати з обробника натискання. */
-export async function driveToken(): Promise<string> {
+/**
+ * Токен для Drive API; уперше (і коли сплив) — вікно дозволу Google. Викликати з обробника натискання.
+ * reconsent — попередній токен не підійшов (Диск відповів 401/403): просимо дозвіл наново.
+ */
+export async function driveToken(reconsent = false): Promise<string> {
   if (!driveConfigured) throw new DriveError('Підключення до Google Диска ще не налаштоване.')
-  if (token && token.expires > Date.now() + 60_000) return token.value
+  if (!reconsent && token && token.expires > Date.now() + 60_000) return token.value
   await loadScript('https://accounts.google.com/gsi/client')
-  try {
-    return (await requestToken(SCOPE, '')).value
-  } catch (e) {
-    if (!(e instanceof PopupBlocked)) throw e
-    // Браузер не дав відкрити вікно (натискання було давно): нове натискання на кнопку це виправляє.
-    const again = await ask('Браузер заблокував вікно Google. Натисни кнопку, щоб відкрити його знову.', {
-      ok: 'Відкрити вікно Google',
-      danger: false,
-    })
-    if (!again) throw new PopupClosed('Вікно дозволу Google закрито.')
-    return (await requestToken(SCOPE, '')).value
+  let prompt = reconsent ? 'consent' : ''
+  let why = reconsent ? 'Google Диск не дав доступу.' : ''
+  for (let attempt = 0; ; attempt++) {
+    try {
+      if (why) {
+        // Нове вікно можна відкрити лише з нового натискання, тож просимо його в застосунку.
+        const again = await ask(`${why} Дозволь застосунку доступ до Диска у вікні Google: постав галочку біля Диска.`, {
+          ok: 'Відкрити вікно Google',
+          danger: false,
+        })
+        if (!again) throw new PopupClosed('Вікно дозволу Google закрито.')
+      }
+      const t = await requestToken(SCOPE, prompt)
+      if (t.drive) return t.value
+      throw new NoDriveAccess('Доступ до Диска не надано.')
+    } catch (e) {
+      if (attempt >= 2 || !(e instanceof PopupBlocked || e instanceof NoDriveAccess)) throw e
+      prompt = 'consent'
+      why = e instanceof PopupBlocked ? 'Браузер заблокував вікно Google.' : 'Доступ до Диска не надано.'
+    }
   }
 }
 
+/** Відповідь Диска «токен недійсний або не має потрібного доступу» (а не, скажімо, ліміт запитів чи чужий файл). */
+async function noAccess(r: Response) {
+  if (r.status === 401) return true
+  if (r.status !== 403) return false
+  const body = (await r.clone().json().catch(() => null)) as { error?: { errors?: { reason?: string }[] } } | null
+  return body?.error?.errors?.some((e) => e.reason === 'insufficientPermissions') ?? false
+}
+
+/** Запит до Drive API з токеном; якщо Диск відмовив (401/403 — не надано доступ), просить дозвіл і пробує ще раз. */
+async function fetchAuthed(url: string, init: RequestInit = {}) {
+  const send = async (t: string) =>
+    fetch(url, { ...init, headers: { ...init.headers, Authorization: `Bearer ${t}` } })
+  let r = await send(await driveToken())
+  if (await noAccess(r)) {
+    saveToken(null)
+    r = await send(await driveToken(true))
+    if (await noAccess(r)) saveToken(null)
+  }
+  return r
+}
+
 async function api<T>(url: string, init: RequestInit = {}): Promise<T> {
-  const t = await driveToken()
-  const r = await fetch(url, { ...init, headers: { ...init.headers, Authorization: `Bearer ${t}` } })
-  if (r.status === 401) saveToken(null)
+  const r = await fetchAuthed(url, init)
   if (!r.ok) throw new DriveError(`Google Диск відповів помилкою ${r.status}.`)
   return r.json() as Promise<T>
 }
@@ -197,13 +232,11 @@ export async function ensureFolder(path: string[]): Promise<string> {
 /** Завантажує файл частинами (обрив зв'язку не губить уже передане). progress — від 0 до 1. */
 export async function uploadFile(file: File, folderPath: string[], progress?: (p: number) => void): Promise<DriveFile> {
   const folderId = await ensureFolder(folderPath)
-  const t = await driveToken()
-  const start = await fetch(
+  const start = await fetchAuthed(
     'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,name,mimeType,size',
     {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${t}`,
         'Content-Type': 'application/json; charset=UTF-8',
         'X-Upload-Content-Type': file.type || 'application/octet-stream',
         'X-Upload-Content-Length': String(file.size),
@@ -253,9 +286,7 @@ async function sendChunk(session: string, file: File, from: number, to: number) 
 const GOOGLE_APPS = 'application/vnd.google-apps.'
 
 async function authorized(url: string, init: RequestInit = {}) {
-  const t = await driveToken()
-  const r = await fetch(url, { ...init, headers: { ...init.headers, Authorization: `Bearer ${t}` } })
-  if (r.status === 401) saveToken(null)
+  const r = await fetchAuthed(url, init)
   if (!r.ok) throw new DriveError(`Google Диск відповів помилкою ${r.status}.`)
   return r
 }
