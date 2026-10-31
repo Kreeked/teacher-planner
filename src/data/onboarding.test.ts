@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { canProceed, countsOf, type Counts } from './onboarding'
+import { canProceed, classesWord, countsOf, type Counts } from './onboarding'
 
 const empty: Counts = { year: false, semesters: 0, classes: 0, courses: 0, slots: 0 }
 
@@ -18,6 +18,12 @@ describe('canProceed', () => {
     expect(canProceed('subjects', empty)).toBe(false)
     expect(canProceed('bells', empty)).toBe(false)
     expect(canProceed('bells', { ...empty, slots: 3 })).toBe(true)
+  })
+})
+
+describe('classesWord', () => {
+  it('відмінює слово «клас»', () => {
+    expect([1, 2, 4, 5, 11, 12, 21].map(classesWord)).toEqual(['1 клас', '2 класи', '4 класи', '5 класів', '11 класів', '12 класів', '21 клас'])
   })
 })
 
