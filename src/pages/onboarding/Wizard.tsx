@@ -12,7 +12,7 @@ import { unscheduledBySemester } from '../../data/semesterSchedule'
 import { unassignedClasses } from '../../data/subjects'
 import type { Shift } from '../../data/timetable'
 import type { AcademicYear, DayOff, Period } from '../../data/types'
-import { defaultYear, defaultYearStart, fitPeriods, pickCurrentYear, validateYear } from '../../data/year'
+import { fitPeriods, pickCurrentYear, validateYear } from '../../data/year'
 import { ask } from '../../lib/confirm'
 import { notifySaved } from '../../lib/saved'
 import { clearOnboarding, getOnboardingStep, setOnboardingStep } from '../../lib/onboarding'
@@ -20,6 +20,7 @@ import { hideSplash } from '../../lib/splash'
 import { createYear } from '../year/createYear'
 import { useYearData } from '../year/useYearData'
 import { syncVacations } from '../year/vacations'
+import { periodsComplete } from '../../data/vacations'
 import { BellsStep } from './BellsStep'
 import { ClassesStep } from './ClassesStep'
 import { ScheduleStep } from './ScheduleStep'
@@ -75,8 +76,8 @@ export function Wizard({ onExit, onDone }: Props) {
   const data = useYearData(year)
   const counts = countsOf({ year, periods: data.periods, classes: data.classes, courses: data.courses, bells: data.bells[0] })
 
-  const [initial] = useState(() => defaultYear(defaultYearStart(new Date())))
-  const [draft, setDraft] = useState({ title: initial.title, start: initial.start_date, end: initial.end_date })
+  // Нова чернетка року порожня: усе вказує користувач.
+  const [draft, setDraft] = useState({ title: '', start: '', end: '' })
   const draftError = draft.title.trim() ? validateYear({ start_date: draft.start, end_date: draft.end }, [], years) : yearTitleError
   // Картки предметів можуть бути недописані: тоді «Далі» неактивна.
   const [subjectsValid, setSubjectsValid] = useState(true)
@@ -89,7 +90,7 @@ export function Wizard({ onExit, onDone }: Props) {
 
   const current = STEPS[step]
   const last = step === STEPS.length - 1
-  const ready = year ? canProceed(current.id, counts) && (current.id !== 'subjects' || subjectsValid) : !draftError
+  const ready = year ? canProceed(current.id, counts) && (current.id !== 'subjects' || subjectsValid) && (current.id !== 'periods' || periodsComplete(data.periods, data.daysOff)) : !draftError
 
   function go(n: number) {
     setSubjectsValid(true)
@@ -116,7 +117,7 @@ export function Wizard({ onExit, onDone }: Props) {
         return
     }
     if (!year) {
-      const id = createYear({ ...draft, withSemesters: true })
+      const id = createYear({ ...draft, withSemesters: true, blank: true })
       setYearId(id)
       go(1)
     } else if (current.id === 'periods') {
@@ -192,7 +193,7 @@ export function Wizard({ onExit, onDone }: Props) {
                     title={draft.title}
                     start={draft.start}
                     end={draft.end}
-                    error={draftError}
+                    error={draft.title || draft.start || draft.end ? draftError : null}
                     onTitle={(title) => setDraft({ ...draft, title })}
                     onStart={(d) => setDraft({ ...draft, start: d ?? '' })}
                     onEnd={(d) => setDraft({ ...draft, end: d ?? '' })}

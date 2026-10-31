@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Period } from './types'
-import { defaultVacations, planVacations, validateSemester, validateVacation, vacationKind, winterBreak } from './vacations'
+import { defaultVacations, periodsComplete, planVacations, validateSemester, validateVacation, vacationKind, winterBreak } from './vacations'
 
 const year = { start_date: '2026-09-01', end_date: '2027-06-30' }
 const sem1 = { title: 'І семестр', start_date: '2026-09-01', end_date: '2026-12-26' }
@@ -111,5 +111,27 @@ describe('vacationKind', () => {
   it('впізнає за назвою', () => {
     expect(vacationKind('Зимові канікули')).toBe('winter')
     expect(vacationKind('Свято')).toBeUndefined()
+  })
+})
+
+describe('порожні дати семестрів', () => {
+  const blank = [
+    { parent_id: null, position: 0, start_date: '2026-09-01', end_date: '' },
+    { parent_id: null, position: 1, start_date: '', end_date: '2027-06-30' },
+  ]
+  it('не дають плану канікул і зимових канікул', () => {
+    expect(planVacations(blank, {})).toBeNull()
+    expect(winterBreak(blank[0], blank[1])).toBeNull()
+  })
+  it('periodsComplete вимагає всі дати й осінні та весняні канікули', () => {
+    const full = [
+      { parent_id: null, position: 0, start_date: '2026-09-01', end_date: '2026-12-26' },
+      { parent_id: null, position: 1, start_date: '2027-01-12', end_date: '2027-06-30' },
+    ]
+    const off = (title: string) => ({ title, start_date: '2026-10-26', end_date: '2026-11-01' })
+    expect(periodsComplete(blank, [])).toBe(false)
+    expect(periodsComplete(full, [])).toBe(false)
+    expect(periodsComplete(full, [off('Осінні канікули')])).toBe(false)
+    expect(periodsComplete(full, [off('Осінні канікули'), off('Весняні канікули')])).toBe(true)
   })
 })

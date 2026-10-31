@@ -16,6 +16,7 @@ export type Options = {
 export function useRangeDraft({ value, validate, onSave }: Options) {
   const [draft, setDraft] = useState(value)
   const [seen, setSeen] = useState(value)
+  const [touched, setTouched] = useState(false)
   // Зміни, що прийшли ззовні (з іншого пристрою), підтягуємо в чернетку.
   if (seen.title !== value.title || seen.start_date !== value.start_date || seen.end_date !== value.end_date) {
     setSeen(value)
@@ -25,12 +26,14 @@ export function useRangeDraft({ value, validate, onSave }: Options) {
   function change(patch: Partial<RangeValue>, save: boolean) {
     const next = { ...draft, ...patch }
     setDraft(next)
+    if (Object.keys(patch).length) setTouched(true)
     if (save && !validate(next) && next.title.trim()) onSave({ ...next, title: next.title.trim() })
   }
 
   return {
     draft,
-    error: validate(draft),
+    // Порожні поля, яких ще не торкалися, помилкою не позначаємо.
+    error: !touched && (!draft.start_date || !draft.end_date) ? null : validate(draft),
     setTitle: (title: string) => change({ title }, false),
     saveTitle: () => change({}, draft.title !== value.title),
     setStart: (d: ISODate | null) => change({ start_date: d ?? '' }, true),
