@@ -4,6 +4,9 @@ import {
   filledShelves,
   driveFolder,
   formatSize,
+  googleShowUrl,
+  googleTarget,
+  inAppViewable,
   groupByCategory,
   guessCategory,
   linkTitle,
@@ -151,5 +154,44 @@ describe('guessCategory', () => {
   it('презентацію впізнає й за розширенням, решту лишає без типу', () => {
     expect(guessCategory('урок 5.pptx')).toBe('slides')
     expect(guessCategory('Скріншот таблиці.png')).toBeNull()
+  })
+})
+
+describe('вбудований перегляд', () => {
+  const file = (title: string, mime_type: string | null = null, extra: Partial<LessonMaterial> = {}) =>
+    ({ kind: 'file', title, mime_type, drive_file_id: 'abc', url: null, category: 'slides', ...extra }) as LessonMaterial
+
+  it('обирає, у що Диск конвертує офісний файл', () => {
+    expect(googleTarget(file('Урок.pptx'))).toBe('application/vnd.google-apps.presentation')
+    expect(googleTarget(file('Таблиця.XLSX'))).toBe('application/vnd.google-apps.spreadsheet')
+    expect(googleTarget(file('Конспект.docx'))).toBe('application/vnd.google-apps.document')
+    expect(googleTarget(file('x', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'))).toBe(
+      'application/vnd.google-apps.document',
+    )
+    expect(googleTarget(file('Урок.pdf', 'application/pdf'))).toBeNull()
+    expect(googleTarget(file('Слайди', 'application/vnd.google-apps.presentation'))).toBeNull()
+  })
+
+  it('показує у перегляді PDF, файли Google й офісні файли', () => {
+    expect(inAppViewable(file('Урок.pptx'))).toBe(true)
+    expect(inAppViewable(file('Слайди', 'application/vnd.google-apps.presentation'))).toBe(true)
+    expect(inAppViewable(file('Картка.pdf', 'application/pdf'))).toBe(true)
+    expect(inAppViewable(file('Фото.png', 'image/png'))).toBe(false)
+    expect(inAppViewable(file('Форма', 'application/vnd.google-apps.form'))).toBe(false)
+    expect(inAppViewable(file('Урок.key'))).toBe(false)
+  })
+
+  it('не показує посилання, файли без Диска й тести Wayground', () => {
+    expect(inAppViewable(file('Урок.pptx', null, { kind: 'link' }))).toBe(false)
+    expect(inAppViewable(file('Урок.pptx', null, { drive_file_id: null }))).toBe(false)
+    expect(inAppViewable(file('Тест.xlsx', null, { category: 'test' }))).toBe(false)
+  })
+
+  it('веде Google Презентацію одразу в показ', () => {
+    expect(googleShowUrl(file('Слайди', 'application/vnd.google-apps.presentation'))).toEqual({
+      url: 'https://docs.google.com/presentation/d/abc/present',
+      label: 'Показ у Google',
+    })
+    expect(googleShowUrl(file('Урок.pptx')).url).toBe('https://drive.google.com/file/d/abc/view')
   })
 })

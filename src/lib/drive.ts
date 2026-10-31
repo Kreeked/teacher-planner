@@ -211,16 +211,39 @@ async function sendChunk(session: string, file: File, from: number, to: number) 
 // Файли Google (Документи, Презентації, Таблиці) не мають власного вмісту — беремо PDF-версію.
 const GOOGLE_APPS = 'application/vnd.google-apps.'
 
-/** Вміст файлу з Диска для офлайн-копії. Файли Google приходять як PDF. */
-export async function downloadFile(id: string, mimeType: string | null): Promise<Blob> {
+async function authorized(url: string, init: RequestInit = {}) {
   const t = await driveToken()
+  const r = await fetch(url, { ...init, headers: { ...init.headers, Authorization: `Bearer ${t}` } })
+  if (r.status === 401) saveToken(null)
+  if (!r.ok) throw new DriveError(`Google Диск відповів помилкою ${r.status}.`)
+  return r
+}
+
+/** Вміст файлу з Диска: як є, а файли Google — у вигляді PDF. */
+export async function downloadFile(id: string, mimeType: string | null): Promise<Blob> {
   const url = mimeType?.startsWith(GOOGLE_APPS)
     ? `https://www.googleapis.com/drive/v3/files/${id}/export?mimeType=application/pdf`
     : `https://www.googleapis.com/drive/v3/files/${id}?alt=media`
-  const r = await fetch(url, { headers: { Authorization: `Bearer ${t}` } })
-  if (r.status === 401) saveToken(null)
-  if (!r.ok) throw new DriveError(`Google Диск відповів помилкою ${r.status}.`)
-  return r.blob()
+  return (await authorized(url)).blob()
+}
+
+/**
+ * PDF-версія офісного файлу (pptx, docx, xlsx…): Диск робить тимчасову копію як файл Google,
+ * з неї береться PDF, копія одразу видаляється — на Диску нічого не лишається.
+ */
+export async function convertToPdf(id: string, googleMime: string): Promise<Blob> {
+  const copy = await (
+    await authorized(`https://www.googleapis.com/drive/v3/files/${id}/copy?fields=id`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mimeType: googleMime, name: 'Тимчасова копія для перегляду' }),
+    })
+  ).json() as { id: string }
+  try {
+    return await downloadFile(copy.id, googleMime)
+  } finally {
+    authorized(`https://www.googleapis.com/drive/v3/files/${copy.id}`, { method: 'DELETE' }).catch(() => {})
+  }
 }
 
 // ---------- Вибір файлу з Диска ----------
