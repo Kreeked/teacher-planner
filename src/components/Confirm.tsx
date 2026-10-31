@@ -26,13 +26,13 @@ export function ConfirmHost() {
 
   return (
     <Dialog
-      title="Підтвердження"
+      title={current.title ?? 'Підтвердження'}
       className="confirm-dialog"
       onClose={() => answer(false)}
       footer={
         <>
           <button className="btn ghost" onClick={() => answer(false)}>
-            Скасувати
+            {current.cancel ?? 'Скасувати'}
           </button>
           <button
             className={current.danger ? 'btn danger-fill' : 'btn'}

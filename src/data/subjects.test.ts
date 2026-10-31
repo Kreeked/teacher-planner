@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { hoursMismatch, parseHours, semesterWeeks, subjectIssue, teachingWeeks } from './subjects'
+import type { ClassGroup } from './types'
+import { hoursMismatch, parseHours, semesterWeeks, subjectIssue, teachingWeeks, unassignedClasses } from './subjects'
 
 const ok = { subject: 'Інформатика', grade: 5, h1: '1', h2: '1', year: '35', classIds: ['a'] }
 
@@ -78,5 +79,18 @@ describe('hoursMismatch', () => {
 
   it('порожні поля не перевіряються', () => {
     expect(hoursMismatch({ ...ok, year: '' }, weeks)).toBeNull()
+  })
+})
+
+describe('unassignedClasses', () => {
+  const c = (id: string, grade: number, letter: string) => ({ id, grade, letter }) as ClassGroup
+
+  it('повертає класи без КТП по порядку', () => {
+    const classes = [c('9б', 9, 'Б'), c('5а', 5, 'А'), c('5б', 5, 'Б'), c('9а', 9, 'А')]
+    expect(unassignedClasses(classes, [{ class_group_id: '5а' }, { class_group_id: '9а' }]).map((x) => x.id)).toEqual(['5б', '9б'])
+  })
+
+  it('усі розподілені — порожньо', () => {
+    expect(unassignedClasses([c('5а', 5, 'А')], [{ class_group_id: '5а' }])).toEqual([])
   })
 })

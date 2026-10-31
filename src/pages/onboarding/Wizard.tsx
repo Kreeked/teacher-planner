@@ -8,9 +8,11 @@ import { commit, flushDraft, newBatch, updateFields, useCollection } from '../..
 import { discardDraft, hasDraft, stopDraft } from '../../data/draft'
 import { STEPS, canProceed, countsOf } from '../../data/onboarding'
 import { toISO } from '../../data/schedule'
+import { unassignedClasses } from '../../data/subjects'
 import type { Shift } from '../../data/timetable'
 import type { AcademicYear, DayOff, Period } from '../../data/types'
 import { defaultYear, defaultYearStart, fitPeriods, pickCurrentYear, validateYear } from '../../data/year'
+import { ask } from '../../lib/confirm'
 import { notifySaved } from '../../lib/saved'
 import { clearOnboarding, getOnboardingStep, setOnboardingStep } from '../../lib/onboarding'
 import { hideSplash } from '../../lib/splash'
@@ -95,8 +97,23 @@ export function Wizard({ onExit, onDone }: Props) {
     window.scrollTo(0, 0)
   }
 
-  function next() {
+  async function next() {
     if (!ready) return
+    if (current.id === 'subjects') {
+      const free = unassignedClasses(data.classes, data.links)
+      const names = free.map((c) => c.display_name)
+      const list = names.length > 8 ? `${names.slice(0, 8).join(', ')} та ще ${names.length - 8}` : names.join(', ')
+      if (
+        free.length &&
+        !(await ask(`Не всі класи розподілено між предметами: ${list}. Для них не буде КТП. Продовжити без них чи повернутися й розподілити?`, {
+          title: 'Не всі класи розподілено',
+          ok: 'Продовжити',
+          cancel: 'Повернутися',
+          danger: false,
+        }))
+      )
+        return
+    }
     if (!year) {
       const id = createYear({ ...draft, withSemesters: true })
       setYearId(id)
