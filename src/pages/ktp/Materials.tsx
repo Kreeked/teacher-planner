@@ -95,7 +95,7 @@ export function MaterialLink({ m }: { m: LessonMaterial }) {
 
 /**
  * Полички уроку: лише типи, у яких є файли, і в кінці «Додати файл». Поличка з одним файлом відкриває його,
- * з кількома — вікно матеріалів. Файли «Без типу» — поличка «Інше · N», теж відкриває вікно.
+ * з кількома — меню з їхнім списком. Файли «Без типу» — поличка «Інше · N», теж відкриває вікно.
  */
 export function LessonShelves({ own, onOpen }: { own: LessonMaterial[]; onOpen: () => void }) {
   const saved = useOfflineFiles().saved
@@ -133,6 +133,27 @@ export function LessonShelves({ own, onOpen }: { own: LessonMaterial[]; onOpen: 
             >
               {text}
             </a>
+          )
+        }
+        if (category) {
+          return (
+            <Menu
+              key={shelf}
+              label={`${full}: ${n}`}
+              triggerClass="shelf"
+              trigger={text}
+              groups={[
+                files.map((m) => {
+                  const copy = saved.get(m.drive_file_id ?? '')
+                  return {
+                    label: m.title,
+                    icon: ICONS[materialType(m)],
+                    hint: m.size_bytes ? formatSize(m.size_bytes) : undefined,
+                    onSelect: () => openFile(m, copy),
+                  }
+                }),
+              ]}
+            />
           )
         }
         return (

@@ -3537,6 +3537,13 @@ h2.topic-title {
   text-align: left;
 }
 
+.menu-item .grow {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .menu-item svg {
   color: var(--ink-2);
   flex: none;
