@@ -10,7 +10,7 @@ Firestore: кожна колекція лежить у `users/{uid}/<колек�
 | `academic_years` | навчальний рік | title, start_date, end_date. Поточний не зберігається: це рік, у чиїх межах сьогодні; між роками — найближчий наступний, після останнього — останній (`pickCurrentYear`) |
 | `periods` | семестр / чверть | academic_year_id, parent_id (чверть → семестр), kind, title, дати, position |
 | `class_groups` | клас | academic_year_id, grade, letter, display_name («9-А») |
-| `days_off` | день без уроків (канікули, свята) | academic_year_id, title, start_date, end_date — діапазон у межах року |
+| `days_off` | день без уроків (канікули, свята) | academic_year_id, title, start_date, end_date — діапазон у межах року; осінні, зимові й весняні канікули створюються разом із роком і впізнаються за назвою («Осінні/Зимові/Весняні канікули») |
 | `courses` | КТП предмета для паралелі; створюється на сторінці року порожнім (без тем і уроків) | academic_year_id, subject, grade, hours_per_week (І семестр), hours_per_week_2 (ІІ семестр; немає — як у І), total_hours, program_ref, status |
 | `course_classes` | клас, що йде за КТП | course_id, class_group_id, position (порядок колонок дат) |
 | `topics` | тема (один рівень) | course_id, position, title, planned_hours |

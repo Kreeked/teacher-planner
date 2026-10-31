@@ -9,8 +9,7 @@ describe('canProceed', () => {
     expect(canProceed('year', { ...empty, year: true })).toBe(true)
   })
 
-  it('дні без уроків і розклад можна пропустити', () => {
-    expect(canProceed('daysoff', empty)).toBe(true)
+  it('розклад можна пропустити', () => {
     expect(canProceed('schedule', empty)).toBe(true)
   })
 
