@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { placedCount, semesterHours, semesterTimetable, semesters, unscheduledBySemester } from './semesterSchedule'
+import { placedCount, semesterHours, semesterTimetable, semesters, emptySemesters, unplacedClasses } from './semesterSchedule'
 import type { ClassGroup, Course, CourseClass, Period, Timetable, TimetableEntry } from './types'
 
 const period = (id: string, position: number, start_date: string, end_date: string, parent_id: string | null = null) =>
@@ -40,7 +40,7 @@ describe('placedCount', () => {
   })
 })
 
-describe('unscheduledBySemester', () => {
+describe('unplacedClasses і emptySemesters', () => {
   const base = {
     periods: [s1, s2],
     timetables: [tt('t1', s1), tt('t2', s2)],
@@ -51,24 +51,32 @@ describe('unscheduledBySemester', () => {
       { course_id: 'k', class_group_id: 'b' },
     ] as CourseClass[],
   }
+  const ids = (r: ClassGroup[]) => r.map((c) => c.id)
 
-  it('порожній розклад семестру не рахується', () => {
-    expect(unscheduledBySemester({ ...base, entries: [] })).toEqual([])
+  it('порожній розклад семестру: усі класи не розставлені', () => {
+    expect(ids(unplacedClasses({ ...base, entries: [] }, 0))).toEqual(['a', 'b'])
   })
 
-  it('називає класи, яких немає в непорожньому розкладі', () => {
-    const r = unscheduledBySemester({ ...base, entries: [entry('1', 't1', 'a')] })
-    expect(r).toHaveLength(1)
-    expect(r[0].semester.id).toBe('s1')
-    expect(r[0].classes.map((c) => c.id)).toEqual(['b'])
+  it('називає класи, яких немає в розкладі цього семестру', () => {
+    const p = { ...base, entries: [entry('1', 't1', 'a')] }
+    expect(ids(unplacedClasses(p, 0))).toEqual(['b'])
+    expect(ids(unplacedClasses(p, 1))).toEqual(['a', 'b'])
   })
 
   it('усі розставлені — порожньо', () => {
-    expect(unscheduledBySemester({ ...base, entries: [entry('1', 't1', 'a'), entry('2', 't1', 'b')] })).toEqual([])
+    expect(unplacedClasses({ ...base, entries: [entry('1', 't1', 'a'), entry('2', 't1', 'b')] }, 0)).toEqual([])
   })
 
   it('клас без годин у семестрі не потрібен у розкладі', () => {
-    const r = unscheduledBySemester({ ...base, courses: [course(1, 0)], entries: [entry('1', 't2', 'a')] })
-    expect(r).toEqual([])
+    expect(unplacedClasses({ ...base, courses: [course(1, 0)], entries: [] }, 1)).toEqual([])
+  })
+
+  it('порожні семестри', () => {
+    expect(emptySemesters({ ...base, entries: [entry('1', 't1', 'a')] }).map((x) => x.id)).toEqual(['s2'])
+    expect(emptySemesters({ ...base, entries: [] }).map((x) => x.id)).toEqual(['s1', 's2'])
+  })
+
+  it('семестр без годин ні в кого не вважається порожнім', () => {
+    expect(emptySemesters({ ...base, courses: [course(1, 0)], entries: [entry('1', 't1', 'a')] })).toEqual([])
   })
 })

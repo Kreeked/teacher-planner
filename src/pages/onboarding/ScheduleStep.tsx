@@ -1,11 +1,12 @@
-import { X } from 'lucide-react'
+import { Check, TriangleAlert, X } from 'lucide-react'
 import { useState } from 'react'
 import { Menu } from '../../components/Menu'
 import { commit, createDoc, newBatch, removeDoc, updateFields } from '../../data/db'
 import { WORKDAYS as DAYS } from '../../data/schedule'
-import { placedCount, semesterHours, semesterTimetable, semesters } from '../../data/semesterSchedule'
+import { placedCount, semesterHours, semesterTimetable, semesters, unplacedClasses } from '../../data/semesterSchedule'
 import { SHIFTS, entryShift, shiftSlots, type Shift } from '../../data/timetable'
 import type { AcademicYear, BellSchedule, ClassGroup, Course, CourseClass, Period, Timetable, TimetableEntry } from '../../data/types'
+import { classesWord } from '../../data/onboarding'
 import { gradeColor } from '../../data/year'
 
 type Props = {
@@ -53,6 +54,8 @@ export function ScheduleStep({ year, periods, bells, timetables, entries, course
   const ofShift = own.filter((e) => entryShift(e) === shift)
   const slots = shiftSlots(bells, shift)
   const rows = Array.from({ length: Math.max(slots.length, ...ofShift.map((e) => e.slot_number)) }, (_, i) => i + 1)
+  const unplaced = sem ? unplacedClasses({ periods, timetables, entries, courses, classes, links }, index) : []
+  const needed = sem && links.length > 0
   const manySubjects = new Set(courses.map((c) => c.subject.toLowerCase())).size > 1
 
   const options = [...courses]
@@ -96,6 +99,20 @@ export function ScheduleStep({ year, periods, bells, timetables, entries, course
         )}
         <Pills label="Зміна" items={SHIFTS} value={shift} onChange={onShift} />
       </div>
+
+      {unplaced.length ? (
+        <p className="ob-sub-warn">
+          <TriangleAlert size={16} strokeWidth={2} aria-hidden />
+          Не розставлено {classesWord(unplaced.length)}: {unplaced.map((c) => c.display_name).join(', ')}
+        </p>
+      ) : (
+        needed && (
+          <p className="ob-sch-done">
+            <Check size={16} strokeWidth={2.2} aria-hidden />
+            Усі класи в розкладі
+          </p>
+        )
+      )}
 
       {rows.length === 0 ? (
         <p className="ob-bell-empty">Додай уроки в «Дзвінках» цієї зміни: тоді їх можна буде поставити в розклад.</p>
@@ -158,10 +175,6 @@ export function ScheduleStep({ year, periods, bells, timetables, entries, course
         </div>
       )}
 
-      <p className="ob-sch-note">
-        Натисни клітинку, щоб обрати клас: поряд показано, скільки годин на тиждень він уже має в цьому семестрі. Порожня клітинка — вікно в розкладі.
-        Розклад кожного семестру окремий, і якийсь із них можна лишити порожнім.
-      </p>
     </>
   )
 }

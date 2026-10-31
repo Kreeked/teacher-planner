@@ -5960,10 +5960,12 @@ a:not([class]):active {
   outline-offset: 2px;
 }
 
-.ob-sch-note {
+.ob-sch-done {
   margin: 0;
-  font-size: 12px;
-  line-height: 1.45;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
   color: var(--ink-2);
 }
 

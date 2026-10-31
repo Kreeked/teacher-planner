@@ -22,7 +22,7 @@ export const STEPS: Step[] = [
   { id: 'classes', title: 'Класи', lead: 'Натисни літеру, щоб додати клас. Натисни ще раз, щоб прибрати.', need: 'Додай хоча б один клас' },
   { id: 'subjects', title: 'Предмети', lead: 'Кожен предмет — це КТП: спершу порожнє. Теми й уроки додаш пізніше або імпортуєш із Word.', need: 'Додай хоча б один предмет' },
   { id: 'bells', title: 'Дзвінки', lead: 'Час уроків і перерв кожної зміни.', need: 'Додай уроки хоча б однієї зміни' },
-  { id: 'schedule', title: 'Розклад', lead: 'Постав класи в тижневий розклад. КТП для цього не потрібне, а пізніше розклад можна змінити.', need: '' },
+  { id: 'schedule', title: 'Розклад', lead: 'Постав класи в тижневий розклад. КТП для цього не потрібне, а пізніше розклад можна змінити.', need: 'Постав у розклад хоча б один клас' },
 ]
 
 export type Counts = {
@@ -31,6 +31,8 @@ export type Counts = {
   classes: number
   courses: number
   slots: number
+  /** Клітинок розкладу в усіх семестрах року. */
+  placed: number
 }
 
 export function countsOf(p: {
@@ -39,6 +41,7 @@ export function countsOf(p: {
   classes: unknown[]
   courses: unknown[]
   bells?: Pick<BellSchedule, 'slots' | 'second_shift'>
+  entries?: unknown[]
 }): Counts {
   return {
     year: !!p.year,
@@ -46,6 +49,7 @@ export function countsOf(p: {
     classes: p.classes.length,
     courses: p.courses.length,
     slots: shiftSlots(p.bells, 1).length + shiftSlots(p.bells, 2).length,
+    placed: p.entries?.length ?? 0,
   }
 }
 
@@ -70,7 +74,7 @@ export function canProceed(id: StepId, c: Counts): boolean {
       return c.courses > 0
     case 'bells':
       return c.slots > 0
-    default:
-      return true
+    case 'schedule':
+      return c.placed > 0
   }
 }

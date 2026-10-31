@@ -21,34 +21,42 @@ export function placedCount(entries: TimetableEntry[], classId: string, courseId
   return entries.filter((e) => e.id !== except && e.class_group_id === classId && e.course_id === courseId).length
 }
 
-/** Семестри, де розклад не порожній, але в ньому немає частини класів, яким у цьому семестрі потрібні уроки. */
-export function unscheduledBySemester(p: {
+type Schedule = {
   periods: Period[]
   timetables: Timetable[]
   entries: TimetableEntry[]
   courses: Course[]
   classes: ClassGroup[]
   links: CourseClass[]
-}) {
-  const result: { semester: Period; classes: ClassGroup[] }[] = []
-  semesters(p.periods).forEach((semester, index) => {
-    const tt = semesterTimetable(p.timetables, semester)
-    const own = tt ? p.entries.filter((e) => e.timetable_id === tt.id) : []
-    // Порожній розклад семестру — свідомий вибір: його ще може не бути.
-    if (!own.length) return
-    const placed = new Set(own.map((e) => e.class_group_id))
-    const need = new Set(
-      p.links
-        .filter((l) => {
-          const course = p.courses.find((c) => c.id === l.course_id)
-          return course && semesterHours(course, index) > 0
-        })
-        .map((l) => l.class_group_id),
-    )
-    const missing = p.classes
-      .filter((c) => need.has(c.id) && !placed.has(c.id))
-      .sort((a, b) => a.grade - b.grade || a.letter.localeCompare(b.letter, 'uk'))
-    if (missing.length) result.push({ semester, classes: missing })
+}
+
+/** Класи, яким у семестрі з номером `index` потрібні уроки (годин більше нуля), і ті з них, що вже стоять у його розкладі. */
+function semesterClasses(p: Schedule, index: number) {
+  const semester = semesters(p.periods)[index]
+  const tt = semester && semesterTimetable(p.timetables, semester)
+  const placed = new Set((tt ? p.entries.filter((e) => e.timetable_id === tt.id) : []).map((e) => e.class_group_id))
+  const need = new Set(
+    p.links
+      .filter((l) => {
+        const course = p.courses.find((c) => c.id === l.course_id)
+        return course && semesterHours(course, index) > 0
+      })
+      .map((l) => l.class_group_id),
+  )
+  const needed = p.classes.filter((c) => need.has(c.id)).sort((a, b) => a.grade - b.grade || a.letter.localeCompare(b.letter, 'uk'))
+  return { needed, placed }
+}
+
+/** Класи, яких немає в розкладі семестру `index`, хоча уроки в ньому їм потрібні. */
+export function unplacedClasses(p: Schedule, index: number) {
+  const { needed, placed } = semesterClasses(p, index)
+  return needed.filter((c) => !placed.has(c.id))
+}
+
+/** Семестри, у яких розклад порожній, хоча комусь із класів потрібні уроки. */
+export function emptySemesters(p: Schedule) {
+  return semesters(p.periods).filter((_, index) => {
+    const { needed, placed } = semesterClasses(p, index)
+    return needed.length > 0 && placed.size === 0
   })
-  return result
 }
