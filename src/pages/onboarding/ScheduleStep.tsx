@@ -7,7 +7,7 @@ import { placedCount, semesterHours, semesterTimetable, semesters, unplacedClass
 import { SHIFTS, entryShift, shiftSlots, type Shift } from '../../data/timetable'
 import type { AcademicYear, BellSchedule, ClassGroup, Course, CourseClass, Period, Timetable, TimetableEntry } from '../../data/types'
 import { classesWord } from '../../data/onboarding'
-import { gradeColor } from '../../data/year'
+import { gradeColor, shortDate } from '../../data/year'
 import { ask } from '../../lib/confirm'
 
 type Props = {
@@ -112,17 +112,28 @@ export function ScheduleStep({ year, periods, bells, timetables, entries, course
 
   return (
     <>
-      <div className="ob-sch-top">
-        {sems.length > 1 && (
-          <Pills label="Семестр" items={sems.map((s, i) => ({ value: i, label: s.title }))} value={index} onChange={setSemIndex} />
-        )}
-        {!missing && <Pills label="Зміна" items={SHIFTS} value={shift} onChange={onShift} />}
-        {index > 0 && tt && (
-          <button type="button" className="ob-sch-del" onClick={removeTimetable}>
-            <Trash2 size={14} strokeWidth={1.8} aria-hidden /> Видалити розклад
-          </button>
-        )}
-      </div>
+      {sems.length > 1 && (
+        <div className="ob-sch-tabs" role="group" aria-label="Семестр">
+          {sems.map((x, i) => (
+            <button key={x.id} type="button" className={i === index ? 'on' : undefined} aria-pressed={i === index} onClick={() => setSemIndex(i)}>
+              <b>{x.title}</b>
+              <span>{i > 0 && !semesterTimetable(timetables, x) ? 'Розкладу ще немає' : `${shortDate(x.start_date)} – ${shortDate(x.end_date)}`}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className={index === 0 || sems.length < 2 ? 'ob-sch-panel first' : 'ob-sch-panel'}>
+      {!missing && (
+        <div className="ob-sch-top">
+          <Pills label="Зміна" items={SHIFTS} value={shift} onChange={onShift} />
+          {index > 0 && tt && (
+            <button type="button" className="ob-sch-del" onClick={removeTimetable}>
+              <Trash2 size={14} strokeWidth={1.8} aria-hidden /> Видалити розклад
+            </button>
+          )}
+        </div>
+      )}
 
       {missing ? (
         <div className="ob-sch-empty" style={{ minHeight: Math.max(rows.length, 3) * 46 + 22 }}>
@@ -202,6 +213,7 @@ export function ScheduleStep({ year, periods, bells, timetables, entries, course
           )}
         </>
       )}
+      </div>
     </>
   )
 }

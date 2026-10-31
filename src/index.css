@@ -5874,12 +5874,69 @@ a:not([class]):active {
 
 .ob-block.sch {
   margin-top: 24px;
+  padding: 0;
+  background: none;
 }
 
 .ob-sch {
   display: flex;
   flex-direction: column;
+}
+
+/* Семестри — вкладки: усе під активною вкладкою належить саме цьому семестру. */
+.ob-sch-tabs {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  padding-left: 12px;
+}
+
+.ob-sch-tabs button {
+  height: 44px;
+  padding: 0 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 1px;
+  border: 0;
+  border-radius: 16px 16px 0 0;
+  background: #e8e8e3;
+  color: var(--ink-2);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ob-sch-tabs button.on {
+  height: 52px;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.ob-sch-tabs b {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.ob-sch-tabs span {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.ob-sch-panel {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
   gap: 14px;
+  border-radius: var(--r-xl);
+  background: var(--surface);
+}
+
+.ob-sch-panel.first {
+  border-top-left-radius: 0;
 }
 
 .ob-sch-top {
