@@ -8,7 +8,7 @@ import { commit, flushDraft, newBatch, updateFields, useCollection } from '../..
 import { discardDraft, hasDraft, stopDraft } from '../../data/draft'
 import { STEPS, canProceed, countsOf } from '../../data/onboarding'
 import { toISO } from '../../data/schedule'
-import { unscheduledBySemester } from '../../data/semesterSchedule'
+import { emptySemesters } from '../../data/semesterSchedule'
 import { unassignedClasses } from '../../data/subjects'
 import type { Shift } from '../../data/timetable'
 import type { AcademicYear, DayOff, Period } from '../../data/types'
@@ -74,7 +74,7 @@ export function Wizard({ onExit, onDone }: Props) {
   const [yearId, setYearId] = useState<string | null>(null)
   const year = years.find((y) => y.id === yearId) ?? pickCurrentYear(years, today)
   const data = useYearData(year)
-  const counts = countsOf({ year, periods: data.periods, classes: data.classes, courses: data.courses, bells: data.bells[0] })
+  const counts = countsOf({ year, periods: data.periods, classes: data.classes, courses: data.courses, bells: data.bells[0], entries: data.entries })
 
   // Нова чернетка року порожня: усе вказує користувач.
   const [draft, setDraft] = useState({ title: '', start: '', end: '' })
@@ -129,7 +129,7 @@ export function Wizard({ onExit, onDone }: Props) {
       commit(batch)
       go(step + 1)
     } else if (last) {
-      const missing = unscheduledBySemester({
+      const empty = emptySemesters({
         periods: data.periods,
         timetables: data.timetables,
         entries: data.entries,
@@ -138,10 +138,10 @@ export function Wizard({ onExit, onDone }: Props) {
         links: data.links,
       })
       if (
-        missing.length &&
+        empty.length &&
         !(await ask(
-          `Не всі класи розподілено в розкладі: ${missing.map((m) => `${m.semester.title} — ${m.classes.map((c) => c.display_name).join(', ')}`).join('; ')}. Розпочати роботу з таким розкладом чи повернутися й розподілити?`,
-          { title: 'Не всі класи розподілено', ok: 'Почати роботу', cancel: 'Повернутися', danger: false },
+          `${empty.length > 1 ? 'Розклад порожній у семестрах' : 'Розклад порожній у семестрі'}: ${empty.map((x) => x.title).join(', ')}. Почати роботу без нього чи повернутися й розставити класи?`,
+          { title: 'Розклад семестру порожній', ok: 'Почати роботу', cancel: 'Повернутися', danger: false },
         ))
       )
         return
