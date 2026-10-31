@@ -30,33 +30,31 @@ type Schedule = {
   links: CourseClass[]
 }
 
-/** Класи, яким у семестрі з номером `index` потрібні уроки (годин більше нуля), і ті з них, що вже стоять у його розкладі. */
-function semesterClasses(p: Schedule, index: number) {
+/** Записи розкладу семестру з номером `index`. */
+function semesterEntries(p: Schedule, index: number) {
   const semester = semesters(p.periods)[index]
   const tt = semester && semesterTimetable(p.timetables, semester)
-  const placed = new Set((tt ? p.entries.filter((e) => e.timetable_id === tt.id) : []).map((e) => e.class_group_id))
-  const need = new Set(
-    p.links
-      .filter((l) => {
-        const course = p.courses.find((c) => c.id === l.course_id)
-        return course && semesterHours(course, index) > 0
-      })
-      .map((l) => l.class_group_id),
-  )
-  const needed = p.classes.filter((c) => need.has(c.id)).sort((a, b) => a.grade - b.grade || a.letter.localeCompare(b.letter, 'uk'))
-  return { needed, placed }
+  return tt ? p.entries.filter((e) => e.timetable_id === tt.id) : []
 }
 
-/** Класи, яких немає в розкладі семестру `index`, хоча уроки в ньому їм потрібні. */
+/** Класи, яким у семестрі `index` не вистачає уроків у розкладі: поставлено менше, ніж годин на тиждень у їхньому КТП. */
 export function unplacedClasses(p: Schedule, index: number) {
-  const { needed, placed } = semesterClasses(p, index)
-  return needed.filter((c) => !placed.has(c.id))
+  const own = semesterEntries(p, index)
+  const short = new Set<string>()
+  for (const l of p.links) {
+    const course = p.courses.find((c) => c.id === l.course_id)
+    if (course && placedCount(own, l.class_group_id, l.course_id) < semesterHours(course, index)) short.add(l.class_group_id)
+  }
+  return p.classes.filter((c) => short.has(c.id)).sort((a, b) => a.grade - b.grade || a.letter.localeCompare(b.letter, 'uk'))
 }
 
 /** Семестри, у яких розклад порожній, хоча комусь із класів потрібні уроки. */
 export function emptySemesters(p: Schedule) {
   return semesters(p.periods).filter((_, index) => {
-    const { needed, placed } = semesterClasses(p, index)
-    return needed.length > 0 && placed.size === 0
+    const needs = p.links.some((l) => {
+      const course = p.courses.find((c) => c.id === l.course_id)
+      return course && semesterHours(course, index) > 0
+    })
+    return needs && semesterEntries(p, index).length === 0
   })
 }
