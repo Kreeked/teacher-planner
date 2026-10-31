@@ -1,4 +1,4 @@
-import { googleShowUrl } from '../data/materials'
+import { googleShowUrl, viewMode } from '../data/materials'
 import { loadPdf } from '../lib/offlineFiles'
 import { closeViewer, useViewed } from '../lib/viewer'
 import { FileViewer } from './FileViewer'
@@ -7,5 +7,5 @@ import { FileViewer } from './FileViewer'
 export function ViewerHost() {
   const m = useViewed()
   if (!m) return null
-  return <FileViewer key={m.id} title={m.title} load={(fresh) => loadPdf(m, fresh)} google={googleShowUrl(m)} onClose={closeViewer} />
+  return <FileViewer key={m.id} title={m.title} load={(fresh) => loadPdf(m, fresh)} google={googleShowUrl(m)} mode={viewMode(m)} onClose={closeViewer} />
 }

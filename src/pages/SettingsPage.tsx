@@ -3,6 +3,7 @@ import { Download, LogOut, Upload } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useAuth } from '../auth/context'
 import { OfflineFilesSection } from './settings/OfflineFilesSection'
+import { StorageSection } from './settings/StorageSection'
 import { BackupError, countDocs, downloadJson, exportBackup, parseBackup, restoreBackup } from '../data/backup'
 
 export function SettingsPage() {
@@ -58,6 +59,8 @@ export function SettingsPage() {
         </section>
 
         <OfflineFilesSection />
+
+        <StorageSection />
 
         <section className="panel yp-block" aria-labelledby="st-backup">
           <h2 id="st-backup">Резервна копія</h2>

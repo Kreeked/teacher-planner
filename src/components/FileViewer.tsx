@@ -1,13 +1,30 @@
-import { ChevronLeft, ChevronRight, ExternalLink, Maximize, Minimize, RefreshCw, X } from 'lucide-react'
+import {
+  ChevronLeft,
+  ChevronRight,
+  Columns2,
+  ExternalLink,
+  Maximize,
+  Minimize,
+  Presentation,
+  RefreshCw,
+  ScrollText,
+  X,
+} from 'lucide-react'
 import type { PDFDocumentLoadingTask, PDFDocumentProxy } from 'pdfjs-dist'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
+import { PdfScroll } from './PdfScroll'
+import { PdfSlide } from './PdfSlide'
+
+export type ViewMode = 'slide' | 'scroll' | 'spread'
 
 type Props = {
   title: string
   /** PDF файлу; fresh — взяти з Диска наново, а не збережену копію. */
   load: (fresh: boolean) => Promise<Blob>
   google: { url: string; label: string }
+  /** Як показувати спочатку: презентації — слайдами, решту — прокруткою. */
+  mode: ViewMode
   onClose: () => void
 }
 
@@ -24,30 +41,54 @@ function loadPdfjs() {
 
 const BAR_MS = 3000
 
+// Телефон і планшет без миші: панель завжди видима й не перекриває файл.
+const COMPACT = '(max-width: 760px), (hover: none)'
+function useCompact() {
+  return useSyncExternalStore(
+    (l) => {
+      const mq = matchMedia(COMPACT)
+      mq.addEventListener('change', l)
+      return () => mq.removeEventListener('change', l)
+    },
+    () => matchMedia(COMPACT).matches,
+  )
+}
+
+const MODES: { value: ViewMode; label: string; icon: typeof Presentation }[] = [
+  { value: 'slide', label: 'Слайди: одна сторінка на екрані', icon: Presentation },
+  { value: 'scroll', label: 'Прокрутка зверху вниз', icon: ScrollText },
+  { value: 'spread', label: 'Дві сторінки на екрані', icon: Columns2 },
+]
+
 /**
- * Перегляд PDF на весь екран, сторінка за сторінкою, як показ слайдів: стрілки, пробіл, дотик (ліва третина — назад,
- * решта — далі), свайп. Панель угорі ховається, коли нею не користуються. Екран не гасне, поки перегляд відкрито.
+ * Перегляд PDF на весь екран: слайдами (стрілки, пробіл, дотик, свайп), суцільною прокруткою або по дві сторінки.
+ * На ПК панель з'являється лише від руху миші й ховається, коли нею не користуються; на телефоні вона завжди зверху.
+ * Екран не гасне, поки перегляд відкрито.
  */
-export function FileViewer({ title, load, google, onClose }: Props) {
+export function FileViewer({ title, load, google, mode: initialMode, onClose }: Props) {
   const root = useRef<HTMLDivElement>(null)
-  const stage = useRef<HTMLDivElement>(null)
-  const canvas = useRef<HTMLCanvasElement>(null)
+  const scroller = useRef<HTMLDivElement>(null)
   const taskRef = useRef<PDFDocumentLoadingTask | null>(null)
   const [doc, setDoc] = useState<PDFDocumentProxy | null>(null)
   const [page, setPage] = useState(1)
-  const [size, setSize] = useState({ w: 0, h: 0 })
+  const [chosen, setMode] = useState(initialMode)
   const [error, setError] = useState('')
   const [note, setNote] = useState('')
   const [loading, setLoading] = useState(true)
   const [bar, setBar] = useState(true)
   const [full, setFull] = useState(false)
   const barTimer = useRef(0)
+  const compact = useCompact()
   const pages = doc?.numPages ?? 0
+  // Дві сторінки поруч на вузькому екрані нечитабельні.
+  const mode: ViewMode = compact && chosen === 'spread' ? 'scroll' : chosen
+  const shown = compact || bar
 
   const hideBar = useCallback(() => {
     window.clearTimeout(barTimer.current)
     barTimer.current = window.setTimeout(() => setBar(false), BAR_MS)
   }, [])
+  // Панель показує лише рух миші (як у відео), клавіатура її не будить.
   const wake = useCallback(() => {
     setBar(true)
     hideBar()
@@ -95,51 +136,6 @@ export function FileViewer({ title, load, google, onClose }: Props) {
     }
   }, [fetchDoc])
 
-  // Розмір сцени.
-  useEffect(() => {
-    const el = stage.current
-    if (!el) return
-    const measure = () => setSize({ w: el.clientWidth, h: el.clientHeight })
-    measure()
-    const ro = new ResizeObserver(measure)
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [])
-
-  // Малюємо сторінку «за лаштунками» й підміняємо одразу, щоб між слайдами не блимав білий кадр.
-  useEffect(() => {
-    if (!doc || !size.w || !size.h) return
-    let cancelled = false
-    let cancel: (() => void) | undefined
-    ;(async () => {
-      const p = await doc.getPage(page)
-      const base = p.getViewport({ scale: 1 })
-      const dpr = window.devicePixelRatio || 1
-      const fit = Math.min(size.w / base.width, size.h / base.height)
-      const viewport = p.getViewport({ scale: fit * dpr })
-      const off = document.createElement('canvas')
-      off.width = Math.floor(viewport.width)
-      off.height = Math.floor(viewport.height)
-      const task = p.render({ canvas: off, viewport })
-      cancel = () => task.cancel()
-      await task.promise
-      const view = canvas.current
-      if (cancelled || !view) return
-      view.width = off.width
-      view.height = off.height
-      view.style.width = `${off.width / dpr}px`
-      view.style.height = `${off.height / dpr}px`
-      view.getContext('2d')?.drawImage(off, 0, 0)
-      if (page < doc.numPages) doc.getPage(page + 1).catch(() => {})
-    })().catch((e) => {
-      if (e?.name !== 'RenderingCancelledException') console.error(e)
-    })
-    return () => {
-      cancelled = true
-      cancel?.()
-    }
-  }, [doc, page, size])
-
   const go = useCallback((to: number) => setPage(Math.max(1, Math.min(pages || 1, to))), [pages])
   const step = useCallback((d: number) => setPage((p) => Math.max(1, Math.min(pages || 1, p + d))), [pages])
 
@@ -162,20 +158,33 @@ export function FileViewer({ title, load, google, onClose }: Props) {
       if (e.ctrlKey || e.metaKey || e.altKey) return
       const next = ['ArrowRight', 'ArrowDown', 'PageDown', ' ', 'Enter']
       const prev = ['ArrowLeft', 'ArrowUp', 'PageUp', 'Backspace']
-      if (next.includes(e.key)) step(1)
-      else if (prev.includes(e.key)) step(-1)
-      else if (e.key === 'Home') go(1)
-      else if (e.key === 'End') go(pages)
-      else if (e.key === 'f' || e.key === 'F' || e.key === 'а' || e.key === 'А') toggleFull()
+      const el = scroller.current
+      if (mode !== 'slide' && el) {
+        // Прокрутка: стрілки по рядку, решта — майже на екран.
+        const screen = el.clientHeight * 0.9
+        if (e.key === 'ArrowDown') el.scrollBy({ top: 80 })
+        else if (e.key === 'ArrowUp') el.scrollBy({ top: -80 })
+        else if (next.includes(e.key)) el.scrollBy({ top: screen })
+        else if (prev.includes(e.key)) el.scrollBy({ top: -screen })
+        else if (e.key === 'Home') el.scrollTo({ top: 0 })
+        else if (e.key === 'End') el.scrollTo({ top: el.scrollHeight })
+        else if (!['f', 'F', 'а', 'А', 'Escape'].includes(e.key)) return
+      }
+      if (mode === 'slide') {
+        if (next.includes(e.key)) step(1)
+        else if (prev.includes(e.key)) step(-1)
+        else if (e.key === 'Home') go(1)
+        else if (e.key === 'End') go(pages)
+        else if (!['f', 'F', 'а', 'А', 'Escape'].includes(e.key)) return
+      }
+      if (e.key === 'f' || e.key === 'F' || e.key === 'а' || e.key === 'А') toggleFull()
       else if (e.key === 'Escape') onClose()
-      else return
       e.preventDefault()
       e.stopPropagation()
-      wake()
     }
     window.addEventListener('keydown', key, true)
     return () => window.removeEventListener('keydown', key, true)
-  }, [step, go, pages, toggleFull, onClose, wake])
+  }, [mode, step, go, pages, toggleFull, onClose])
 
   // Екран не гасне, поки йде показ.
   useEffect(() => {
@@ -199,100 +208,108 @@ export function FileViewer({ title, load, google, onClose }: Props) {
     }
   }, [])
 
-  // Дотик: ліва третина — назад, решта — далі, свайп гортає, верхній край показує панель.
-  const down = useRef<{ x: number; y: number } | null>(null)
-  function pointerUp(e: React.PointerEvent) {
-    const d = down.current
-    down.current = null
-    if (!d || !doc) return
-    const dx = e.clientX - d.x
-    const dy = e.clientY - d.y
-    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) return step(dx < 0 ? 1 : -1)
-    if (Math.abs(dx) > 10 || Math.abs(dy) > 10) return
-    const rect = e.currentTarget.getBoundingClientRect()
-    if (e.clientY - rect.top < 56) return wake()
-    step(e.clientX - rect.left < rect.width * 0.3 ? -1 : 1)
-  }
-
   const refresh = () => {
-    wake()
     setLoading(true)
     setNote('')
     fetchDoc(true)
   }
 
+  const googleLink = compact ? (
+    <a className="icon-btn" href={google.url} target="_blank" rel="noreferrer" aria-label={google.label} title={google.label}>
+      <ExternalLink size={16} />
+    </a>
+  ) : (
+    <a className="btn ghost small" href={google.url} target="_blank" rel="noreferrer">
+      <ExternalLink size={14} aria-hidden /> {google.label}
+    </a>
+  )
+
   return createPortal(
     <div
       ref={root}
-      className={bar ? 'viewer bar-on' : 'viewer'}
+      className={['viewer', compact && 'compact', shown && 'bar-on'].filter(Boolean).join(' ')}
       role="dialog"
       aria-modal="true"
       aria-label={title}
-      onPointerMove={(e) => e.pointerType === 'mouse' && wake()}
+      onPointerMove={(e) => !compact && e.pointerType === 'mouse' && wake()}
     >
-      <div className="viewer-bar" onPointerEnter={() => window.clearTimeout(barTimer.current)} onPointerLeave={wake}>
+      <div className="viewer-bar" onPointerEnter={() => window.clearTimeout(barTimer.current)} onPointerLeave={() => !compact && wake()}>
         <b className="grow" title={title}>
           {title}
         </b>
         {note && <span className="viewer-note">{note}</span>}
-        <a className="btn ghost small" href={google.url} target="_blank" rel="noreferrer">
-          <ExternalLink size={14} aria-hidden /> {google.label}
-        </a>
-        {pages > 0 && (
-          <>
-            <button type="button" className="icon-btn" onClick={() => step(-1)} disabled={page <= 1} aria-label="Назад">
-              <ChevronLeft size={18} />
-            </button>
-            <span className="viewer-count">
-              {page} / {pages}
+        <div className="viewer-tools">
+          {!compact && googleLink}
+          <span className="viewer-modes" role="group" aria-label="Режим перегляду">
+            {MODES.filter((m) => !(compact && m.value === 'spread')).map(({ value, label, icon: Icon }) => (
+              <button
+                key={value}
+                type="button"
+                className="icon-btn"
+                aria-pressed={mode === value}
+                aria-label={label}
+                title={label}
+                onClick={() => setMode(value)}
+              >
+                <Icon size={16} />
+              </button>
+            ))}
+          </span>
+          {pages > 0 && (
+            <span className="viewer-pager">
+              <button type="button" className="icon-btn" onClick={() => step(-1)} disabled={page <= 1} aria-label="Назад">
+                <ChevronLeft size={18} />
+              </button>
+              <span className="viewer-count">
+                {page} / {pages}
+              </span>
+              <button type="button" className="icon-btn" onClick={() => step(1)} disabled={page >= pages} aria-label="Далі">
+                <ChevronRight size={18} />
+              </button>
             </span>
-            <button type="button" className="icon-btn" onClick={() => step(1)} disabled={page >= pages} aria-label="Далі">
-              <ChevronRight size={18} />
-            </button>
-          </>
-        )}
-        <button type="button" className="icon-btn" onClick={refresh} disabled={loading} aria-label="Оновити з Диска" title="Оновити з Диска">
-          <RefreshCw size={16} className={loading ? 'spin' : undefined} />
-        </button>
-        {document.fullscreenEnabled && (
-          <button
-            type="button"
-            className="icon-btn"
-            onClick={toggleFull}
-            aria-label={full ? 'Вийти з повного екрана' : 'На весь екран'}
-            title={full ? 'Вийти з повного екрана (F)' : 'На весь екран (F)'}
-          >
-            {full ? <Minimize size={16} /> : <Maximize size={16} />}
+          )}
+          <button type="button" className="icon-btn" onClick={refresh} disabled={loading} aria-label="Оновити з Диска" title="Оновити з Диска">
+            <RefreshCw size={16} className={loading ? 'spin' : undefined} />
           </button>
-        )}
-        <button type="button" className="icon-btn" onClick={onClose} aria-label="Закрити" title="Закрити (Esc)">
+          {compact && googleLink}
+          {document.fullscreenEnabled && (
+            <button
+              type="button"
+              className="icon-btn"
+              onClick={toggleFull}
+              aria-label={full ? 'Вийти з повного екрана' : 'На весь екран'}
+              title={full ? 'Вийти з повного екрана (F)' : 'На весь екран (F)'}
+            >
+              {full ? <Minimize size={16} /> : <Maximize size={16} />}
+            </button>
+          )}
+        </div>
+        <button type="button" className="icon-btn viewer-close" onClick={onClose} aria-label="Закрити" title="Закрити (Esc)">
           <X size={18} />
         </button>
       </div>
 
-      <div
-        ref={stage}
-        className="viewer-stage"
-        onPointerDown={(e) => (down.current = { x: e.clientX, y: e.clientY })}
-        onPointerUp={pointerUp}
-        onPointerCancel={() => (down.current = null)}
-      >
-        {doc && <canvas ref={canvas} />}
-        {!doc && !error && (
-          <div className="viewer-msg">
-            <RefreshCw size={20} className="spin" aria-hidden />
-            Готую файл…
-          </div>
-        )}
-        {error && (
-          <div className="viewer-msg" role="alert">
-            {error}
-            <button type="button" className="btn ghost small" onClick={refresh}>
-              Спробувати ще
-            </button>
-          </div>
-        )}
-      </div>
+      {doc && mode === 'slide' && <PdfSlide doc={doc} page={page} onStep={step} />}
+      {doc && mode !== 'slide' && (
+        <PdfScroll key={mode} doc={doc} cols={mode === 'spread' ? 2 : 1} page={page} onPage={setPage} scroller={scroller} />
+      )}
+      {!doc && (
+        <div className="viewer-stage">
+          {error ? (
+            <div className="viewer-msg" role="alert">
+              {error}
+              <button type="button" className="btn ghost small" onClick={refresh}>
+                Спробувати ще
+              </button>
+            </div>
+          ) : (
+            <div className="viewer-msg">
+              <RefreshCw size={20} className="spin" aria-hidden />
+              Готую файл…
+            </div>
+          )}
+        </div>
+      )}
     </div>,
     document.body,
   )

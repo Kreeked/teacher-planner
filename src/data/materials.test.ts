@@ -7,6 +7,7 @@ import {
   googleShowUrl,
   googleTarget,
   inAppViewable,
+  viewMode,
   groupByCategory,
   guessCategory,
   linkTitle,
@@ -193,5 +194,13 @@ describe('вбудований перегляд', () => {
       label: 'Показ у Google',
     })
     expect(googleShowUrl(file('Урок.pptx')).url).toBe('https://drive.google.com/file/d/abc/view')
+  })
+
+  it('презентації показує слайдами, решту — прокруткою', () => {
+    expect(viewMode(file('Урок.pptx'))).toBe('slide')
+    expect(viewMode(file('Слайди', 'application/vnd.google-apps.presentation'))).toBe('slide')
+    expect(viewMode(file('Конспект.docx'))).toBe('scroll')
+    expect(viewMode(file('Картка.pdf', 'application/pdf'))).toBe('scroll')
+    expect(viewMode(file('Таблиця.xlsx'))).toBe('scroll')
   })
 })
