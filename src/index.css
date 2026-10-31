@@ -621,7 +621,7 @@ h2 {
     bottom: max(14px, env(safe-area-inset-bottom));
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 12px;
     z-index: 10;
   }
 
@@ -633,6 +633,7 @@ h2 {
   }
 
   .tabbar .tb-group {
+    flex: 1;
     display: flex;
     align-items: center;
     gap: 2px;
@@ -654,13 +655,15 @@ h2 {
   }
 
   .tabbar .tb-group .tb {
-    min-width: 84px;
+    flex: 1;
+    min-width: 0;
     height: 50px;
     padding: 0 12px;
     border-radius: 25px;
   }
 
   .tabbar .tb-solo {
+    flex: none;
     width: 58px;
     height: 58px;
     border-radius: 50%;
