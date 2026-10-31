@@ -1,4 +1,4 @@
-import { Check, TriangleAlert, X } from 'lucide-react'
+import { TriangleAlert, X } from 'lucide-react'
 import { useState } from 'react'
 import { Menu } from '../../components/Menu'
 import { commit, createDoc, newBatch, removeDoc, updateFields } from '../../data/db'
@@ -55,7 +55,6 @@ export function ScheduleStep({ year, periods, bells, timetables, entries, course
   const slots = shiftSlots(bells, shift)
   const rows = Array.from({ length: Math.max(slots.length, ...ofShift.map((e) => e.slot_number)) }, (_, i) => i + 1)
   const unplaced = sem ? unplacedClasses({ periods, timetables, entries, courses, classes, links }, index) : []
-  const needed = sem && links.length > 0
   const manySubjects = new Set(courses.map((c) => c.subject.toLowerCase())).size > 1
 
   const options = [...courses]
@@ -100,18 +99,11 @@ export function ScheduleStep({ year, periods, bells, timetables, entries, course
         <Pills label="Зміна" items={SHIFTS} value={shift} onChange={onShift} />
       </div>
 
-      {unplaced.length ? (
+      {unplaced.length > 0 && (
         <p className="ob-sub-warn">
           <TriangleAlert size={16} strokeWidth={2} aria-hidden />
           Не розставлено {classesWord(unplaced.length)}: {unplaced.map((c) => c.display_name).join(', ')}
         </p>
-      ) : (
-        needed && (
-          <p className="ob-sch-done">
-            <Check size={16} strokeWidth={2.2} aria-hidden />
-            Усі класи в розкладі
-          </p>
-        )
       )}
 
       {rows.length === 0 ? (
