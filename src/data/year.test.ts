@@ -8,6 +8,7 @@ import {
   pickCurrentYear,
   parseShortDate,
   shortDate,
+  validateDayOff,
   validatePeriod,
   validateYear,
 } from './year'
@@ -155,5 +156,17 @@ describe('pickCurrentYear', () => {
     expect(pickCurrentYear(years, '2027-07-15')?.id).toBe('b')
     expect(pickCurrentYear(years, '2025-06-01')?.id).toBe('a')
     expect(pickCurrentYear([], '2026-07-15')).toBeUndefined()
+  })
+})
+
+describe('validateDayOff', () => {
+  const year = { start_date: '2025-09-01', end_date: '2026-05-31' }
+  it('accepts a range inside the year', () => {
+    expect(validateDayOff({ start_date: '2025-10-27', end_date: '2025-11-02' }, year)).toBeNull()
+  })
+  it('rejects missing, reversed and out-of-year dates', () => {
+    expect(validateDayOff({ start_date: '', end_date: '2025-11-02' }, year)).toBe('Вкажи обидві дати')
+    expect(validateDayOff({ start_date: '2025-11-02', end_date: '2025-10-27' }, year)).toBe('Початок пізніше за кінець')
+    expect(validateDayOff({ start_date: '2025-08-20', end_date: '2025-09-02' }, year)).toBe('Виходить за межі навчального року')
   })
 })

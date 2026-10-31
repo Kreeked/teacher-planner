@@ -1,4 +1,4 @@
-import { Plus, Trash2 } from 'lucide-react'
+import { Check, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { deleteRefs, ref, refsWhere, useCollection } from '../../data/db'
 import { toISO } from '../../data/schedule'
@@ -8,9 +8,11 @@ import { isCurrentYear, pickCurrentYear } from '../../data/year'
 import { ask } from '../../lib/confirm'
 import { BellsSection } from './BellsSection'
 import { ClassesSection } from './ClassesSection'
+import { DaysOffSection } from './DaysOffSection'
 import { NewYearForm } from './NewYearForm'
 import { PeriodsSection } from './PeriodsSection'
 import { ScheduleSection } from './ScheduleSection'
+import { SubjectsSection } from './SubjectsSection'
 import { YearSection } from './YearSection'
 
 /** Підпис під вибором року: чи поточний він і що від цього залежить. */
@@ -35,12 +37,14 @@ export function YearPage() {
   const filter = year ? { field: 'academic_year_id', value: year.id } : null
   const { items: periods } = useCollection('periods', filter)
   const { items: classes } = useCollection('class_groups', filter)
+  const { items: daysOff } = useCollection('days_off', filter)
   const { items: bells } = useCollection('bell_schedules', filter)
   const { items: timetables } = useCollection('timetables', filter)
   const { items: courses } = useCollection('courses', filter)
   const { items: allEntries } = useCollection('timetable_entries')
   const { items: links } = useCollection('course_classes')
 
+  const yearLinks = links.filter((l) => courses.some((c) => c.id === l.course_id))
   const entries = allEntries.filter((e) => timetables.some((t) => t.id === e.timetable_id))
 
   async function removeYear(y: AcademicYear) {
@@ -55,6 +59,7 @@ export function YearPage() {
       ref('academic_years', y.id),
       ...periods.map((p) => ref('periods', p.id)),
       ...classes.map((c) => ref('class_groups', c.id)),
+      ...daysOff.map((d) => ref('days_off', d.id)),
       ...bells.map((b) => ref('bell_schedules', b.id)),
       ...timetables.map((t) => ref('timetables', t.id)),
       ...entries.map((e) => ref('timetable_entries', e.id)),
@@ -89,7 +94,7 @@ export function YearPage() {
           <section className="empty" style={{ background: 'var(--butter)' }}>
             <div>
               <h2>Ще немає навчального року</h2>
-              <p>Створи рік, і до нього одразу додадуться два семестри. Потім додай класи.</p>
+              <p>Створи рік, і до нього одразу додадуться два семестри. Далі тут же: класи, предмети, дзвінки й розклад.</p>
             </div>
             <button className="btn" onClick={() => setCreating(true)}>
               <Plus size={16} /> Створити рік
@@ -126,6 +131,16 @@ export function YearPage() {
               </p>
             </section>
 
+            <SetupSteps
+              steps={[
+                { id: 'yp-per', label: 'Семестри', done: periods.some((p) => !p.parent_id) },
+                { id: 'yp-cls', label: 'Класи', done: classes.length > 0 },
+                { id: 'yp-sub', label: 'Предмети', done: courses.length > 0 },
+                { id: 'yp-bells', label: 'Дзвінки', done: (bells[0]?.slots.length ?? 0) > 0 },
+                { id: 'yp-tt', label: 'Розклад', done: entries.length > 0 },
+              ]}
+            />
+
             <YearSection key={year.id} year={year} periods={periods} current={isCurrentYear(year, today)} />
 
             <section className="panel yp-block" aria-labelledby="yp-per">
@@ -133,9 +148,19 @@ export function YearPage() {
               <PeriodsSection year={year} periods={periods} />
             </section>
 
+            <section className="panel yp-block" aria-labelledby="yp-off">
+              <h2 id="yp-off">Дні без уроків</h2>
+              <DaysOffSection year={year} daysOff={daysOff} />
+            </section>
+
             <section className="panel yp-block" aria-labelledby="yp-cls">
               <h2 id="yp-cls">Класи</h2>
               <ClassesSection year={year} classes={classes} />
+            </section>
+
+            <section className="panel yp-block" aria-labelledby="yp-sub">
+              <h2 id="yp-sub">Предмети й КТП</h2>
+              <SubjectsSection year={year} courses={courses} classes={classes} links={yearLinks} />
             </section>
 
             <BellsSection year={year} bells={bells[0]} entries={entries} shift={bellShift} onShift={setBellShift} />
@@ -147,7 +172,7 @@ export function YearPage() {
               entries={entries}
               courses={courses}
               classes={classes}
-              links={links.filter((l) => courses.some((c) => c.id === l.course_id))}
+              links={yearLinks}
               shift={scheduleShift}
               onShift={setScheduleShift}
             />
@@ -166,4 +191,32 @@ export function YearPage() {
       </main>
     </div>
   )
+}
+
+/** Що в році вже налаштовано: щоб бачити, чого бракує, і переходити до потрібної секції. */
+function SetupSteps({ steps }: { steps: { id: string; label: string; done: boolean }[] }) {
+  const done = steps.filter((s) => s.done).length
+  return (
+    <nav className="panel yp-block yp-steps" aria-label="Що налаштовано">
+      <p className="yp-steps-title">
+        Налаштовано <b className="num">{done}</b> з {steps.length}
+      </p>
+      <ul>
+        {steps.map((s) => (
+          <li key={s.id}>
+            <a href={`#${s.id}`} className={s.done ? 'on' : undefined} onClick={(e) => jump(e, s.id)}>
+              <i>{s.done && <Check size={11} strokeWidth={3} />}</i>
+              {s.label}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  )
+}
+
+// Адреса сторінки — хеш-роутер, тож замість якоря прокручуємо до секції самі.
+function jump(e: React.MouseEvent, id: string) {
+  e.preventDefault()
+  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
