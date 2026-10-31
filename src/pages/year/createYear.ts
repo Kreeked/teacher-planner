@@ -3,7 +3,7 @@ import { defaultYear } from '../../data/year'
 import { syncVacations } from './vacations'
 
 /** Створює навчальний рік і, за бажанням, два типові семестри, підігнані під його дати, та канікули при них. */
-export function createYear(v: { title: string; start: string; end: string; withSemesters: boolean }) {
+export function createYear(v: { title: string; start: string; end: string; withSemesters: boolean; blank?: boolean }) {
   const batch = newBatch()
   const yearId = createDoc('academic_years', { title: v.title.trim(), start_date: v.start, end_date: v.end }, batch)
   if (v.withSemesters) {
@@ -13,12 +13,13 @@ export function createYear(v: { title: string; start: string; end: string; withS
       parent_id: null,
       kind: 'semester' as const,
       title: s.title,
-      start_date: i === 0 ? v.start : s.start_date,
-      end_date: i === tpl.length - 1 ? v.end : s.end_date,
+      // У `blank` межі семестрів порожні, крім збігів з межами року: решту вкаже користувач.
+      start_date: i === 0 ? v.start : v.blank ? '' : s.start_date,
+      end_date: i === tpl.length - 1 ? v.end : v.blank ? '' : s.end_date,
       position: i,
     }))
     for (const s of semesters) createDoc('periods', s, batch)
-    syncVacations(yearId, semesters, [], batch)
+    if (!v.blank) syncVacations(yearId, semesters, [], batch)
   }
   commit(batch)
   return yearId

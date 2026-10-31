@@ -44,6 +44,7 @@ function weekday(d: ISODate, step: 1 | -1): ISODate {
  * перед початком другого. Вихідні в межі не потрапляють: кінець семестру в п'ятницю — канікули з понеділка.
  */
 export function winterBreak(first: Range, second: Range): Range | null {
+  if (!first.end_date || !second.start_date) return null
   const r = { start_date: weekday(shiftDay(first.end_date, 1), 1), end_date: weekday(shiftDay(second.start_date, -1), -1) }
   return r.start_date <= r.end_date ? r : null
 }
@@ -78,6 +79,8 @@ export function planVacations(
   const first = sems[0]
   const second = sems[1]
   const last = sems[sems.length - 1]
+  // Доки дати семестрів не вказано, канікули планувати нема з чого.
+  if (sems.some((s) => !s.start_date || !s.end_date)) return null
   const def = defaultVacations(Number(first.start_date.slice(0, 4)))
   return {
     autumn: fit(existing.autumn ?? def.autumn, first),
@@ -103,10 +106,19 @@ export function validateSemester(
 
 /** Осінні чи весняні канікули: по порядку, в межах свого семестру, без перетину з іншими канікулами. */
 export function validateVacation(r: Range, semester: Named, others: Named[]): string | null {
+  if (!semester.start_date || !semester.end_date) return `Спочатку вкажи дати: ${semester.title}`
   if (!r.start_date || !r.end_date) return 'Вкажи обидві дати'
   if (r.start_date > r.end_date) return 'Початок пізніше за кінець'
   if (r.start_date < semester.start_date || r.end_date > semester.end_date) return `Виходить за межі: ${semester.title}`
   const clash = others.find((o) => overlaps(o, r))
   if (clash) return `Перетинається з: ${clash.title}`
   return null
+}
+
+/** Чи вказано всі дати семестрів і, коли їх два й більше, осінні та весняні канікули. */
+export function periodsComplete(periods: Pick<Period, 'parent_id' | 'position' | 'start_date' | 'end_date'>[], daysOff: Named[]): boolean {
+  const sems = periods.filter((p) => !p.parent_id)
+  if (!sems.length || sems.some((s) => !s.start_date || !s.end_date)) return false
+  if (sems.length < 2) return true
+  return (['autumn', 'spring'] as const).every((k) => daysOff.some((d) => d.title === VACATIONS[k].title && d.start_date && d.end_date))
 }

@@ -19,7 +19,7 @@ export function YearFields({ title, start, end, error, onTitle, onTitleBlur, onS
     <div className="ob-year-fields">
       <label className="ob-field">
         Назва
-        <input className="ob-input" value={title} onChange={(e) => onTitle(e.target.value)} onBlur={onTitleBlur} />
+        <input className="ob-input" placeholder="Наприклад, 2026/2027" value={title} onChange={(e) => onTitle(e.target.value)} onBlur={onTitleBlur} />
       </label>
       <div className="ob-dates">
         <div className="ob-field">

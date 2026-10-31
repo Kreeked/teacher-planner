@@ -120,9 +120,10 @@ export function fitPeriods(periods: Period[], year: Range): { id: string; start_
   for (const p of periods) {
     let start = p.id === first?.id ? year.start_date : p.start_date
     let end = p.id === last?.id ? year.end_date : p.end_date
-    if (start < year.start_date) start = year.start_date
-    if (end > year.end_date) end = year.end_date
-    if (start > end) start = end
+    // Порожні дати (ще не вказані) лишаються порожніми.
+    if (start && start < year.start_date) start = year.start_date
+    if (end && end > year.end_date) end = year.end_date
+    if (start && end && start > end) start = end
     if (start !== p.start_date || end !== p.end_date) out.push({ id: p.id, start_date: start, end_date: end })
   }
   return out
