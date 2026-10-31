@@ -1,12 +1,21 @@
-/** Знак застосунку: календар із галочкою (той самий, що й іконка PWA). */
-export function Logo({ size = 26 }: { size?: number }) {
+/** Знак застосунку: розкритий журнал із двох сторінок (той самий, що й іконка PWA). */
+export function Logo({ size = 28 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 100 100" aria-hidden>
-      <rect x="20" y="28" width="60" height="50" rx="7" fill="#fff" />
-      <path d="M20 42V35a7 7 0 0 1 7-7h46a7 7 0 0 1 7 7v7z" fill="#fbe8a8" />
-      <rect x="34" y="20" width="5.5" height="14" rx="2.7" fill="#fff" />
-      <rect x="60.5" y="20" width="5.5" height="14" rx="2.7" fill="#fff" />
-      <path d="M35 60l11 9 20-19" fill="none" stroke="#6fa597" strokeWidth="6.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M47 32C38 23 22 21 9 26V72C22 67 38 68 47 78Z"
+        fill="#f4cf5c"
+        stroke="#f4cf5c"
+        strokeWidth="6"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M53 32C62 23 78 21 91 26V72C78 67 62 68 53 78Z"
+        fill="#b9a2ea"
+        stroke="#b9a2ea"
+        strokeWidth="6"
+        strokeLinejoin="round"
+      />
     </svg>
   )
 }
