@@ -9,11 +9,25 @@ import {
 } from 'firebase/auth'
 import { useEffect, useState, type ReactNode } from 'react'
 import { PopupClosed, forgetDriveToken, googleSignInToken } from '../lib/drive'
+import { wipeForSignOut } from '../lib/offlineFiles'
 import { auth, googleProvider, usingEmulators } from '../lib/firebase'
 import { AuthContext } from './context'
 
 // Після невдалого входу через Google Identity Services наступна спроба йде через спливне вікно Firebase.
 let viaFirebase = false
+
+// Чий вхід востаннє бачив цей пристрій: якщо зайшов інший акаунт (вихід минув повз кнопку), чужі копії файлів стираються.
+const OWNER_KEY = 'device-owner'
+
+function switchOwner(uid: string) {
+  try {
+    const prev = localStorage.getItem(OWNER_KEY)
+    if (prev && prev !== uid) wipeForSignOut().catch(() => {})
+    localStorage.setItem(OWNER_KEY, uid)
+  } catch {
+    // Без сховища перевірити власника неможливо.
+  }
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(auth.currentUser)
@@ -22,6 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(
     () =>
       onAuthStateChanged(auth, (u) => {
+        if (u) switchOwner(u.uid)
         setUser(u)
         setLoading(false)
       }),
@@ -50,9 +65,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await signInWithPopup(auth, googleProvider)
   }
 
-  function logOut() {
+  async function logOut() {
     forgetDriveToken()
-    return signOut(auth)
+    await wipeForSignOut().catch(() => {})
+    try {
+      localStorage.removeItem(OWNER_KEY)
+    } catch {
+      // Без сховища нічого забувати.
+    }
+    await signOut(auth)
   }
 
   return (
