@@ -12,6 +12,7 @@ import {
 } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import {
+  CalendarPlus,
   Check,
   ChevronDown,
   GripVertical,
@@ -68,6 +69,7 @@ import type {
 } from '../../data/types'
 import { gradeColor, shortDate } from '../../data/year'
 import { DateHintsBanner, IssuePill } from './dateHints'
+import { FillDatesDialog } from './FillDatesDialog'
 import { DateHintsContext, issueText } from './dateHintsContext'
 import { LessonShelves, MaterialsDialog } from './Materials'
 import { useClassifyLegacy } from '../../lib/useClassifyLegacy'
@@ -114,6 +116,7 @@ export function CoursePage() {
   const { items: timetables } = useCollection('timetables', yearFilter)
   const { items: allEntries } = useCollection('timetable_entries')
   const { items: daysOff } = useCollection('days_off', yearFilter)
+  const { items: periods } = useCollection('periods', yearFilter)
   const { items: materials } = useCollection('lesson_materials', byCourse)
   // Старі файли уроків без типу розкладаємо по поличках (один раз).
   useClassifyLegacy(materials)
@@ -147,6 +150,7 @@ export function CoursePage() {
     reveal(el)
   }, [topics.length])
   const [editing, setEditing] = useState(false)
+  const [filling, setFilling] = useState(false)
   const [materialsFor, setMaterialsFor] = useState<string | null>(null)
   // Щойно доданий урок отримує фокус на полі теми.
   const [newLessonId, setNewLessonId] = useState<string | null>(null)
@@ -359,7 +363,12 @@ export function CoursePage() {
                   <Plus size={16} /> Нова тема
                 </button>
               )}
-              <Link to="/ktp/year" className="btn ghost" title="Предмет, години й класи змінюються в налаштуваннях року">
+              {classes.length > 0 && lessons.length > 0 && (
+              <button className="btn ghost" onClick={() => setFilling(true)} aria-haspopup="dialog">
+                <CalendarPlus size={16} /> Розставити дати
+              </button>
+            )}
+            <Link to="/ktp/year" className="btn ghost" title="Предмет, години й класи змінюються в налаштуваннях року">
                 <Settings2 size={16} /> Параметри
               </Link>
               <button className={editing ? 'btn' : 'btn ghost'} onClick={() => setEditing(!editing)}>
@@ -478,7 +487,21 @@ export function CoursePage() {
             </>
           )}
 
-          {materialsFor && lessons.some((l) => l.id === materialsFor) && (
+          {filling && year && (
+          <FillDatesDialog
+            course={course}
+            year={year}
+            classes={classes}
+            lessons={saved.flatMap((b) => b.lessons)}
+            schedules={schedules}
+            periods={periods}
+            sched={sched}
+            today={today}
+            onClose={() => setFilling(false)}
+          />
+        )}
+
+        {materialsFor && lessons.some((l) => l.id === materialsFor) && (
             <MaterialsDialog
               course={course}
               year={year}
