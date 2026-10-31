@@ -15,7 +15,7 @@ function cells(d: ScheduleData, classId: string, courseId: string | null, date: 
 }
 
 /** Клітинки розкладу класу з цим КТП у день дати: стільки уроків у нього цього дня. */
-function cellsOn(d: ScheduleData, classId: string, courseId: string, date: ISODate) {
+export function cellsOn(d: ScheduleData, classId: string, courseId: string, date: ISODate) {
   return cells(d, classId, courseId, date).filter((e) => e.weekday === weekday(date))
 }
 
