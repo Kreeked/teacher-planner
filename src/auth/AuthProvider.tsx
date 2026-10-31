@@ -3,14 +3,16 @@ import {
   onAuthStateChanged,
   signInAnonymously,
   signInWithCredential,
-  signInWithPopup,   signInWithRedirect,
-  signOut,
+  signInWithPopup,   signOut,
   type User,
 } from 'firebase/auth'
 import { useEffect, useState, type ReactNode } from 'react'
 import { PopupClosed, googleSignInToken } from '../lib/drive'
 import { auth, googleProvider, usingEmulators } from '../lib/firebase'
 import { AuthContext } from './context'
+
+// Після невдалого входу через Google Identity Services наступна спроба йде через спливне вікно Firebase.
+let viaFirebase = false
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(auth.currentUser)
@@ -31,24 +33,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
     // Основний шлях: вікно Google Identity Services, яке одразу дає й доступ до Диска (потім друге вікно не потрібне).
-    // Якщо воно не вийшло (заблоковане, Firebase не прийняв токен) — старий вхід через Firebase.
-    try {
-      await signInWithCredential(auth, GoogleAuthProvider.credential(null, await googleSignInToken()))
-      return
-    } catch (e) {
-      if (e instanceof PopupClosed) throw e
-    }
-    try {
-      await signInWithPopup(auth, googleProvider)
-    } catch (e) {
-      // Якщо браузер заблокував спливне вікно — входимо через перенаправлення.
-      const code = (e as { code?: string }).code
-      if (code === 'auth/popup-blocked' || code === 'auth/operation-not-supported-in-this-environment') {
-        await signInWithRedirect(auth, googleProvider)
+    // Якщо воно не вийшло, помилка показується на сторінці входу, а наступне натискання йде через Firebase:
+    // нове вікно можна відкрити лише з нового натискання, інакше браузер його заблокує.
+    // Перенаправлення (signInWithRedirect) не використовуємо: у браузерах з розділеним сховищем (iPhone) воно не завершує вхід.
+    if (!viaFirebase) {
+      try {
+        await signInWithCredential(auth, GoogleAuthProvider.credential(null, await googleSignInToken()))
         return
+      } catch (e) {
+        if (e instanceof PopupClosed) throw e
+        viaFirebase = true
+        throw e
       }
-      throw e
     }
+    await signInWithPopup(auth, googleProvider)
   }
 
   return (

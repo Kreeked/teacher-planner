@@ -7,7 +7,7 @@
 | Застосунок | React 19 + TypeScript + Vite, PWA (`vite-plugin-pwa`, autoUpdate) |
 | Маршрутизація | React Router, `HashRouter` (бо GitHub Pages) |
 | Дані | Cloud Firestore з `persistentLocalCache` + `persistentMultipleTabManager` |
-| Вхід | Firebase Authentication, Google: вікно Google Identity Services (одразу дає й доступ до Диска), запасний шлях — спливне вікно Firebase, потім перенаправлення |
+| Вхід | Firebase Authentication, Google: вікно Google Identity Services (одразу дає й доступ до Диска), запасний шлях після невдачі — спливне вікно Firebase з наступного натискання; перенаправлення (`signInWithRedirect`) не використовується: на iPhone воно не завершує вхід |
 | Файли | Google Drive API (scope `drive.file`) + Google Picker, токен через Google Identity Services |
 | Перегляд PDF | `pdfjs-dist` (завантажується за потреби) |
 | Розбір .docx | `fflate` у браузері (файли не йдуть на сервер) |
