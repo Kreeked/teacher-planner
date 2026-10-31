@@ -22,7 +22,7 @@ import {
   TriangleAlert,
 } from 'lucide-react'
 import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
-import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom'
 import { DatePicker } from '../../components/DatePicker'
 import { toISO } from '../../data/schedule'
 import { InlineText } from '../../components/InlineText'
@@ -66,7 +66,6 @@ import type {
   Topic,
 } from '../../data/types'
 import { gradeColor, shortDate } from '../../data/year'
-import { CourseSettings } from './CourseSettings'
 import { LessonShelves, MaterialsDialog } from './Materials'
 import { useClassifyLegacy } from '../../lib/useClassifyLegacy'
 import type { WriteBatch } from 'firebase/firestore'
@@ -96,7 +95,6 @@ const endKey = (id: string) => `z:${id}`
 
 export function CoursePage() {
   const { courseId = '' } = useParams()
-  const navigate = useNavigate()
   const byCourse = { field: 'course_id', value: courseId }
   const { items: courses, loading } = useCollection('courses')
   const { items: topics } = useCollection('topics', byCourse)
@@ -141,7 +139,6 @@ export function CoursePage() {
     newTopic.current = null
     reveal(el)
   }, [topics.length])
-  const [showSettings, setShowSettings] = useState(false)
   const [editing, setEditing] = useState(false)
   const [materialsFor, setMaterialsFor] = useState<string | null>(null)
   // Щойно доданий урок отримує фокус на полі теми.
@@ -338,9 +335,9 @@ export function CoursePage() {
                 <Plus size={16} /> Нова тема
               </button>
             )}
-            <button className="btn ghost" onClick={() => setShowSettings(true)} aria-haspopup="dialog">
+            <Link to="/ktp/year" className="btn ghost" title="Предмет, години й класи змінюються в налаштуваннях року">
               <Settings2 size={16} /> Параметри
-            </button>
+            </Link>
             <button className={editing ? 'btn' : 'btn ghost'} onClick={() => setEditing(!editing)}>
               {editing ? (
                 <>
@@ -369,16 +366,6 @@ export function CoursePage() {
             </span>
           ))}
         </div>
-
-        {showSettings && (
-          <CourseSettings
-            course={course}
-            onDeleted={() => navigate('/ktp')}
-            onClose={() => setShowSettings(false)}
-            topics={topics}
-            lessons={lessons}
-          />
-        )}
 
         {!editing ? (
           <div className="ktp view">

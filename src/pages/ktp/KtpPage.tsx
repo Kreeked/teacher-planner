@@ -1,4 +1,4 @@
-import { ArrowUpRight, FileUp, Plus } from 'lucide-react'
+import { ArrowUpRight, FileUp } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useCollection } from '../../data/db'
@@ -7,7 +7,6 @@ import { courseTitle } from '../../data/ktp'
 import type { ClassGroup, Course } from '../../data/types'
 import { formatDate, gradeColor, pickCurrentYear } from '../../data/year'
 import { ImportDialog } from './ImportDialog'
-import { NewCourseForm } from './NewCourseForm'
 
 export function KtpPage() {
   const navigate = useNavigate()
@@ -17,7 +16,6 @@ export function KtpPage() {
   const filter = year ? { field: 'academic_year_id', value: year.id } : null
   const { items: classes } = useCollection('class_groups', filter)
   const { items: courses } = useCollection('courses', filter)
-  const [creating, setCreating] = useState(false)
   const [importFile, setImportFile] = useState<File | null>(null)
   const fileInput = useRef<HTMLInputElement>(null)
 
@@ -42,9 +40,6 @@ export function KtpPage() {
             <div className="actions">
               <button className="btn ghost" onClick={() => fileInput.current?.click()}>
                 <FileUp size={16} /> Імпорт з Word
-              </button>
-              <button className="btn" onClick={() => setCreating(true)}>
-                <Plus size={16} /> Нове КТП
               </button>
               <input
                 ref={fileInput}
@@ -72,23 +67,15 @@ export function KtpPage() {
 
         {year && (
           <>
-            {creating && (
-              <NewCourseForm
-                year={year}
-                classes={classes}
-                onDone={(id) => {
-                  setCreating(false)
-                  if (id) navigate(`/ktp/${id}`)
-                }}
-              />
-            )}
-
             {sorted.length === 0 && (
               <section className="empty" style={{ background: 'var(--butter)' }}>
                 <div>
                   <h2>Ще немає жодного КТП</h2>
-                  <p>Створи КТП для паралелі, наприклад «Інформатика, 9 клас», і додай до нього теми й уроки.</p>
+                  <p>КТП з’являється, коли в налаштуваннях року додано предмет для паралелі, наприклад «Інформатика, 9 клас». Тоді в ньому можна додавати теми й уроки або імпортувати їх з Word.</p>
                 </div>
+                <Link to="/ktp/year" className="btn">
+                  Додати предмет
+                </Link>
               </section>
             )}
 

@@ -110,3 +110,12 @@ export function typePatch(l: Pick<Lesson, 'lesson_type' | 'extra'>, type: Lesson
   if (l.lesson_type === 'reserve') return { lesson_type: type, extra: false }
   return { lesson_type: type }
 }
+
+// Навчальний рік ≈ 35 тижнів: 17 у І семестрі й 18 у ІІ.
+export const WEEKS_1 = 17
+export const WEEKS_2 = 18
+
+/** Годин за рік за тижневим навантаженням у І і ІІ семестрі. */
+export function yearHours(perWeek1: number, perWeek2: number) {
+  return Math.round(perWeek1 * WEEKS_1 + perWeek2 * WEEKS_2)
+}

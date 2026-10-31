@@ -35,6 +35,14 @@ export type ClassGroup = Meta & {
   display_name: string
 }
 
+// Дні без уроків (канікули, свята): діапазон дат у межах року.
+export type DayOff = Meta & {
+  academic_year_id: string
+  title: string
+  start_date: ISODate
+  end_date: ISODate
+}
+
 export type CourseStatus = 'draft' | 'approved' | 'archived'
 
 export type Course = Meta & {
@@ -153,6 +161,7 @@ export type Collections = {
   academic_years: AcademicYear
   periods: Period
   class_groups: ClassGroup
+  days_off: DayOff
   courses: Course
   course_classes: CourseClass
   topics: Topic
@@ -171,6 +180,7 @@ export const COLLECTION_NAMES: CollectionName[] = [
   'academic_years',
   'periods',
   'class_groups',
+  'days_off',
   'courses',
   'course_classes',
   'topics',

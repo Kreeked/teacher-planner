@@ -88,6 +88,14 @@ export function validatePeriod(p: Range & { id?: string; parent_id: string | nul
   return null
 }
 
+/** День без уроків: обидві дати, по порядку, у межах навчального року. */
+export function validateDayOff(d: Range, year: Range): string | null {
+  if (!d.start_date || !d.end_date) return 'Вкажи обидві дати'
+  if (d.start_date > d.end_date) return 'Початок пізніше за кінець'
+  if (d.start_date < year.start_date || d.end_date > year.end_date) return 'Виходить за межі навчального року'
+  return null
+}
+
 export function validateYear(y: Range, periods: Period[]): string | null {
   if (!y.start_date || !y.end_date) return 'Вкажи обидві дати'
   if (y.start_date > y.end_date) return 'Початок пізніше за кінець'

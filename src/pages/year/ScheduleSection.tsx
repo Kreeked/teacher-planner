@@ -96,7 +96,7 @@ export function ScheduleSection({ year, bells, timetables, entries, courses, cla
       </div>
 
       {!options.length && (
-        <p className="warn">Спершу створи КТП і прив'яжи до нього класи: тоді їх можна буде ставити в розклад.</p>
+        <p className="warn">Спершу додай предмети в секції «Предмети й КТП»: тоді класи можна буде ставити в розклад.</p>
       )}
 
       {rows.length === 0 ? (
