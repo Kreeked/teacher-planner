@@ -48,13 +48,10 @@ export function unplacedClasses(p: Schedule, index: number) {
   return p.classes.filter((c) => short.has(c.id)).sort((a, b) => a.grade - b.grade || a.letter.localeCompare(b.letter, 'uk'))
 }
 
-/** Семестри, у яких розклад порожній, хоча комусь із класів потрібні уроки. */
-export function emptySemesters(p: Schedule) {
-  return semesters(p.periods).filter((_, index) => {
-    const needs = p.links.some((l) => {
-      const course = p.courses.find((c) => c.id === l.course_id)
-      return course && semesterHours(course, index) > 0
-    })
-    return needs && semesterEntries(p, index).length === 0
-  })
+/**
+ * Розклад можна завершувати, коли в І семестрі розставлено всі класи. Наступні семестри можна не додавати,
+ * але додані мають бути розставлені так само повно.
+ */
+export function scheduleComplete(p: Schedule) {
+  return semesters(p.periods).every((sem, i) => (i > 0 && !semesterTimetable(p.timetables, sem)) || unplacedClasses(p, i).length === 0)
 }

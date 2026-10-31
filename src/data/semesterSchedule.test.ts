@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { placedCount, semesterHours, semesterTimetable, semesters, emptySemesters, unplacedClasses } from './semesterSchedule'
+import { placedCount, semesterHours, semesterTimetable, semesters, scheduleComplete, unplacedClasses } from './semesterSchedule'
 import type { ClassGroup, Course, CourseClass, Period, Timetable, TimetableEntry } from './types'
 
 const period = (id: string, position: number, start_date: string, end_date: string, parent_id: string | null = null) =>
@@ -77,12 +77,17 @@ describe('unplacedClasses і emptySemesters', () => {
     expect(unplacedClasses({ ...base, courses: [course(1, 0)], entries: [] }, 1)).toEqual([])
   })
 
-  it('порожні семестри', () => {
-    expect(emptySemesters({ ...base, entries: [entry('1', 't1', 'a')] }).map((x) => x.id)).toEqual(['s2'])
-    expect(emptySemesters({ ...base, entries: [] }).map((x) => x.id)).toEqual(['s1', 's2'])
+  it('розклад завершений, коли І семестр розставлений, а ІІ не доданий', () => {
+    const full = ['1', '2'].flatMap((n) => [entry(`a${n}`, 't1', 'a'), entry(`b${n}`, 't1', 'b')])
+    expect(scheduleComplete({ ...base, timetables: [tt('t1', s1)], entries: full })).toBe(true)
+    expect(scheduleComplete({ ...base, timetables: [tt('t1', s1)], entries: full.slice(1) })).toBe(false)
+    expect(scheduleComplete({ ...base, timetables: [], entries: [] })).toBe(false)
   })
 
-  it('семестр без годин ні в кого не вважається порожнім', () => {
-    expect(emptySemesters({ ...base, courses: [course(1, 0)], entries: [entry('1', 't1', 'a')] })).toEqual([])
+  it('доданий ІІ семестр теж має бути розставлений', () => {
+    const full = ['1', '2'].flatMap((n) => [entry(`a${n}`, 't1', 'a'), entry(`b${n}`, 't1', 'b')])
+    expect(scheduleComplete({ ...base, entries: full })).toBe(false)
+    const second = [entry('x', 't2', 'a'), entry('y', 't2', 'b')]
+    expect(scheduleComplete({ ...base, entries: [...full, ...second] })).toBe(true)
   })
 })
