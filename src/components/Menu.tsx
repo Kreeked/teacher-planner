@@ -111,9 +111,9 @@ export function Menu({ label, groups, trigger, triggerClass = 'icon-btn menu-btn
             {visible.map((group, gi) => (
               <Fragment key={gi}>
                 {gi > 0 && <hr className="menu-sep" />}
-                {group.map((item) => (
+                {group.map((item, ii) => (
                   <button
-                    key={item.label}
+                    key={`${ii}-${item.label}`}
                     type="button"
                     role={item.checked === undefined ? 'menuitem' : 'menuitemradio'}
                     aria-checked={item.checked}
