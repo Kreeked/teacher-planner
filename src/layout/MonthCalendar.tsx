@@ -1,5 +1,6 @@
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from 'lucide-react'
-import { useRef, useState, type MouseEvent, type PointerEvent, type CSSProperties } from 'react'
+import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
+import { useRef, useState, type CSSProperties, type MouseEvent, type PointerEvent } from 'react'
+import { flushSync } from 'react-dom'
 import { mondayOf } from '../data/day'
 import { addDays, toISO } from '../data/schedule'
 import type { ISODate } from '../data/types'
@@ -32,6 +33,34 @@ function asDate(d: ISODate) {
   return new Date(y, m - 1, day)
 }
 
+// Тривалість перемикання тижня чи місяця (мс) і розгортання; з reduced-motion — без руху.
+const SETTLE_MS = 420
+const SNAP_MS = 300
+
+function reduced() {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
+
+type Pane = { key: string; month: string; days: Date[]; row: number }
+
+/** Сітка 6 × 7 місяця, до якого належить `anchor`, і номер рядка з тижнем цього дня. */
+function buildPane(anchor: ISODate, weekMode: boolean): Pane {
+  const month = monthOf(anchor)
+  const [y, m] = month.split('-').map(Number)
+  const first = new Date(y, m - 1, 1)
+  // Тиждень починається з понеділка.
+  const start = new Date(first)
+  start.setDate(1 - ((first.getDay() + 6) % 7))
+  const days = Array.from({ length: 42 }, (_, i) => {
+    const d = new Date(start)
+    d.setDate(start.getDate() + i)
+    return d
+  })
+  const monday = mondayOf(anchor)
+  const row = Math.max(0, Math.floor(days.findIndex((d) => toISO(d) === monday) / 7))
+  return { key: weekMode ? monday : month, month, days, row }
+}
+
 export function MonthCalendar({ today, selected, onSelect, marked, min, max, collapsible, onToday }: Props) {
   // День, чий місяць (або тиждень) зараз показано.
   const [anchor, setAnchor] = useState<ISODate>(selected || today)
@@ -46,119 +75,197 @@ export function MonthCalendar({ today, selected, onSelect, marked, min, max, col
   const toggle = !!collapsible && narrow
   const weekMode = toggle && !open
 
-  const shown = monthOf(anchor)
-  const [y, m] = shown.split('-').map(Number)
-  const first = new Date(y, m - 1, 1)
-  // Тиждень починається з понеділка.
-  const start = weekMode ? asDate(mondayOf(anchor)) : new Date(first)
-  if (!weekMode) start.setDate(1 - ((first.getDay() + 6) % 7))
-  const days = Array.from({ length: weekMode ? 7 : 42 }, (_, i) => {
-    const d = new Date(start)
-    d.setDate(start.getDate() + i)
-    return d
-  })
-  // Заголовок завжди «Місяць рік» — однакової довжини, шапка не стрибає при листанні тижнів.
-  let title = monthTitle.format(weekMode ? days[3] : first).replace(' р.', '')
-  title = title[0].toUpperCase() + title.slice(1)
-
-  // Напрямок останнього гортання: нова сітка виїжджає з того боку, куди гортають.
-  const [dir, setDir] = useState(0)
-  function shift(n: number) {
-    setDir(n)
-    setAnchor(weekMode ? addDays(anchor, 7 * n) : toISO(new Date(y, m - 1 + n, 1)))
+  // Сусідній тиждень чи місяць відносно показаного.
+  function neighbour(n: number): ISODate {
+    if (weekMode) return addDays(anchor, 7 * n)
+    const [y, m] = monthOf(anchor).split('-').map(Number)
+    return toISO(new Date(y, m - 1 + n, 1))
   }
+  // На телефоні поруч із поточною сіткою стоять сусідні, щоб листання йшло за пальцем.
+  const panes = (toggle ? [-1, 0, 1] : [0]).map((n) => ({ n, ...buildPane(n ? neighbour(n) : anchor, weekMode) }))
+  const current = panes.find((p) => p.n === 0)!
+
+  // Заголовок завжди «Місяць рік» — однакової довжини, шапка не стрибає при листанні тижнів.
+  const [y, m] = current.month.split('-').map(Number)
+  let title = monthTitle.format(weekMode ? asDate(addDays(mondayOf(anchor), 3)) : new Date(y, m - 1, 1)).replace(' р.', '')
+  title = title[0].toUpperCase() + title.slice(1)
   const unit = weekMode ? 'тиждень' : 'місяць'
+
+  function shiftBy(n: number) {
+    setAnchor(neighbour(n))
+  }
 
   function goToday() {
     setAnchor(today)
     onToday?.()
   }
 
-  // Горизонтальний свайп по сітці гортає тиждень або місяць.
-  const swipe = useRef<{ x: number; y: number; moved: boolean } | null>(null)
-  function swipeStart(e: PointerEvent) {
-    if (toggle) swipe.current = { x: e.clientX, y: e.clientY, moved: false }
-  }
-  function swipeEnd(e: PointerEvent) {
-    const s = swipe.current
-    if (!s) return
-    const dx = e.clientX - s.x
-    const dy = e.clientY - s.y
-    if (Math.abs(dx) > 40 && Math.abs(dx) > 1.5 * Math.abs(dy)) {
-      s.moved = true
-      shift(dx < 0 ? 1 : -1)
+  const [morph, setMorph] = useState(false)
+  const morphTimer = useRef(0)
+  const track = useRef<HTMLDivElement>(null)
+  const busy = useRef(false)
+
+  /** Докочує доріжку до сусідньої сітки (dir ±1) чи повертає назад (0), потім змінює показаний тиждень. */
+  function settle(dir: -1 | 0 | 1) {
+    const el = track.current
+    if (!el) return dir && shiftBy(dir)
+    const ms = reduced() ? 0 : dir ? SETTLE_MS : SNAP_MS
+    busy.current = true
+    el.style.transition = `transform ${ms}ms cubic-bezier(0.22, 1, 0.36, 1)`
+    el.style.transform = `translateX(${-100 / 3 - (dir * 100) / 3}%)`
+    let done = false
+    const finish = () => {
+      if (done) return
+      done = true
+      flushSync(() => dir && shiftBy(dir))
+      el.style.transition = 'none'
+      el.style.transform = ''
+      busy.current = false
     }
+    el.addEventListener('transitionend', finish, { once: true })
+    window.setTimeout(finish, ms + 80)
   }
-  // Після свайпу браузер ще надсилає click на день під пальцем — гасимо його.
-  function swipeClick(e: MouseEvent) {
-    if (swipe.current?.moved) {
+
+  function go(n: -1 | 1) {
+    if (busy.current) return
+    if (toggle) settle(n)
+    else shiftBy(n)
+  }
+
+  // Горизонтальне перетягування сітки гортає тиждень або місяць за пальцем.
+  const drag = useRef<{
+    x: number
+    y: number
+    id: number
+    on: boolean
+    moved: boolean
+    lastX: number
+    lastT: number
+    v: number
+  } | null>(null)
+  function dragStart(e: PointerEvent) {
+    if (!toggle || busy.current) return
+    drag.current = { x: e.clientX, y: e.clientY, id: e.pointerId, on: false, moved: false, lastX: e.clientX, lastT: e.timeStamp, v: 0 }
+  }
+  function dragMove(e: PointerEvent) {
+    const d = drag.current
+    const el = track.current
+    if (!d || !el) return
+    const dx = e.clientX - d.x
+    const dy = e.clientY - d.y
+    if (!d.on) {
+      if (Math.abs(dy) > 8 && Math.abs(dy) > Math.abs(dx)) {
+        drag.current = null
+        return
+      }
+      if (Math.abs(dx) < 8 || Math.abs(dx) < 1.5 * Math.abs(dy)) return
+      d.on = d.moved = true
+      e.currentTarget.setPointerCapture(e.pointerId)
+      el.style.transition = 'none'
+    }
+    const dt = e.timeStamp - d.lastT
+    if (dt > 0) d.v = 0.8 * d.v + 0.2 * ((e.clientX - d.lastX) / dt)
+    d.lastX = e.clientX
+    d.lastT = e.timeStamp
+    el.style.transform = `translateX(calc(${-100 / 3}% + ${dx}px))`
+  }
+  function dragEnd(e: PointerEvent) {
+    const d = drag.current
+    if (!d?.on) return
+    d.on = false
+    const dx = e.clientX - d.x
+    const width = e.currentTarget.clientWidth
+    // Дальній свайп чи швидкий порух — на сусідню сітку, інакше повернення на місце.
+    const fling = Math.abs(d.v) > 0.4 && Math.sign(d.v) === Math.sign(dx)
+    settle(fling || Math.abs(dx) > width * 0.25 ? (dx < 0 ? 1 : -1) : 0)
+  }
+  // Після перетягування браузер ще надсилає click на день під пальцем — гасимо його.
+  function dragClick(e: MouseEvent) {
+    if (drag.current?.moved) {
       e.stopPropagation()
       e.preventDefault()
     }
-    swipe.current = null
+    drag.current = null
   }
   // Згортання повертає тиждень до вибраного дня.
   function toggleOpen() {
     if (open && selected) setAnchor(selected)
     setOpen(!open)
+    // Плавність висоти й рядка — лише під час згортання чи розгортання, не при листанні.
+    setMorph(true)
+    window.clearTimeout(morphTimer.current)
+    morphTimer.current = window.setTimeout(() => setMorph(false), 600)
   }
 
+  const expanded = !toggle || open
   return (
-    <div className={toggle ? 'cal big' : 'cal'}>
+    <div className={`${toggle ? 'cal big' : 'cal'}${expanded ? ' open' : ''}${morph ? ' morph' : ''}`}>
       <div className="cal-head">
-        <h3>{title}</h3>
-        {onToday && !(selected === today && days.some((date) => toISO(date) === today)) && (
+        <h3 key={title} className="cal-title">
+          {title}
+        </h3>
+        {onToday && !(selected === today && current.days.some((date) => toISO(date) === today)) && (
           <button type="button" className="btn ghost small cal-today" onClick={goToday}>
             Сьогодні
           </button>
         )}
-        <button type="button" className="icon-btn" onClick={() => shift(-1)} aria-label={`Попередній ${unit}`}>
+        <button type="button" className="icon-btn" onClick={() => go(-1)} aria-label={`Попередній ${unit}`}>
           <ChevronLeft size={16} />
         </button>
-        <button type="button" className="icon-btn" onClick={() => shift(1)} aria-label={`Наступний ${unit}`}>
+        <button type="button" className="icon-btn" onClick={() => go(1)} aria-label={`Наступний ${unit}`}>
           <ChevronRight size={16} />
         </button>
       </div>
-      <div
-        key={`${weekMode ? 'w' : 'm'}${toISO(days[0])}`}
-        className="grid7 num cal-in"
-        onPointerDown={swipeStart}
-        onPointerUp={swipeEnd}
-        onClickCapture={swipeClick}
-        style={{ ...(toggle ? { touchAction: 'pan-y' } : null), '--dx': `${dir * 14}px` } as CSSProperties}
-      >
+      <div className="grid7 dow-row">
         {DOW.map((d) => (
           <span key={d} className="dow">
             {d}
           </span>
         ))}
-        {days.map((date) => {
-          const d = toISO(date)
-          const cls = ['d']
-          if (!weekMode && monthOf(d) !== shown) cls.push('out')
-          else if (date.getDay() === 0 || date.getDay() === 6) cls.push('wk')
-          if (d === today) cls.push('today')
-          if (d === selected) cls.push('sel')
-          if (marked?.has(d)) cls.push('has')
-          const off = (min && d < min) || (max && d > max)
-          return (
-            <button
-              key={d}
-              type="button"
-              className={cls.join(' ')}
-              disabled={!!off}
-              onClick={() => onSelect(d)}
-              aria-label={d}
-              aria-pressed={d === selected}
-            >
-              {date.getDate()}
-            </button>
-          )
-        })}
+      </div>
+      <div
+        className="cal-viewport"
+        onPointerDown={dragStart}
+        onPointerMove={dragMove}
+        onPointerUp={dragEnd}
+        onPointerCancel={dragEnd}
+        onClickCapture={dragClick}
+      >
+        <div ref={track} className={toggle ? 'cal-track' : 'cal-track single'}>
+          {panes.map((p) => (
+            <div key={toggle ? p.n : p.key} className={p.n || !toggle ? 'cal-pane' : 'cal-pane now'} inert={p.n !== 0}>
+              <div className="grid7 num" style={{ '--row': p.row } as CSSProperties}>
+                {p.days.map((date) => {
+                  const d = toISO(date)
+                  const cls = ['d']
+                  if (expanded && monthOf(d) !== p.month) cls.push('out')
+                  else if (date.getDay() === 0 || date.getDay() === 6) cls.push('wk')
+                  if (d === today) cls.push('today')
+                  if (d === selected) cls.push('sel')
+                  if (marked?.has(d)) cls.push('has')
+                  const off = (min && d < min) || (max && d > max)
+                  return (
+                    <button
+                      key={d}
+                      type="button"
+                      className={cls.join(' ')}
+                      disabled={!!off}
+                      onClick={() => onSelect(d)}
+                      aria-label={d}
+                      aria-pressed={d === selected}
+                    >
+                      {date.getDate()}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
       {toggle && (
         <button type="button" className="fold-toggle" aria-expanded={open} onClick={toggleOpen}>
-          {open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          <ChevronDown size={16} className="fold-chev" />
           {open ? 'Згорнути до тижня' : 'Показати місяць'}
         </button>
       )}
