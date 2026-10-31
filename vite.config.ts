@@ -32,7 +32,9 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,png,svg,woff2,xlsx}'],
+        // mjs — воркер pdf.js (~1,3 МБ): без нього вбудований перегляд файлів не працював би офлайн.
+        globPatterns: ['**/*.{js,mjs,css,html,png,svg,woff2,xlsx}'],
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
         runtimeCaching: [
           {
             // Шрифт Onest з Google Fonts — щоб і без інтернету виглядало так само.

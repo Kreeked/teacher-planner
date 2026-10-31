@@ -3,8 +3,9 @@
  * відкривалися без інтернету. Що зберігати, вирішує data/offline.ts.
  */
 import { useSyncExternalStore } from 'react'
+import { googleTarget, inAppViewable } from '../data/materials'
 import type { LessonMaterial } from '../data/types'
-import { DriveError, downloadFile, savedDriveToken } from './drive'
+import { DriveError, convertToPdf, downloadFile, savedDriveToken } from './drive'
 
 const CACHE = 'planner-files'
 const PREFIX = '/__offline/'
@@ -131,19 +132,7 @@ export async function syncOffline(all: LessonMaterial[], interactive: boolean) {
   for (const m of missing) {
     const id = m.drive_file_id!
     try {
-      const blob = await downloadFile(id, m.mime_type)
-      const type = blob.type || m.mime_type || 'application/octet-stream'
-      await cache.put(
-        key(id),
-        new Response(blob, {
-          headers: {
-            'Content-Type': type,
-            'Content-Length': String(blob.size),
-            'X-Name': encodeURIComponent(m.title),
-          },
-        }),
-      )
-      saved.set(id, { id, name: m.title, type, size: blob.size })
+      saved.set(id, await putCopy(cache, m, await fetchCopy(m)))
     } catch (e) {
       console.error(e)
       failed++
@@ -156,6 +145,66 @@ export async function syncOffline(all: LessonMaterial[], interactive: boolean) {
     running: false,
     error: failed ? `Не збережено файлів: ${failed}. ${error}` : '',
   })
+}
+
+/**
+ * Що зберігати на пристрої: файли, які відкриваються у вбудованому перегляді, — у вигляді PDF
+ * (офісні конвертує Диск), решту — як є. Якщо конвертація не вдалася, лишається оригінал.
+ */
+async function fetchCopy(m: LessonMaterial) {
+  const id = m.drive_file_id!
+  const target = inAppViewable(m) ? googleTarget(m) : null
+  if (!target) return downloadFile(id, m.mime_type)
+  try {
+    return await convertToPdf(id, target)
+  } catch (e) {
+    if (!navigator.onLine) throw e
+    console.error(e)
+    return downloadFile(id, m.mime_type)
+  }
+}
+
+async function putCopy(cache: Cache, m: LessonMaterial, blob: Blob): Promise<SavedFile> {
+  const id = m.drive_file_id!
+  const type = blob.type || m.mime_type || 'application/octet-stream'
+  await cache.put(
+    key(id),
+    new Response(blob, {
+      headers: {
+        'Content-Type': type,
+        'Content-Length': String(blob.size),
+        'X-Name': encodeURIComponent(m.title),
+      },
+    }),
+  )
+  return { id, name: m.title, type, size: blob.size }
+}
+
+const PDF = 'application/pdf'
+
+/**
+ * PDF матеріалу для вбудованого перегляду. Збережена на пристрої копія береться одразу (вона й без інтернету);
+ * fresh — завантажити з Диска наново (файл могли змінити). Нова копія зберігається, якщо на пристрої це не вимкнено.
+ */
+export async function loadPdf(m: LessonMaterial, fresh = false): Promise<Blob> {
+  const id = m.drive_file_id!
+  if (supported && !fresh) {
+    const r = await (await caches.open(CACHE)).match(key(id))
+    if (r && r.headers.get('Content-Type') === PDF) return r.blob()
+  }
+  if (!(await reachable()))
+    throw new DriveError(
+      fresh
+        ? 'Немає інтернету — показано збережену копію.'
+        : 'Немає інтернету, а цього файлу ще немає на пристрої. Файли до уроків найближчого тижня зберігаються самі; інші можна позначити шпилькою в матеріалах.',
+    )
+  const target = googleTarget(m)
+  const blob = target ? await convertToPdf(id, target) : await downloadFile(id, m.mime_type)
+  if (supported && !state.skipped.has(id) && !state.paused) {
+    const file = await putCopy(await caches.open(CACHE), m, blob)
+    set({ saved: new Map(state.saved).set(id, file) })
+  }
+  return blob
 }
 
 /** Видаляє копії файлів, яких уже немає в списку потрібних (минулі уроки, прибрані матеріали). */

@@ -4,6 +4,7 @@ import { useAuth } from '../auth/context'
 import { Logo } from '../components/Logo'
 import { ConfirmHost } from '../components/Confirm'
 import { SavedToast } from '../components/Saved'
+import { ViewerHost } from '../components/ViewerHost'
 import { hideSplash } from '../lib/splash'
 import { useOfflineAutoSync } from '../lib/useOfflinePlan'
 import { useOnline } from '../lib/useOnline'
@@ -118,6 +119,7 @@ export function AppLayout() {
         <TabPanes tabs={tabs} active={active} />
       </div>
       <ConfirmHost />
+      <ViewerHost />
       <SavedToast />
 
       <nav className="tabbar" aria-label="Розділи">

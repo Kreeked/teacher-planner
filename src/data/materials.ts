@@ -173,3 +173,37 @@ export function driveViewUrl(id: string) {
 export function materialUrl(m: LessonMaterial) {
   return m.kind === 'link' ? (m.url ?? '') : (m.url ?? driveViewUrl(m.drive_file_id ?? ''))
 }
+
+const GOOGLE_APPS = 'application/vnd.google-apps.'
+
+/**
+ * У що Диск конвертує офісний файл, щоб віддати його PDF: Презентація, Документ чи Таблиця Google.
+ * null — файл уже Google, уже PDF або не конвертується.
+ */
+export function googleTarget(m: Pick<LessonMaterial, 'mime_type' | 'title'>): string | null {
+  const t = (m.mime_type ?? '').toLowerCase()
+  if (t.startsWith(GOOGLE_APPS)) return null
+  const name = m.title.toLowerCase()
+  if (t.includes('presentation') || /\.(pptx?|odp)$/.test(name)) return `${GOOGLE_APPS}presentation`
+  if (t.includes('spreadsheet') || t.includes('ms-excel') || /\.(xlsx?|ods|csv)$/.test(name)) return `${GOOGLE_APPS}spreadsheet`
+  if (t.includes('wordprocessing') || t.includes('msword') || /\.(docx?|odt|rtf|txt)$/.test(name)) return `${GOOGLE_APPS}document`
+  return null
+}
+
+/**
+ * Чи відкривається матеріал у вбудованому перегляді (як PDF): файли Google, PDF та офісні файли.
+ * Тести Wayground (.xlsx на поличці «Тест») показувати нема сенсу — їх імпортують, тож вони відкриваються як раніше.
+ */
+export function inAppViewable(m: LessonMaterial): boolean {
+  if (m.kind !== 'file' || !m.drive_file_id || m.category === 'test') return false
+  const t = (m.mime_type ?? '').toLowerCase()
+  if (t.startsWith(GOOGLE_APPS)) return /\.(presentation|document|spreadsheet)$/.test(t)
+  return materialType(m) === 'pdf' || googleTarget(m) !== null
+}
+
+/** Посилання «показ у Google»: для Google Презентації — одразу режим показу, для решти — перегляд на Диску. */
+export function googleShowUrl(m: LessonMaterial): { url: string; label: string } {
+  if (m.drive_file_id && m.mime_type === `${GOOGLE_APPS}presentation`)
+    return { url: `https://docs.google.com/presentation/d/${m.drive_file_id}/present`, label: 'Показ у Google' }
+  return { url: materialUrl(m), label: 'Відкрити в Google' }
+}

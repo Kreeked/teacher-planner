@@ -4184,3 +4184,118 @@ a:not([class]):active {
     scroll-behavior: auto !important;
   }
 }
+
+/* ---------- Вбудований перегляд файлів ---------- */
+.viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: var(--ink);
+  color: #fff;
+  display: grid;
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+  overflow: hidden;
+  animation: fade-in var(--dur) var(--ease-out);
+}
+
+.viewer:not(.bar-on) {
+  cursor: none;
+}
+
+.viewer-stage {
+  grid-area: 1 / 1;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  min-height: 0;
+  touch-action: pan-y;
+  user-select: none;
+}
+
+.viewer-stage canvas {
+  display: block;
+  background: #fff;
+}
+
+.viewer-bar {
+  grid-area: 1 / 1;
+  z-index: 1;
+  align-self: start;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: calc(8px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) 24px calc(12px + env(safe-area-inset-left));
+  background: linear-gradient(rgba(31, 31, 36, 0.92), rgba(31, 31, 36, 0));
+  opacity: 0;
+  transform: translateY(-8px);
+  pointer-events: none;
+  transition:
+    opacity var(--dur) var(--ease-out),
+    transform var(--dur) var(--ease-out);
+}
+
+.viewer.bar-on .viewer-bar {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+.viewer-bar b {
+  font-size: 14px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.viewer-bar .icon-btn {
+  color: #fff;
+}
+
+.viewer-count {
+  min-width: 52px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.viewer-note {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  white-space: nowrap;
+}
+
+.viewer-msg {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  max-width: 420px;
+  padding: 0 24px;
+  text-align: center;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.viewer .spin {
+  animation: viewer-spin 1s linear infinite;
+}
+
+@keyframes viewer-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (hover: hover) {
+  .viewer .icon-btn:not(:disabled):hover {
+    box-shadow: var(--st-hover-dark);
+  }
+}
+
+@media (max-width: 640px) {
+  .viewer-bar .btn {
+    display: none;
+  }
+}

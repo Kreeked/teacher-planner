@@ -43,7 +43,8 @@ import {
 } from '../../data/materials'
 import type { AcademicYear, Course, Lesson, LessonMaterial, MaterialCategory } from '../../data/types'
 import { DriveError, driveConfigured, pickFiles, preloadDrive, uploadFile, type DriveFile } from '../../lib/drive'
-import { openMaterial, useOfflineFiles } from '../../lib/offlineFiles'
+import { useOfflineFiles } from '../../lib/offlineFiles'
+import { openFile } from '../../lib/viewer'
 
 const ICONS: Record<MaterialType, LucideIcon> = {
   slides: Presentation,
@@ -81,7 +82,7 @@ export function MaterialLink({ m }: { m: LessonMaterial }) {
         // Файли Диска відкриваємо через перевірку зв'язку: без інтернету — копію з пристрою.
         if (m.kind !== 'file' || e.ctrlKey || e.metaKey || e.shiftKey) return
         e.preventDefault()
-        openMaterial(materialUrl(m), saved)
+        openFile(m, saved)
       }}
     >
       <Icon size={14} />
@@ -127,7 +128,7 @@ export function LessonShelves({ own, onOpen }: { own: LessonMaterial[]; onOpen: 
               onClick={(e) => {
                 if (m.kind !== 'file' || e.ctrlKey || e.metaKey || e.shiftKey) return
                 e.preventDefault()
-                openMaterial(materialUrl(m), copy)
+                openFile(m, copy)
               }}
             >
               {text}
