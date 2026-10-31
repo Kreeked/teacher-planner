@@ -4,7 +4,8 @@ import { useAuth } from '../../auth/context'
 import { ConfirmHost } from '../../components/Confirm'
 import { SavedToast } from '../../components/Saved'
 import { useRangeDraft } from '../../components/useRangeDraft'
-import { commit, newBatch, updateFields, useCollection } from '../../data/db'
+import { commit, flushDraft, newBatch, updateFields, useCollection } from '../../data/db'
+import { discardDraft, hasDraft, stopDraft } from '../../data/draft'
 import { STEPS, canProceed, countsOf } from '../../data/onboarding'
 import { toISO } from '../../data/schedule'
 import type { Shift } from '../../data/timetable'
@@ -78,7 +79,7 @@ export function Wizard({ onExit, onDone }: Props) {
   const [scheduleShift, setScheduleShift] = useState<Shift>(1)
 
   // Після перезавантаження продовжуємо з кроку, на якому зупинилися.
-  const [step, setStep] = useState(() => Math.min(getOnboardingStep(uid) ?? 0, STEPS.length - 1))
+  const [step, setStep] = useState(() => (hasDraft(uid) ? Math.min(getOnboardingStep(uid) ?? 0, STEPS.length - 1) : 0))
   useEffect(hideSplash, [])
 
   const current = STEPS[step]
@@ -104,6 +105,10 @@ export function Wizard({ onExit, onDone }: Props) {
       commit(batch)
       go(step + 1)
     } else if (last) {
+      // Лише тепер рік потрапляє в базу.
+      flushDraft()
+      stopDraft()
+      discardDraft(uid)
       clearOnboarding(uid)
       onDone()
     } else go(step + 1)
