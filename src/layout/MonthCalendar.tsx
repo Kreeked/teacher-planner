@@ -234,44 +234,78 @@ export function MonthCalendar({ today, selected, onSelect, marked, min, max, col
     drag.current = null
   }
   // Згортання повертає тиждень до вибраного дня.
-  // Початкові розміри для плавного розгортання: знімаються до зміни стану, анімація стартує після неї.
+  // Розгортання й згортання без перерахунку розкладки на кожному кадрі (FLIP): висота змінюється один раз,
+  // а рух малюють transform (рядки, нижній вміст) і clip-path (картка та вікно сітки). Сторінка нижче —
+  // окремі шари, тож не перемальовується.
   const flip = useRef<{ h: number; mt: number } | null>(null)
+  const endMorph = useRef<(() => void) | null>(null)
   function toggleOpen() {
+    endMorph.current?.()
     const vp = viewport.current
     const grid = vp?.querySelector<HTMLElement>('.cal-pane.now .grid7')
-    if (vp && grid && !reduced())
+    if (vp && grid && !reduced()) {
       flip.current = { h: vp.getBoundingClientRect().height, mt: parseFloat(getComputedStyle(grid).marginTop) || 0 }
+      setMorph(true)
+    }
     if (open && selected) setAnchor(selected)
     setOpen(!open)
   }
 
-  // Висота й рядок тижня анімуються Web Animations: одна анімація висоти замість переходів на всіх сітках,
-  // нижній вміст на час руху виноситься в окремі шари, щоб не перемальовуватися на кожному кадрі.
   useLayoutEffect(() => {
     const f = flip.current
     const vp = viewport.current
+    const card = vp?.closest<HTMLElement>('.cal')
     const grid = vp?.querySelector<HTMLElement>('.cal-pane.now .grid7')
     flip.current = null
-    if (!f || !vp || !grid) return
+    if (!f || !vp || !card || !grid) return
+    const expand = open
     const h1 = vp.getBoundingClientRect().height
     const mt1 = parseFloat(getComputedStyle(grid).marginTop) || 0
-    if (Math.abs(h1 - f.h) < 1) return
-    setMorph(true)
-    const opts = { duration: MORPH_MS, easing: MORPH_EASE }
-    vp.animate([{ height: `${f.h}px` }, { height: `${h1}px` }], opts)
-    grid.animate([{ marginTop: `${f.mt}px` }, { marginTop: `${mt1}px` }], opts)
-    // Усе, що йде далі за календарем, на час руху в окремих шарах.
+    const dh = h1 - f.h
+    if (Math.abs(dh) < 1) {
+      setMorph(false)
+      return
+    }
+    const radius = getComputedStyle(card).borderTopLeftRadius
+    const opts: KeyframeAnimationOptions = { duration: MORPH_MS, easing: MORPH_EASE, fill: 'forwards' }
+    const anims: Animation[] = []
+    const inset = (bottom: number) => `inset(0 0 ${bottom}px 0 round ${radius})`
+    const inner = (bottom: number) => `inset(0 0 ${bottom}px 0)`
+    // Усе, що йде далі за календарем (кнопка в картці, дзвінки, уроки).
     const after: HTMLElement[] = []
     for (let node: HTMLElement | null = vp, depth = 0; node && depth < 6 && !node.matches('.tab-pane'); depth++) {
       for (let n = node.nextElementSibling; n; n = n.nextElementSibling) if (n instanceof HTMLElement) after.push(n)
       node = node.parentElement
     }
     after.forEach((n) => (n.style.willChange = 'transform'))
-    window.clearTimeout(morphTimer.current)
-    morphTimer.current = window.setTimeout(() => {
-      setMorph(false)
+    if (expand) {
+      // Розкладка вже кінцева: нижній вміст і рядки стартують зі старих місць.
+      anims.push(card.animate([{ clipPath: inset(dh) }, { clipPath: inset(0) }], opts))
+      anims.push(vp.animate([{ clipPath: inner(dh) }, { clipPath: inner(0) }], opts))
+      anims.push(grid.animate([{ transform: `translateY(${f.mt - mt1}px)` }, { transform: 'none' }], opts))
+      after.forEach((n) => anims.push(n.animate([{ transform: `translateY(${-dh}px)` }, { transform: 'none' }], opts)))
+    } else {
+      // Розкладка тримається старою до кінця руху, потім стає кінцевою в тому самому кадрі.
+      vp.style.height = `${f.h}px`
+      anims.push(card.animate([{ clipPath: inset(0) }, { clipPath: inset(-dh) }], opts))
+      anims.push(vp.animate([{ clipPath: inner(0) }, { clipPath: inner(-dh) }], opts))
+      anims.push(grid.animate([{ transform: `translateY(${f.mt - mt1}px)` }, { transform: 'none' }], opts))
+      after.forEach((n) => anims.push(n.animate([{ transform: 'none' }, { transform: `translateY(${dh}px)` }], opts)))
+    }
+    let done = false
+    const end = () => {
+      if (done) return
+      done = true
+      vp.style.height = ''
       after.forEach((n) => (n.style.willChange = ''))
-    }, MORPH_MS + 60)
+      anims.forEach((a) => a.cancel())
+      setMorph(false)
+      endMorph.current = null
+    }
+    endMorph.current = end
+    anims[0].onfinish = end
+    window.clearTimeout(morphTimer.current)
+    morphTimer.current = window.setTimeout(end, MORPH_MS + 120)
   }, [open])
 
   const expanded = !toggle || open
