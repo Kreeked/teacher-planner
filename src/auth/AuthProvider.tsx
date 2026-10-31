@@ -1,5 +1,14 @@
-import { onAuthStateChanged, signInAnonymously, signInWithPopup, signInWithRedirect, signOut, type User } from 'firebase/auth'
+import {
+  GoogleAuthProvider,
+  onAuthStateChanged,
+  signInAnonymously,
+  signInWithCredential,
+  signInWithPopup,   signInWithRedirect,
+  signOut,
+  type User,
+} from 'firebase/auth'
 import { useEffect, useState, type ReactNode } from 'react'
+import { PopupClosed, googleSignInToken } from '../lib/drive'
 import { auth, googleProvider, usingEmulators } from '../lib/firebase'
 import { AuthContext } from './context'
 
@@ -20,6 +29,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (usingEmulators) {
       await signInAnonymously(auth)
       return
+    }
+    // Основний шлях: вікно Google Identity Services, яке одразу дає й доступ до Диска (потім друге вікно не потрібне).
+    // Якщо воно не вийшло (заблоковане, Firebase не прийняв токен) — старий вхід через Firebase.
+    try {
+      await signInWithCredential(auth, GoogleAuthProvider.credential(null, await googleSignInToken()))
+      return
+    } catch (e) {
+      if (e instanceof PopupClosed) throw e
     }
     try {
       await signInWithPopup(auth, googleProvider)

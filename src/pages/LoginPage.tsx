@@ -1,11 +1,15 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuth } from '../auth/context'
 import { Logo } from '../components/Logo'
+import { preloadDrive } from '../lib/drive'
 
 export function LoginPage() {
   const { signIn } = useAuth()
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+
+  // Скрипт Google вантажимо наперед: вікно входу має відкритися в тому ж натисканні, інакше браузер його заблокує.
+  useEffect(preloadDrive, [])
 
   async function handleClick() {
     setError('')

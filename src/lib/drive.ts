@@ -3,6 +3,7 @@
  * застосунок бачить тільки файли, які сам створив або які вибрано в Picker),
  * завантаження файлів частинами і вибір наявних файлів.
  */
+import { ask } from './confirm'
 import { auth } from './firebase'
 
 // OAuth Client ID вебклієнта проєкту teacher-planner-49257 (не секретний).
@@ -82,28 +83,68 @@ export function savedDriveToken() {
   return token && token.expires > Date.now() + 5 * 60_000 ? token.value : null
 }
 
-/** Токен для Drive API; уперше (і коли сплив) — вікно дозволу Google. Викликати з обробника натискання. */
-export async function driveToken(): Promise<string> {
-  if (!driveConfigured) throw new DriveError('Підключення до Google Диска ще не налаштоване.')
-  if (token && token.expires > Date.now() + 60_000) return token.value
-  await loadScript('https://accounts.google.com/gsi/client')
+/** Вікно дозволу Google не відкрилося (браузер заблокував) або його закрито. */
+class PopupBlocked extends DriveError {}
+export class PopupClosed extends DriveError {
+  code = 'auth/popup-closed-by-user'
+}
+
+/** Просить токен у Google. Відкриває вікно, тож викликати слід одразу з обробника натискання. */
+function requestToken(scope: string, prompt: string): Promise<Token> {
   return new Promise((resolve, reject) => {
     const client = google.accounts.oauth2.initTokenClient({
       client_id: DRIVE_CLIENT_ID,
-      scope: SCOPE,
+      scope,
       hint: auth.currentUser?.email ?? undefined,
       callback: (r) => {
         if (r.error || !r.access_token) {
           reject(new DriveError('Google не дав доступу до Диска.'))
           return
         }
-        saveToken({ value: r.access_token, expires: Date.now() + Number(r.expires_in) * 1000 })
-        resolve(r.access_token)
+        const t = { value: r.access_token, expires: Date.now() + Number(r.expires_in) * 1000 }
+        saveToken(t)
+        resolve(t)
       },
-      error_callback: () => reject(new DriveError('Вікно дозволу Google закрито.')),
+      error_callback: (e) =>
+        reject(
+          e?.type === 'popup_failed_to_open'
+            ? new PopupBlocked('Браузер заблокував вікно Google.')
+            : new PopupClosed('Вікно дозволу Google закрито.'),
+        ),
     })
-    client.requestAccessToken({ prompt: '' })
+    client.requestAccessToken({ prompt })
   })
+}
+
+/**
+ * Вхід і доступ до Диска одним вікном Google: повертає токен, яким Firebase впускає в акаунт.
+ * Скрипт Google має бути завантажений наперед (preloadDrive), інакше вікно блокуватиметься браузером.
+ */
+export async function googleSignInToken(): Promise<string> {
+  if (!driveConfigured || typeof google === 'undefined' || !google.accounts) {
+    throw new DriveError('Компонент Google ще не завантажився.')
+  }
+  const t = await requestToken(`openid email profile ${SCOPE}`, 'select_account')
+  return t.value
+}
+
+/** Токен для Drive API; уперше (і коли сплив) — вікно дозволу Google. Викликати з обробника натискання. */
+export async function driveToken(): Promise<string> {
+  if (!driveConfigured) throw new DriveError('Підключення до Google Диска ще не налаштоване.')
+  if (token && token.expires > Date.now() + 60_000) return token.value
+  await loadScript('https://accounts.google.com/gsi/client')
+  try {
+    return (await requestToken(SCOPE, '')).value
+  } catch (e) {
+    if (!(e instanceof PopupBlocked)) throw e
+    // Браузер не дав відкрити вікно (натискання було давно): нове натискання на кнопку це виправляє.
+    const again = await ask('Браузер заблокував вікно Google. Натисни кнопку, щоб відкрити його знову.', {
+      ok: 'Відкрити вікно Google',
+      danger: false,
+    })
+    if (!again) throw new PopupClosed('Вікно дозволу Google закрито.')
+    return (await requestToken(SCOPE, '')).value
+  }
 }
 
 async function api<T>(url: string, init: RequestInit = {}): Promise<T> {

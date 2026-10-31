@@ -7,7 +7,7 @@
 | Застосунок | React 19 + TypeScript + Vite, PWA (`vite-plugin-pwa`, autoUpdate) |
 | Маршрутизація | React Router, `HashRouter` (бо GitHub Pages) |
 | Дані | Cloud Firestore з `persistentLocalCache` + `persistentMultipleTabManager` |
-| Вхід | Firebase Authentication, Google |
+| Вхід | Firebase Authentication, Google: вікно Google Identity Services (одразу дає й доступ до Диска), запасний шлях — спливне вікно Firebase, потім перенаправлення |
 | Файли | Google Drive API (scope `drive.file`) + Google Picker, токен через Google Identity Services |
 | Перегляд PDF | `pdfjs-dist` (завантажується за потреби) |
 | Розбір .docx | `fflate` у браузері (файли не йдуть на сервер) |
@@ -24,6 +24,8 @@
 - **Google Cloud** (той самий проєкт): увімкнені Drive API і Picker API; OAuth Client ID — у `src/lib/drive.ts`;
   дозволений origin `https://kreeked.github.io`.
 - **Правила Firestore:** `firestore.rules` — доступ лише власнику до `users/{uid}/…`. Публікуються вручну в консолі Firebase.
+- Спливні вікна: вхід (`signIn` в `auth/AuthProvider.tsx`) і дозвіл Диска (`driveToken`) відкривають вікно Google одразу з натискання,
+  скрипт Google вантажиться наперед (`preloadDrive`). Якщо браузер заблокував вікно дозволу, застосунок просить нове натискання («Відкрити вікно Google»).
 - Секретів у репозиторії немає й не потрібно.
 
 ## Структура `src/`
