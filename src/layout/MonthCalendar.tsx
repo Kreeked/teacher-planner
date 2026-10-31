@@ -7,7 +7,10 @@ import type { ISODate } from '../data/types'
 import { useNarrow } from '../lib/useNarrow'
 
 const DOW = ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'НД']
-const monthTitle = new Intl.DateTimeFormat('uk-UA', { month: 'long', year: 'numeric' })
+const monthTitle = new Intl.DateTimeFormat('uk-UA', {
+  month: 'long',
+  year: 'numeric',
+})
 
 type Props = {
   today: ISODate
@@ -81,13 +84,20 @@ export function MonthCalendar({ today, selected, onSelect, marked, min, max, col
     const [y, m] = monthOf(anchor).split('-').map(Number)
     return toISO(new Date(y, m - 1 + n, 1))
   }
-  // На телефоні поруч із поточною сіткою стоять сусідні, щоб листання йшло за пальцем.
-  const panes = (toggle ? [-1, 0, 1] : [0]).map((n) => ({ n, ...buildPane(n ? neighbour(n) : anchor, weekMode) }))
-  const current = panes.find((p) => p.n === 0)!
+  // Поруч із поточною сіткою стоять сусідні, щоб листання йшло за пальцем (і мишею, і стрілками).
+  const panes = [-1, 0, 1].map((n) => ({
+    n,
+    ...buildPane(n ? neighbour(n) : anchor, weekMode),
+  }))
+  // Поки сітка їде до сусідньої, назва й кнопка «Сьогодні» вже показують її, а не чекають кінця руху.
+  const [leaving, setLeaving] = useState<-1 | 0 | 1>(0)
+  const current = panes.find((p) => p.n === leaving)!
 
   // Заголовок завжди «Місяць рік» — однакової довжини, шапка не стрибає при листанні тижнів.
   const [y, m] = current.month.split('-').map(Number)
-  let title = monthTitle.format(weekMode ? asDate(addDays(mondayOf(anchor), 3)) : new Date(y, m - 1, 1)).replace(' р.', '')
+  let title = monthTitle
+    .format(weekMode ? asDate(addDays(mondayOf(neighbour(leaving)), 3)) : new Date(y, m - 1, 1))
+    .replace(' р.', '')
   title = title[0].toUpperCase() + title.slice(1)
   const unit = weekMode ? 'тиждень' : 'місяць'
 
@@ -111,13 +121,17 @@ export function MonthCalendar({ today, selected, onSelect, marked, min, max, col
     if (!el) return dir && shiftBy(dir)
     const ms = reduced() ? 0 : dir ? SETTLE_MS : SNAP_MS
     busy.current = true
+    setLeaving(dir)
     el.style.transition = `transform ${ms}ms cubic-bezier(0.22, 1, 0.36, 1)`
     el.style.transform = `translateX(${-100 / 3 - (dir * 100) / 3}%)`
     let done = false
     const finish = () => {
       if (done) return
       done = true
-      flushSync(() => dir && shiftBy(dir))
+      flushSync(() => {
+        if (dir) shiftBy(dir)
+        setLeaving(0)
+      })
       el.style.transition = 'none'
       el.style.transform = ''
       busy.current = false
@@ -128,8 +142,7 @@ export function MonthCalendar({ today, selected, onSelect, marked, min, max, col
 
   function go(n: -1 | 1) {
     if (busy.current) return
-    if (toggle) settle(n)
-    else shiftBy(n)
+    settle(n)
   }
 
   // Горизонтальне перетягування сітки гортає тиждень або місяць за пальцем.
@@ -144,8 +157,17 @@ export function MonthCalendar({ today, selected, onSelect, marked, min, max, col
     v: number
   } | null>(null)
   function dragStart(e: PointerEvent) {
-    if (!toggle || busy.current) return
-    drag.current = { x: e.clientX, y: e.clientY, id: e.pointerId, on: false, moved: false, lastX: e.clientX, lastT: e.timeStamp, v: 0 }
+    if (busy.current) return
+    drag.current = {
+      x: e.clientX,
+      y: e.clientY,
+      id: e.pointerId,
+      on: false,
+      moved: false,
+      lastX: e.clientX,
+      lastT: e.timeStamp,
+      v: 0,
+    }
   }
   function dragMove(e: PointerEvent) {
     const d = drag.current
@@ -204,11 +226,17 @@ export function MonthCalendar({ today, selected, onSelect, marked, min, max, col
         <h3 key={title} className="cal-title">
           {title}
         </h3>
-        {onToday && !(selected === today && current.days.some((date) => toISO(date) === today)) && (
-          <button type="button" className="btn ghost small cal-today" onClick={goToday}>
-            Сьогодні
-          </button>
-        )}
+        {onToday &&
+          !(
+            selected === today &&
+            (weekMode ? current.days.slice(current.row * 7, current.row * 7 + 7) : current.days).some(
+              (date) => toISO(date) === today,
+            )
+          ) && (
+            <button type="button" className="btn ghost small cal-today" onClick={goToday}>
+              Сьогодні
+            </button>
+          )}
         <button type="button" className="icon-btn" onClick={() => go(-1)} aria-label={`Попередній ${unit}`}>
           <ChevronLeft size={16} />
         </button>
@@ -231,10 +259,10 @@ export function MonthCalendar({ today, selected, onSelect, marked, min, max, col
         onPointerCancel={dragEnd}
         onClickCapture={dragClick}
       >
-        <div ref={track} className={toggle ? 'cal-track' : 'cal-track single'}>
+        <div ref={track} className="cal-track">
           {panes.map((p) => (
-            <div key={toggle ? p.n : p.key} className={p.n || !toggle ? 'cal-pane' : 'cal-pane now'} inert={p.n !== 0}>
-              <div className="grid7 num" style={{ '--row': p.row } as CSSProperties}>
+            <div key={p.n} className={p.n ? 'cal-pane' : 'cal-pane now'} inert={p.n !== 0}>
+              <div key={p.month} className="grid7 num" style={{ '--row': p.row } as CSSProperties}>
                 {p.days.map((date) => {
                   const d = toISO(date)
                   const cls = ['d']

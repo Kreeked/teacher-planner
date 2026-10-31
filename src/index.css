@@ -4116,11 +4116,6 @@ a:not([class]):active {
   will-change: transform;
 }
 
-.cal-track.single {
-  width: 100%;
-  transform: none;
-}
-
 .cal-pane {
   flex: none;
   width: 33.3333%;
@@ -4130,11 +4125,6 @@ a:not([class]):active {
 
 .cal.morph .cal-pane {
   transition: height var(--cal-dur) var(--ease-out);
-}
-
-.cal-track.single .cal-pane {
-  width: 100%;
-  animation: fade-in var(--dur) var(--ease-out);
 }
 
 .cal.open .cal-pane {
