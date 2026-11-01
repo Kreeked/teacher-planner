@@ -1,5 +1,6 @@
 import { Minus, Plus, Trash2, WandSparkles } from 'lucide-react'
 import { useState } from 'react'
+import { Alert } from '../../components/Alert'
 import { TimePicker } from '../../components/TimePicker'
 import { commit, createDoc, newBatch, ref, updateFields } from '../../data/db'
 import {
@@ -119,7 +120,7 @@ export function BellsStep({ year, bells, entries, shift, onShift }: Props) {
   async function removeLesson(i: number) {
     const mine = entries.filter((e) => entryShift(e) === shift)
     const gone = mine.filter((e) => e.slot_number === i + 1)
-    if (gone.length && !(await ask(`На цьому уроці в розкладі ${gone.length} кл. Видалити урок ${i + 1} разом із ними?`))) return
+    if (gone.length && !(await ask(`Разом з уроком буде видалено ${gone.length} кл. у розкладі. Наступні уроки отримають менші номери.`, { title: `Видалити урок ${i + 1}?` }))) return
     const batch = newBatch()
     for (const e of gone) batch.delete(ref('timetable_entries', e.id))
     // Уроки після видаленого отримують менші номери, а клас у розкладі йде за своїм уроком.
@@ -129,7 +130,7 @@ export function BellsStep({ year, bells, entries, shift, onShift }: Props) {
   }
 
   async function typical() {
-    if ((slots.length || shiftSlots(bells, shift === 1 ? 2 : 1).length) && !(await ask('Замінити поточні дзвінки обох змін типовими?'))) return
+    if ((slots.length || shiftSlots(bells, shift === 1 ? 2 : 1).length) && !(await ask('Поточні дзвінки обох змін буде замінено типовими.', { title: 'Замінити дзвінки?', ok: 'Замінити' }))) return
     const [a, b] = [defaultSlots(1), defaultSlots(2)]
     setError('')
     if (bells) updateFields('bell_schedules', bells.id, { slots: a, second_shift: b })
@@ -179,7 +180,7 @@ export function BellsStep({ year, bells, entries, shift, onShift }: Props) {
         </div>
       </div>
 
-      {error && <p className="field-error ob-bell-err">{error}</p>}
+      {error && <Alert kind="crit">{error}</Alert>}
 
       <hr className="ob-bell-hr" />
 

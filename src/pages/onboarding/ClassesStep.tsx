@@ -66,7 +66,7 @@ export function ClassesStep({ year, classes }: { year: AcademicYear; classes: Cl
         (['course_classes', 'lesson_schedules', 'timetable_entries'] as const).map((n) => refsWhereCached(n, 'class_group_id', c.id)),
       )
     ).flat()
-    if (links.length && !(await ask(`Видалити клас ${c.display_name} разом з його прив'язками до предметів і розкладу?`))) return
+    if (links.length && !(await ask('Разом із класом буде видалено його прив’язки до предметів і розкладу.', { title: `Видалити клас ${c.display_name}?` }))) return
     setShown((s) => ({ ...s, [c.display_name]: false }))
     deleteRefs([ref('class_groups', c.id), ...links])
   }
