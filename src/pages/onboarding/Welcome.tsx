@@ -82,7 +82,14 @@ export function Welcome({ resumeAt, onStart, onRestart }: Props) {
                 </button>
               )}
               <button type="button" className="ob-next" onClick={onStart}>
-                {resume ? 'Продовжити створення' : 'Створити перший навчальний рік'} <ArrowRight size={14} strokeWidth={2} aria-hidden />
+                {resume ? (
+                  'Продовжити створення'
+                ) : (
+                  <>
+                    Створити <span className="wl-first">перший </span>навчальний рік
+                  </>
+                )}{' '}
+                <ArrowRight size={14} strokeWidth={2} aria-hidden />
               </button>
             </span>
           </nav>

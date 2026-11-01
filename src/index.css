@@ -5627,33 +5627,6 @@ a:not([class]):active {
   font-variant-numeric: tabular-nums;
 }
 
-@media (max-width: 760px) {
-  .ob {
-    padding: 20px 16px 24px;
-  }
-
-  .ob-block.year {
-    padding: 20px;
-  }
-
-  .ob-steps {
-    gap: 4px;
-  }
-
-  /* На телефоні підписує лише номер кроку над заголовком: назви в смужках не вміщаються. */
-  .ob-steps span {
-    display: none;
-  }
-
-  .ob-steps button {
-    gap: 0;
-  }
-
-  .ob-head h1 {
-    font-size: 30px;
-  }
-}
-
 /* ---------- Вітання ---------- */
 /* Екран зібрано з тих самих частин, що й кроки налаштування (.ob-main, .ob-head, .ob-block, .ob-nav). */
 .wl {
@@ -5742,29 +5715,6 @@ a:not([class]):active {
   text-align: center;
   font-size: 12px;
   color: var(--ink-2);
-}
-
-@media (max-width: 760px) {
-  .wl {
-    padding: 20px 16px 24px;
-  }
-
-  .wl-steps {
-    padding: 8px 20px;
-  }
-
-  .wl-steps b {
-    width: 84px;
-  }
-
-  .wl .ob-nav {
-    flex-wrap: wrap;
-  }
-
-  .wl-go {
-    flex-wrap: wrap;
-    justify-content: flex-end;
-  }
 }
 
 /* Крок «Предмети» */
@@ -6530,4 +6480,297 @@ a:not([class]):active {
 .ob-sem-dates .date-btn:disabled {
   background: #f3f3ef;
   cursor: not-allowed;
+}
+
+/* Підписи, що переносяться на два рядки лише на телефоні. */
+.ob-br {
+  display: none;
+}
+
+.wl-first {
+  display: inline;
+}
+
+/* ---------- Онбординг на телефоні ----------
+ * Степер закріплено вгорі, кнопки «Назад» і «Далі» — внизу в окремій панелі; між ними скролиться лише вміст.
+ * Усе, що не вміщується в рядок, переноситься під назву; компоненти ті самі, що на комп'ютері. */
+@media (max-width: 760px) {
+  .ob,
+  .wl {
+    padding: 0 16px calc(88px + env(safe-area-inset-bottom));
+  }
+
+  .ob-stepper {
+    position: sticky;
+    top: 0;
+    z-index: 15;
+    margin: 0 -16px;
+    max-width: none;
+    width: auto;
+    padding: calc(16px + env(safe-area-inset-top)) 16px 28px;
+    background: var(--bg);
+  }
+
+  .ob-steps {
+    gap: 4px;
+  }
+
+  /* На телефоні підписує лише номер кроку над заголовком: назви в смужках не вміщаються. */
+  .ob-steps span {
+    display: none;
+  }
+
+  .ob-steps button {
+    gap: 0;
+  }
+
+  .ob-center {
+    padding: 0;
+  }
+
+  .ob-head {
+    gap: 6px;
+  }
+
+  .ob-head h1 {
+    font-size: 26px;
+  }
+
+  .ob-head .ob-lead {
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  .ob .ob-block {
+    margin-top: 20px;
+  }
+
+  .ob .ob-block.sch {
+    margin-top: 16px;
+  }
+
+  .ob .ob-block.cls {
+    padding: 14px 16px;
+  }
+
+  /* Нижня панель: завжди на екрані. */
+  .ob-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 15;
+    margin: 0;
+    padding: 12px 16px max(16px, env(safe-area-inset-bottom));
+    background: var(--surface);
+    border-top: 1px solid var(--line);
+    box-shadow: 0 -8px 24px rgba(31, 31, 36, 0.06);
+  }
+
+  .ob-back,
+  .ob-next {
+    height: 44px;
+    font-size: 14px;
+  }
+
+  .ob-back {
+    padding: 0 16px 0 12px;
+  }
+
+  .ob-next {
+    flex: 1;
+  }
+
+  /* Крок «Семестри» і «Канікули»: назва, а під нею рядок із двома датами. */
+  .ob-sem-row {
+    flex-wrap: wrap;
+    row-gap: 10px;
+  }
+
+  .ob-sem-dates {
+    flex: 1 1 100%;
+  }
+
+  .ob-sem-dates > :not(.ob-sem-dash) {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .ob-sem-dates .date-btn,
+  .ob-sem-date {
+    width: auto;
+    flex: 1;
+  }
+
+  .ob-sem-caption {
+    margin-left: 0;
+  }
+
+  /* Крок «Класи»: без лічильника справа, літери вужчі, щоб усі 11 рядків влізли в екран. */
+  .ob-cls-row {
+    gap: 8px;
+  }
+
+  .ob-cls-grade {
+    width: 62px;
+  }
+
+  .ob-cls-letters {
+    gap: 3px;
+  }
+
+  .ob-cls-letter {
+    width: 34px;
+    height: 34px;
+  }
+
+  .ob-cls-plus {
+    width: 30px;
+    height: 34px;
+  }
+
+  .ob-cls-count {
+    display: none;
+  }
+
+  /* Крок «Предмети»: назва з кошиком у рядок, класи під ними, поля годин вирівняні по низу. */
+  .ob-sub-top {
+    flex-wrap: wrap;
+    row-gap: 12px;
+  }
+
+  .ob-sub-f.grow {
+    order: 1;
+  }
+
+  .ob-sub-del {
+    order: 2;
+  }
+
+  .ob-sub-f.cls {
+    order: 3;
+    width: 100%;
+  }
+
+  .ob-sub-hours {
+    margin-right: 0;
+    align-items: end;
+  }
+
+  .ob-sub-hours .ob-sub-f {
+    line-height: 1.25;
+  }
+
+  .ob-br {
+    display: block;
+  }
+
+  .ob-comma {
+    display: none;
+  }
+
+  /* Крок «Дзвінки». */
+  .ob-bell-row {
+    gap: 8px;
+  }
+
+  .ob-bell-row .time {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .ob-bell-row .range {
+    width: auto;
+  }
+
+  .ob-bell-row .brk,
+  .ob-bell-break {
+    width: 108px;
+  }
+
+  /* Крок «Розклад»: у колонці часу лише номер уроку, щоб клітинки не звужувалися. */
+  .ob-sch-tabs {
+    padding-left: var(--r-xl);
+  }
+
+  .ob-sch-tabs button {
+    padding: 0 16px;
+  }
+
+  .ob-sch-panel {
+    padding: 14px 12px;
+  }
+
+  .ob-sch-grid {
+    grid-template-columns: 24px repeat(5, minmax(0, 1fr));
+  }
+
+  .ob-sch-grid .slot > span {
+    display: none;
+  }
+
+  .ob-sch-cell {
+    padding: 0 4px;
+  }
+
+  /* Вітання. */
+  .wl-body {
+    align-items: flex-start;
+    justify-content: stretch;
+    padding-top: 20px;
+  }
+
+  .wl .ob-block {
+    margin-top: 16px;
+  }
+
+  .wl-steps {
+    padding: 6px 20px;
+  }
+
+  .wl-steps li {
+    gap: 12px;
+    padding: 9px 0;
+  }
+
+  .wl-steps b {
+    width: 78px;
+  }
+
+  .wl-who {
+    margin-top: 14px;
+  }
+
+  .wl-first {
+    display: none;
+  }
+
+  .wl .ob-nav {
+    flex-wrap: wrap;
+  }
+
+  .wl-go {
+    display: contents;
+  }
+
+  /* Три кнопки не вміщаються в рядок: головна на всю ширину зверху, дві другорядні під нею. */
+  .wl .ob-nav:has(.wl-ink) .ob-next {
+    order: -1;
+    flex: 1 1 100%;
+  }
+
+  .wl .ob-nav:has(.wl-ink) .ob-back {
+    flex: 1;
+  }
+
+  /* Вікна підтвердження: кнопки однакової ширини. */
+  .confirm-dialog .dialog-foot .btn {
+    flex: 1;
+    height: 44px;
+  }
+
+  /* Сповіщення стоїть над нижньою панеллю, а не під нею. */
+  .ob .saved-toast {
+    bottom: calc(88px + env(safe-area-inset-bottom));
+  }
 }

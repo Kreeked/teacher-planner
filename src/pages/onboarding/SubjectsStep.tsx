@@ -1,5 +1,5 @@
 import { ChevronDown, Plus, Trash2 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { createDoc, deleteRefs, ref, refsWhereCached, removeDoc, updateFields } from '../../data/db'
 import { Alert } from '../../components/Alert'
 import { hoursMismatch, parseHours, semesterWeeks, subjectIssue, type SubjectDraft } from '../../data/subjects'
@@ -139,7 +139,7 @@ export function SubjectsStep({ year, courses, classes, links, periods, daysOff, 
         // У полі «Годин за рік» підказка — число, що виходить за календарем (те саме, що в попередженні про розбіжність).
         const [h1, h2] = [card.h1, card.h2].map(parseHours)
         const expected = h1 === null || h2 === null ? 0 : h1 * weeks.w1 + h2 * weeks.w2
-        const hours = (field: 'h1' | 'h2' | 'year', label: string, max: number) => (
+        const hours = (field: 'h1' | 'h2' | 'year', label: ReactNode, max: number) => (
           <label className="ob-sub-f">
             {label}
             <input
@@ -222,9 +222,9 @@ export function SubjectsStep({ year, courses, classes, links, periods, daysOff, 
             </div>
 
             <div className="ob-sub-hours">
-              {hours('h1', 'І семестр, год/тиж', 2)}
-              {hours('h2', 'ІІ семестр, год/тиж', 2)}
-              {hours('year', 'Годин за рік', 3)}
+              {hours('h1', <>І семестр<span className="ob-comma">,</span><br className="ob-br" /> год/тиж</>, 2)}
+              {hours('h2', <>ІІ семестр<span className="ob-comma">,</span><br className="ob-br" /> год/тиж</>, 2)}
+              {hours('year', <>Годин<br className="ob-br" /> за рік</>, 3)}
             </div>
 
             {mismatch && <Alert kind="warn">{mismatch}</Alert>}
