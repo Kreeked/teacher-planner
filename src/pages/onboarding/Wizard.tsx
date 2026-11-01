@@ -1,5 +1,5 @@
 import { ArrowLeft, ArrowRight, Check } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 import { useAuth } from '../../auth/context'
 import { ConfirmHost } from '../../components/Confirm'
 import { SavedToast } from '../../components/Saved'
@@ -86,6 +86,8 @@ export function Wizard({ onExit, onDone }: Props) {
   const draftError = draft.title.trim() ? validateYear({ start_date: draft.start, end_date: draft.end }, [], years) : yearTitleError
   // Картки предметів можуть бути недописані: тоді «Далі» неактивна.
   const [subjectsValid, setSubjectsValid] = useState(true)
+  // Куди йде перехід між кроками: вперед (1) чи назад (-1); від цього залежить, з якого боку виринає вміст.
+  const [dir, setDir] = useState(0)
   const [bellShift, setBellShift] = useState<Shift>(1)
   const [scheduleShift, setScheduleShift] = useState<Shift>(1)
 
@@ -99,6 +101,7 @@ export function Wizard({ onExit, onDone }: Props) {
 
   function go(n: number) {
     setSubjectsValid(true)
+    setDir(n > step ? 1 : -1)
     setStep(n)
     setOnboardingStep(uid, n)
     window.scrollTo(0, 0)
@@ -162,8 +165,8 @@ export function Wizard({ onExit, onDone }: Props) {
       </div>
 
       <div className="ob-center">
-        <main className={current.id === 'schedule' ? 'ob-main wide' : 'ob-main'}>
-          <header className="ob-head">
+        <main className={current.id === 'schedule' ? 'ob-main wide' : 'ob-main'} style={{ '--step-x': `${dir * 24}px`, '--step-y': dir ? '0px' : '10px' } as CSSProperties}>
+          <header className="ob-head" key={current.id}>
             <p>
               Крок <span className="num">{step + 1}</span> з {STEPS.length}
             </p>

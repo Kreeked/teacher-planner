@@ -21,7 +21,7 @@
         display: grid;
         place-items: center;
         background: #f3f3f0;
-        transition: opacity 0.35s ease;
+        transition: opacity 0.36s cubic-bezier(0.22, 1, 0.36, 1);
       }
       #splash.hide {
         opacity: 0;
@@ -30,12 +30,20 @@
       #splash svg {
         width: 84px;
         height: 84px;
-        animation: splash-breathe 1.6s ease-in-out infinite;
+        animation:
+          splash-in 0.36s cubic-bezier(0.22, 1, 0.36, 1) backwards,
+          splash-breathe 1.8s ease-in-out 0.36s infinite;
+      }
+      @keyframes splash-in {
+        from {
+          opacity: 0;
+          transform: scale(0.92);
+        }
       }
       @keyframes splash-breathe {
         50% {
-          transform: scale(1.08);
-          opacity: 0.85;
+          transform: scale(1.05);
+          opacity: 0.9;
         }
       }
       @media (prefers-reduced-motion: reduce) {
