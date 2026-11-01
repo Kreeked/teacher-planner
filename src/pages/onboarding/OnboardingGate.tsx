@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useAuth } from '../../auth/context'
 import { useCollection } from '../../data/db'
 import { hasDraft, startDraft, stopDraft } from '../../data/draft'
@@ -16,6 +16,19 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
   const [started, setStarted] = useState(false)
   const [finished, setFinished] = useState(false)
   useEffect(() => stopDraft, [])
+  // Рік уже з'явився в базі: «finished» свою роль виконало. Інакше після видалення останнього року
+  // застосунок лишався б на порожньому екрані замість вітання.
+  if (finished && years.length > 0) setFinished(false)
+  // Видалили останній рік: після нового налаштування користувач потрапляє на стартову сторінку, а не туди, де був.
+  const hadYears = useRef(false)
+  useEffect(() => {
+    if (loading) return
+    if (years.length > 0) hadYears.current = true
+    else if (hadYears.current) {
+      hadYears.current = false
+      window.location.hash = '#/'
+    }
+  }, [loading, years.length])
 
   if (loading) return <div className="splash" aria-busy="true" />
 
