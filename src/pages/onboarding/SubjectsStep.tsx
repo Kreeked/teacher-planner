@@ -136,13 +136,16 @@ export function SubjectsStep({ year, courses, classes, links, periods, daysOff, 
           .filter((c): c is ClassGroup => !!c)
           .sort((a, b) => a.grade - b.grade || byLetter(a, b))
         const color = card.grade === null ? undefined : gradeColor(card.grade)
+        // У полі «Годин за рік» підказка — число, що виходить за календарем (те саме, що в попередженні про розбіжність).
+        const [h1, h2] = [card.h1, card.h2].map(parseHours)
+        const expected = h1 === null || h2 === null ? 0 : h1 * weeks.w1 + h2 * weeks.w2
         const hours = (field: 'h1' | 'h2' | 'year', label: string, max: number) => (
           <label className="ob-sub-f">
             {label}
             <input
               className="ob-sub-in num"
               inputMode="numeric"
-              placeholder="0"
+              placeholder={field === 'year' && expected > 0 ? String(expected) : '0'}
               maxLength={max}
               value={card[field]}
               onChange={(e) => change(card.key, { [field]: e.target.value.replace(/\D/g, '').slice(0, max) })}
