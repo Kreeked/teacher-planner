@@ -1,92 +1,91 @@
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, Check } from 'lucide-react'
 import { useEffect } from 'react'
 import { useAuth } from '../../auth/context'
 import { Logo } from '../../components/Logo'
+import { STEPS, type StepId } from '../../data/onboarding'
 import { hideSplash } from '../../lib/splash'
 
-const ICON = { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true } as const
+/** Що робиться на кроці і якого кольору його позначка (за парами кроків: календар, класи з предметами, дзвінки з розкладом). */
+const ABOUT: Record<StepId, { text: string; color: string }> = {
+  year: { text: 'назва й межі навчального року', color: 'var(--mint)' },
+  semesters: { text: 'початок і кінець кожного', color: 'var(--mint)' },
+  vacations: { text: 'осінні, зимові й весняні', color: 'var(--mint)' },
+  classes: { text: 'з ким ти працюєш', color: 'var(--butter)' },
+  subjects: { text: 'порожні КТП для кожного', color: 'var(--butter)' },
+  bells: { text: 'час уроків і перерв', color: 'var(--peri)' },
+  schedule: { text: 'класи за днями тижня', color: 'var(--peri)' },
+}
 
-const FEATURES = [
-  {
-    color: 'var(--mint)',
-    title: 'КТП',
-    text: 'Теми й уроки за семестрами. Готове планування імпортується з Word.',
-    icon: (
-      <svg {...ICON}>
-        <path d="M3 5.5C5.5 4.5 9 4.6 12 6.5c3-1.9 6.5-2 9-1v13c-2.5-1-6-.9-9 1-3-1.9-6.5-2-9-1z" />
-        <path d="M12 6.5v13" />
-      </svg>
-    ),
-  },
-  {
-    color: 'var(--butter)',
-    title: 'Розклад і «Сьогодні»',
-    text: 'Уроки дня за розкладом і датами КТП: що, у якому класі й коли.',
-    icon: (
-      <svg {...ICON}>
-        <rect x="3" y="4.5" width="18" height="16.5" rx="3" />
-        <path d="M8 2.5v4M16 2.5v4M3 10h18" />
-      </svg>
-    ),
-  },
-  {
-    color: 'var(--lilac)',
-    title: 'Матеріали до уроків',
-    text: 'Презентації, картки й файли до кожного уроку, доступні навіть без інтернету.',
-    icon: (
-      <svg {...ICON}>
-        <path d="M3 7a2 2 0 0 1 2-2h4l2 2.5h8a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-      </svg>
-    ),
-  },
-]
+type Props = {
+  /** Крок, на якому зупинився користувач; порожньо, якщо налаштування ще не починалось. */
+  resumeAt: number | null
+  onStart: () => void
+  onRestart: () => void
+}
 
-/** Перший екран порожнього акаунта: що це за застосунок і кнопка створення першого навчального року. */
-export function Welcome({ resume, onStart }: { resume: boolean; onStart: () => void }) {
-  const { signOut } = useAuth()
+/** Перший екран порожнього акаунта: що буде налаштовано і кнопка створення (або продовження) першого навчального року. */
+export function Welcome({ resumeAt, onStart, onRestart }: Props) {
+  const { user, signOut } = useAuth()
   useEffect(hideSplash, [])
+  const resume = resumeAt !== null
 
   return (
     <div className="wl">
-      <div className="wl-top">
-        <span className="logo" aria-label="Планер для вчителя" role="img">
-          <Logo />
-        </span>
-        <button type="button" className="wl-exit" onClick={() => signOut()}>
-          Вийти
-        </button>
-      </div>
-
       <div className="wl-body">
-        <main className="wl-main">
-          <header className="wl-head">
-            <p>Ласкаво просимо</p>
-            <h1>Усе для уроків в одному місці</h1>
-            <p className="wl-lead">
-              Планер збирає календарно-тематичне планування, розклад і матеріали до уроків. Працює на комп’ютері й телефоні, навіть без інтернету.
+        <main className="ob-main">
+          <header className="ob-head">
+            <span className="logo" aria-label="Планер для вчителя" role="img">
+              <Logo size={40} />
+            </span>
+            <p>{resume ? 'Налаштування не завершено' : 'Ласкаво просимо'}</p>
+            <h1>
+              {resume ? (
+                'Продовжимо створення року'
+              ) : (
+                <>
+                  Створіть перший
+                  <br />
+                  навчальний рік
+                </>
+              )}
+            </h1>
+            <p className="ob-lead">
+              {resume
+                ? `Усе введене збережено на цьому пристрої. Ти зупинився на кроці «${STEPS[Math.min(resumeAt, STEPS.length - 1)].title}».`
+                : 'Сім коротких кроків, і планер готовий до роботи. До кінця налаштування нічого не зберігається, тож можна передумати.'}
             </p>
           </header>
 
-          <ul className="wl-cards">
-            {FEATURES.map((f) => (
-              <li key={f.title}>
-                <span className="wl-tile" style={{ background: f.color }}>
-                  {f.icon}
-                </span>
-                <div>
-                  <b>{f.title}</b>
-                  <span>{f.text}</span>
-                </div>
-              </li>
-            ))}
-          </ul>
+          <section className="ob-block wl-steps" aria-label="Кроки налаштування">
+            <ul>
+              {STEPS.map((s, i) => (
+                <li key={s.id}>
+                  <span className="wl-chip" style={{ background: ABOUT[s.id].color }}>
+                    {resume && i < resumeAt ? <Check size={16} strokeWidth={2.4} aria-label="Готово" /> : i + 1}
+                  </span>
+                  <b>{s.title}</b>
+                  <span>{ABOUT[s.id].text}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
 
-          <div className="wl-start">
-            <button type="button" className="btn wl-cta" onClick={onStart}>
-              {resume ? 'Продовжити створення навчального року' : 'Створити перший навчальний рік'} <ArrowRight size={16} strokeWidth={2} />
+          <nav className="ob-nav" aria-label="Дії">
+            <button type="button" className="ob-back wl-plain" onClick={() => signOut()}>
+              Вийти
             </button>
-            <p>Налаштування року займе кілька хвилин: 6 кроків від семестрів до розкладу.</p>
-          </div>
+            <span className="wl-go">
+              {resume && (
+                <button type="button" className="ob-back wl-plain wl-ink" onClick={onRestart}>
+                  Почати з початку
+                </button>
+              )}
+              <button type="button" className="ob-next" onClick={onStart}>
+                {resume ? 'Продовжити створення' : 'Створити перший навчальний рік'} <ArrowRight size={14} strokeWidth={2} aria-hidden />
+              </button>
+            </span>
+          </nav>
+          {user?.email && <p className="wl-who">Ти увійшов як {user.email}</p>}
         </main>
       </div>
     </div>

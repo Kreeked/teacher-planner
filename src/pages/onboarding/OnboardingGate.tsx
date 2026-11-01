@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useAuth } from '../../auth/context'
 import { useCollection } from '../../data/db'
-import { hasDraft, startDraft, stopDraft } from '../../data/draft'
+import { discardDraft, hasDraft, startDraft, stopDraft } from '../../data/draft'
+import { ask } from '../../lib/confirm'
+import { clearOnboarding, getOnboardingStep } from '../../lib/onboarding'
 import { Welcome } from './Welcome'
 import { Wizard } from './Wizard'
 
@@ -47,9 +49,23 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
         }}
       />
     )
-  if ((years.length === 0 && !finished) || unfinished) return <Welcome resume={unfinished} onStart={() => {
-          startDraft(user!.uid)
-          setStarted(true)
-        }} />
+  if ((years.length === 0 && !finished) || unfinished) {
+    const begin = () => {
+      startDraft(user!.uid)
+      setStarted(true)
+    }
+    return (
+      <Welcome
+        resumeAt={unfinished ? (getOnboardingStep(user!.uid) ?? 0) : null}
+        onStart={begin}
+        onRestart={async () => {
+          if (!(await ask('Усе, що ти ввів на цьому пристрої, буде видалено.', { title: 'Почати налаштування з початку?', ok: 'Почати з початку' }))) return
+          discardDraft(user!.uid)
+          clearOnboarding(user!.uid)
+          begin()
+        }}
+      />
+    )
+  }
   return children
 }
