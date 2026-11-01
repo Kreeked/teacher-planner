@@ -800,7 +800,6 @@ function DateCell({ lesson, cls, year, schedule }: DateCellProps) {
       <span>{cls.display_name}</span>
       <DatePicker
         compact
-        clearable
         label={`Дата уроку ${lessonNo(lesson)} для ${cls.display_name}`}
         value={stored}
         min={year?.start_date}
