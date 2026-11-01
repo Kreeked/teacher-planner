@@ -1,7 +1,7 @@
 import { CalendarDays } from 'lucide-react'
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
-import { placeBelowOrAbove } from '../lib/popPlace'
+import { placeBelowOrAbove, placeX } from '../lib/popPlace'
 import { toISO } from '../data/schedule'
 import type { ISODate } from '../data/types'
 import { formatDate, shortDate } from '../data/year'
@@ -42,15 +42,15 @@ export function DatePicker({ value, onChange, label, min, max, compact, numeric,
   const pop = useRef<HTMLDivElement>(null)
   const [today] = useState(() => toISO(new Date()))
 
-  // Календар під полем, а якщо внизу мало місця — над ним; не виходить за край екрана й не накриває поле.
+  // Календар під полем (лівий край до лівого краю поля, а якщо не влазить — правий до правого), а якщо внизу мало місця — над ним; не виходить за край екрана й не накриває поле.
   useLayoutEffect(() => {
     if (!open || !button.current) return
     const r = button.current.getBoundingClientRect()
-    const { top, maxHeight } = placeBelowOrAbove(r, POP_H)
+    const y = placeBelowOrAbove(r, POP_H)
     setPos({
-      top,
-      ...(maxHeight !== undefined && { maxHeight, overflowY: 'auto' as const }),
-      left: Math.max(8, Math.min(r.left, window.innerWidth - POP_W - 8)),
+      ...y,
+      ...(y.maxHeight !== undefined && { overflowY: 'auto' as const }),
+      left: placeX(r, POP_W),
     })
   }, [open])
 
