@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Period } from './types'
-import { defaultVacations, planVacations, validateSemester, validateVacation, vacationKind, vacationsComplete, semestersComplete, winterBreak } from './vacations'
+import { defaultVacations, planVacations, validateSemester, validateVacation, vacationKind, vacationsComplete, semestersComplete, winterBreak, enteredAfter, clearedSemesterDates } from './vacations'
 
 const year = { start_date: '2026-09-01', end_date: '2027-06-30' }
 const sem1 = { title: 'І семестр', start_date: '2026-09-01', end_date: '2026-12-26' }
@@ -140,4 +140,35 @@ describe('порожні дати семестрів', () => {
 it('семестр не перетинається із сусіднім, у якого дат ще немає', () => {
   const next = { title: 'ІІ семестр', start_date: '', end_date: '2027-06-30' }
   expect(validateSemester({ start_date: '2026-09-01', end_date: '2026-12-20' }, { year, next })).toBeNull()
+})
+
+describe('enteredAfter', () => {
+  const periods = [
+    { id: 'a', parent_id: null, position: 1, start_date: '2026-09-01', end_date: '2026-12-26' },
+    { id: 'b', parent_id: null, position: 2, start_date: '2027-01-12', end_date: '2027-06-30' },
+  ]
+  const autumn = { title: 'Осінні канікули', start_date: '2026-10-26', end_date: '2026-11-01' }
+
+  it('початок першого й кінець останнього семестру беруться з року: це не введені дані', () => {
+    const blank = [
+      { ...periods[0], end_date: '' },
+      { ...periods[1], start_date: '' },
+    ]
+    expect(enteredAfter('year', blank, [])).toEqual({ semesters: false, vacations: false })
+  })
+
+  it('кінець І й початок ІІ семестру введені', () => {
+    expect(enteredAfter('year', periods, [autumn])).toEqual({ semesters: true, vacations: true })
+  })
+
+  it('зі змінами семестрів «залежними» є лише канікули', () => {
+    expect(enteredAfter('semesters', periods, [autumn])).toEqual({ semesters: false, vacations: true })
+  })
+
+  it('clearedSemesterDates лишає тільки ті дати, що беруться з року', () => {
+    expect(clearedSemesterDates(periods)).toEqual([
+      { id: 'a', start_date: '2026-09-01', end_date: '' },
+      { id: 'b', start_date: '', end_date: '2027-06-30' },
+    ])
+  })
 })

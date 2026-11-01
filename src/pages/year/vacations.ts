@@ -1,7 +1,43 @@
 import type { WriteBatch } from 'firebase/firestore'
 import { createDoc, ref, updateFields } from '../../data/db'
 import type { DayOff, Period } from '../../data/types'
-import { VACATIONS, planVacations, type VacationKind } from '../../data/vacations'
+import { VACATIONS, clearedSemesterDates, planVacations, vacationKind, type VacationKind } from '../../data/vacations'
+
+/**
+ * Дати, що залежать від попереднього кроку, скидаються: так користувач не лишає старі дати, що не пасують до нових.
+ * Початок першого й кінець останнього семестру не скидаються (їх виставляє рік), зимові канікули перераховуються самі.
+ * Повертає семестри й канікули вже без цих дат.
+ */
+export function resetEntered<P extends Pick<Period, 'id' | 'parent_id' | 'position' | 'start_date' | 'end_date'>>(
+  step: 'year' | 'semesters',
+  periods: P[],
+  daysOff: DayOff[],
+  batch: WriteBatch,
+): { periods: P[]; daysOff: DayOff[] } {
+  let nextPeriods = periods
+  if (step === 'year') {
+    const kept = clearedSemesterDates(periods)
+    nextPeriods = periods.map((p) => {
+      const k = kept.find((x) => x.id === p.id)
+      if (!k || (k.start_date === p.start_date && k.end_date === p.end_date)) return p
+      updateFields('periods', p.id, { start_date: k.start_date, end_date: k.end_date }, batch)
+      return { ...p, start_date: k.start_date, end_date: k.end_date }
+    })
+  }
+  const nextDaysOff = daysOff.map((d) => {
+    if (!vacationKind(d.title) || vacationKind(d.title) === 'winter' || (!d.start_date && !d.end_date)) return d
+    updateFields('days_off', d.id, { start_date: '', end_date: '' }, batch)
+    return { ...d, start_date: '', end_date: '' }
+  })
+  return { periods: nextPeriods, daysOff: nextDaysOff }
+}
+
+/** Текст вікна: що буде видалено на наступних кроках і що перерахується саме. */
+export function resetText(step: 'year' | 'semesters', entered: { semesters: boolean; vacations: boolean }): string {
+  const lost = [entered.semesters && 'на кроці «Семестри»', entered.vacations && 'на кроці «Канікули»'].filter(Boolean).join(' і ')
+  const auto = step === 'year' ? 'Початок першого й кінець останнього семестру, а також зимові канікули перерахуються автоматично.' : 'Зимові канікули перерахуються автоматично.'
+  return `Дати ${lost}, які ти вже вказав, буде видалено, і їх треба буде вказати знову. ${auto}`
+}
 
 const KINDS: VacationKind[] = ['autumn', 'winter', 'spring']
 

@@ -7,7 +7,8 @@ import type { AcademicYear, DayOff, ISODate, Period } from '../../data/types'
 import { VACATIONS, shiftDay, validateSemester, validateVacation, winterBreak, type VacationKind } from '../../data/vacations'
 import { formatDate, sortPeriods } from '../../data/year'
 import { notifySaved } from '../../lib/saved'
-import { syncVacations } from '../year/vacations'
+import { syncVacations, resetEntered } from '../year/vacations'
+import { confirmReset } from './confirmReset'
 
 /** Поле дати, яку змінити не можна: вона береться з іншого місця. */
 function LockedDate({ value, label }: { value: ISODate | null; label: string }) {
@@ -48,11 +49,14 @@ function SemesterCard({ n, period, periods, daysOff, year, prev, next, caption, 
     value: { title: period.title, start_date: period.start_date, end_date: period.end_date },
     validate: (v) => validateSemester(v, { year, prev, next }),
     allowEmpty: true,
+    confirm: () => confirmReset('semesters', periods, daysOff),
     onSave: (v) => {
       const batch = newBatch()
       updateFields('periods', period.id, v, batch)
-      // Зимові канікули стоять між семестрами, тож рухаються разом із їхніми датами.
-      syncVacations(year.id, periods.map((x) => (x.id === period.id ? { ...x, ...v } : x)), daysOff, batch, false)
+      // Змінились дати семестру: введені канікули скидаються, зимові рухаються разом із семестрами.
+      const moved = v.start_date !== period.start_date || v.end_date !== period.end_date
+      const base = moved ? resetEntered('semesters', periods, daysOff, batch).daysOff : daysOff
+      syncVacations(year.id, periods.map((x) => (x.id === period.id ? { ...x, ...v } : x)), base, batch, false)
       commit(batch)
       notifySaved()
     },
