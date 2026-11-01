@@ -40,6 +40,7 @@ function ExistingYear({ year, periods, daysOff, others }: { year: AcademicYear; 
     value: { title: year.title, start_date: year.start_date, end_date: year.end_date },
     // Семестри перевіряються на своєму кроці й залежать від дат року, тож тут їх не чіпаємо, а підганяємо.
     validate: (v) => (v.title.trim() ? validateYear(v, [], others) : yearTitleError),
+    allowEmpty: true,
     onSave: (v) => {
       const batch = newBatch()
       updateFields('academic_years', year.id, v, batch)
@@ -92,7 +93,7 @@ export function Wizard({ onExit, onDone }: Props) {
 
   const current = STEPS[step]
   const last = step === STEPS.length - 1
-  const ready = year ? canProceed(current.id, counts) && (current.id !== 'subjects' || subjectsValid) && (current.id !== 'semesters' || semestersComplete(data.periods)) && (current.id !== 'vacations' || vacationsComplete(data.periods, data.daysOff)) && (current.id !== 'schedule' || scheduleComplete(data)) : !draftError
+  const ready = year ? canProceed(current.id, counts) && (current.id !== 'subjects' || subjectsValid) && (current.id !== 'year' || (!!year.title.trim() && !!year.start_date && !!year.end_date)) && (current.id !== 'semesters' || semestersComplete(data.periods)) && (current.id !== 'vacations' || vacationsComplete(data.periods, data.daysOff)) && (current.id !== 'schedule' || scheduleComplete(data)) : !draftError
 
   function go(n: number) {
     setSubjectsValid(true)

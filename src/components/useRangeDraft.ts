@@ -7,13 +7,15 @@ export type Options = {
   value: RangeValue
   validate: (v: RangeValue) => string | null
   onSave: (v: RangeValue) => void
+  /** Очищену дату теж зберігаємо (замість мовчки лишати стару): поле порожнє, а помилку показує `validate`. */
+  allowEmpty?: boolean
 }
 
 /**
  * Чернетка «назва + початок + кінець». Зберігає лише коректні значення:
  * поки є помилка, показує її і не записує (жорсткі правила з розділу 4).
  */
-export function useRangeDraft({ value, validate, onSave }: Options) {
+export function useRangeDraft({ value, validate, onSave, allowEmpty }: Options) {
   const [draft, setDraft] = useState(value)
   const [seen, setSeen] = useState(value)
   const [touched, setTouched] = useState(false)
@@ -27,7 +29,8 @@ export function useRangeDraft({ value, validate, onSave }: Options) {
     const next = { ...draft, ...patch }
     setDraft(next)
     if (Object.keys(patch).length) setTouched(true)
-    if (save && !validate(next) && next.title.trim()) onSave({ ...next, title: next.title.trim() })
+    const cleared = !!allowEmpty && (!next.start_date || !next.end_date || !next.title.trim())
+    if (save && (cleared || (!validate(next) && next.title.trim()))) onSave({ ...next, title: next.title.trim() })
   }
 
   return {

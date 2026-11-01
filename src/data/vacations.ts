@@ -61,6 +61,8 @@ export function defaultVacations(startYear: number): Record<'autumn' | 'spring',
 
 /** Діапазон, затиснутий у межі семестру; якщо повністю поза ними, лишається один день на краю. */
 function fit(r: Range, sem: Range): Range {
+  // Очищена дата лишається очищеною: її не підставляємо з меж семестру.
+  if (!r.start_date || !r.end_date) return r
   const start = r.start_date < sem.start_date ? sem.start_date : r.start_date
   const end = r.end_date > sem.end_date ? sem.end_date : r.end_date
   return start > end ? { start_date: end, end_date: end } : { start_date: start, end_date: end }

@@ -47,6 +47,7 @@ function SemesterCard({ n, period, periods, daysOff, year, prev, next, caption, 
   const r = useRangeDraft({
     value: { title: period.title, start_date: period.start_date, end_date: period.end_date },
     validate: (v) => validateSemester(v, { year, prev, next }),
+    allowEmpty: true,
     onSave: (v) => {
       const batch = newBatch()
       updateFields('periods', period.id, v, batch)
@@ -93,6 +94,7 @@ function VacationCard({ kind, doc, fallback, year, semester, others }: VacationP
   const r = useRangeDraft({
     value: { title, start_date: doc?.start_date ?? fallback.start_date, end_date: doc?.end_date ?? fallback.end_date },
     validate: (v) => validateVacation(v, semester, others),
+    allowEmpty: true,
     onSave: (v) => {
       if (doc) updateFields('days_off', doc.id, { start_date: v.start_date, end_date: v.end_date })
       else createDoc('days_off', { academic_year_id: year.id, title, start_date: v.start_date, end_date: v.end_date })
