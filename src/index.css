@@ -4342,6 +4342,24 @@ a.stat,
 .add-topic,
 .yp-break button,
 .yp-cell,
+.ob-cls-letter,
+.ob-cls-plus,
+.ob-sub-chip,
+.ob-sub-del,
+.ob-sub-add,
+.ob-bell-shifts button:not(.on),
+.ob-bell-typical,
+.ob-bell-del,
+.ob-bell-break button,
+.ob-sch-tabs button:not(.on),
+.ob-sch-del,
+.ob-sch-cell.filled,
+.ob-back,
+.ob-sub-dd,
+.ob-input,
+.ob-sub-in,
+.ob-bell-time,
+.ob-sch-cell,
 .btn:not(.ghost):not(.danger-fill),
 .chip.on,
 .yp-year.on,
@@ -4350,6 +4368,9 @@ a.stat,
 .shelf:not(.add),
 .icon-btn.keep.on,
 .time-opt.sel,
+.ob-next,
+.login-btn,
+.ob-bell-shifts button.on,
 .btn.danger-fill {
   transition:
     box-shadow var(--dur-fast) var(--ease-out),
@@ -4382,7 +4403,19 @@ a.stat,
   .time-opt:not(.sel):not(:disabled):hover,
   .add-topic:not(:disabled):hover,
   .yp-break button:not(:disabled):hover,
-  .yp-cell:not(:disabled):hover {
+  .yp-cell:not(:disabled):hover,
+  .ob-cls-letter:not(:disabled):hover,
+  .ob-cls-plus:not(:disabled):hover,
+  .ob-sub-chip:not(:disabled):hover,
+  .ob-sub-del:not(:disabled):hover,
+  .ob-sub-add:not(:disabled):hover,
+  .ob-bell-shifts button:not(.on):not(:disabled):hover,
+  .ob-bell-typical:not(:disabled):hover,
+  .ob-bell-del:not(:disabled):hover,
+  .ob-bell-break button:not(:disabled):hover,
+  .ob-sch-tabs button:not(.on):not(:disabled):hover,
+  .ob-sch-del:not(:disabled):hover,
+  .ob-sch-cell.filled:not(:disabled):hover {
     box-shadow: var(--st-hover);
   }
 
@@ -4393,7 +4426,10 @@ a.stat,
   .d.sel:not(:disabled):hover,
   .shelf:not(.add):not(:disabled):hover,
   .icon-btn.keep.on:not(:disabled):hover,
-  .time-opt.sel:not(:disabled):hover {
+  .time-opt.sel:not(:disabled):hover,
+  .ob-next:not(:disabled):hover,
+  .login-btn:not(:disabled):hover,
+  .ob-bell-shifts button.on:not(:disabled):hover {
     box-shadow: var(--st-hover-dark);
   }
 
@@ -4401,12 +4437,28 @@ a.stat,
     box-shadow: var(--st-hover-red);
   }
 
+  .ob-back:not(:disabled):hover {
+    box-shadow:
+      var(--st-hover),
+      0 4px 12px rgba(31, 31, 36, 0.06);
+  }
+
+  .ob-steps li.done button:hover i {
+    box-shadow: var(--st-hover);
+  }
+
   .field:not(:focus):not(:disabled):hover,
+  .ob-input:not(:focus):not(:disabled):hover,
+  .ob-sub-in:not(:focus):not(:disabled):hover,
+  .ob-sub-dd:not(:focus):not(:disabled):hover,
+  .ob-bell-time:not(:focus):not(:disabled):hover,
+  .ob-sch-cell:not(.filled):not(:focus):not(:disabled):hover,
   .date-btn.field:not([aria-expanded='true']):hover {
     border-color: var(--line-hover);
   }
 
-  .add-topic:hover {
+  .add-topic:hover,
+  .ob-sub-add:not(:disabled):hover {
     border-color: var(--ink);
     color: var(--ink);
   }
@@ -4433,7 +4485,19 @@ a.stat:not(:disabled):active,
 .time-opt:not(.sel):not(:disabled):active,
 .add-topic:not(:disabled):active,
 .yp-break button:not(:disabled):active,
-.yp-cell:not(:disabled):active {
+.yp-cell:not(:disabled):active,
+.ob-cls-letter:not(:disabled):active,
+.ob-cls-plus:not(:disabled):active,
+.ob-sub-chip:not(:disabled):active,
+.ob-sub-del:not(:disabled):active,
+.ob-sub-add:not(:disabled):active,
+.ob-bell-shifts button:not(.on):not(:disabled):active,
+.ob-bell-typical:not(:disabled):active,
+.ob-bell-del:not(:disabled):active,
+.ob-bell-break button:not(:disabled):active,
+.ob-sch-tabs button:not(.on):not(:disabled):active,
+.ob-sch-del:not(:disabled):active,
+.ob-sch-cell.filled:not(:disabled):active {
   box-shadow: var(--st-press);
 }
 
@@ -4444,12 +4508,25 @@ a.stat:not(:disabled):active,
 .d.sel:not(:disabled):active,
 .shelf:not(.add):not(:disabled):active,
 .icon-btn.keep.on:not(:disabled):active,
-.time-opt.sel:not(:disabled):active {
+.time-opt.sel:not(:disabled):active,
+.ob-next:not(:disabled):active,
+.login-btn:not(:disabled):active,
+.ob-bell-shifts button.on:not(:disabled):active {
   box-shadow: var(--st-press-dark);
 }
 
 .btn.danger-fill:not(:disabled):active {
   box-shadow: var(--st-press-red);
+}
+
+.ob-back:not(:disabled):active {
+  box-shadow:
+    var(--st-press),
+    0 4px 12px rgba(31, 31, 36, 0.06);
+}
+
+.ob-steps li.done button:active i {
+  box-shadow: var(--st-press);
 }
 
 .btn:not(:disabled):active,
@@ -4460,12 +4537,24 @@ a.stat:not(:disabled):active,
 .tb:not(:disabled):active,
 .nav-btn:not(:disabled):active,
 .icon-btn:not(:disabled):active,
-.chip-x:not(:disabled):active {
+.chip-x:not(:disabled):active,
+.ob-back:not(:disabled):active,
+.ob-next:not(:disabled):active,
+.login-btn:not(:disabled):active,
+.ob-cls-letter:not(:disabled):active,
+.ob-sub-chip:not(:disabled):active,
+.ob-bell-shifts button:not(:disabled):active,
+.ob-bell-typical:not(:disabled):active,
+.ob-sch-del:not(:disabled):active {
   transform: scale(0.97);
 }
 
 .icon-btn:not(:disabled):active,
-.chip-x:not(:disabled):active {
+.chip-x:not(:disabled):active,
+.ob-cls-plus:not(:disabled):active,
+.ob-sub-del:not(:disabled):active,
+.ob-bell-del:not(:disabled):active,
+.ob-bell-break button:not(:disabled):active {
   transform: scale(0.9);
 }
 
@@ -4587,6 +4676,94 @@ a:not([class]):active {
 
 :is(.course-card, .day-card, .panel):nth-child(n + 5) {
   animation-delay: 160ms;
+}
+
+/* Вхід і початкове налаштування: ті самі рухи, що й в основному застосунку, без власних тривалостей.
+   Екран проявляється, його частини виринають по черзі; між кроками рух іде в бік переходу (вперед — справа,
+   назад — зліва), як у навігації iOS, лише на малу відстань і з прозорістю, щоб не відволікати. */
+@keyframes step-in {
+  from {
+    opacity: 0;
+    transform: translate(var(--step-x, 0), var(--step-y, 10px));
+  }
+}
+
+.ob,
+.wl {
+  animation: fade-in var(--dur-slow) var(--ease-out);
+}
+
+.ob-head,
+.ob-body,
+.wl .ob-nav,
+.wl-who {
+  animation: step-in var(--dur-slow) var(--ease-out) backwards;
+}
+
+.ob-body,
+.wl .ob-nav {
+  animation-delay: 40ms;
+}
+
+.wl-who {
+  animation-delay: 80ms;
+}
+
+.wl .ob-block {
+  animation: fade-in var(--dur-slow) var(--ease-out) 40ms backwards;
+}
+
+.wl-steps li {
+  animation: rise-in var(--dur-slow) var(--ease-out) backwards;
+  animation-delay: calc(60ms + var(--i, 0) * 30ms);
+}
+
+.ob-sub,
+.alert {
+  animation: rise-in var(--dur) var(--ease-out);
+}
+
+.ob-sub-pop {
+  transform-origin: top right;
+  animation: pop-in var(--dur) var(--ease-out);
+}
+
+.login-art {
+  animation: fade-in var(--dur-slow) var(--ease-out);
+}
+
+.login-main > *,
+.login-lesson,
+.login-chips {
+  animation: rise-in var(--dur-slow) var(--ease-out) backwards;
+}
+
+.login-copy {
+  animation-delay: 40ms;
+}
+
+.login-note {
+  animation-delay: 80ms;
+}
+
+.login-today {
+  animation: dialog-in var(--dur-slow) var(--ease-out) 60ms backwards;
+}
+
+.login-lesson:nth-child(2) {
+  animation-delay: 140ms;
+}
+
+.login-lesson:nth-child(3) {
+  animation-delay: 180ms;
+}
+
+.login-lesson:nth-child(4) {
+  animation-delay: 220ms;
+}
+
+.login-chips {
+  animation-delay: 260ms;
 }
 
 /* Календар: тиждень і місяць — одна сітка; рядок тижня виглядає з-під обрізки, а місяць розгортає висоту.
@@ -4971,7 +5148,6 @@ a:not([class]):active {
   display: flex;
   flex-direction: column;
   padding: 28px 32px 32px;
-  animation: fade-in 0.4s ease-out;
 }
 
 /* Степер закріплено вгорі екрана, окремо від решти вмісту. */
@@ -5131,6 +5307,7 @@ a:not([class]):active {
 
 .ob-steps button {
   width: 100%;
+  transition: color var(--dur) var(--ease-out);
   border: 0;
   background: none;
   padding: 0;
@@ -5152,6 +5329,9 @@ a:not([class]):active {
   height: 4px;
   border-radius: 999px;
   background: var(--line);
+  transition:
+    background-color var(--dur) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
 }
 
 .ob-steps li.done i,
@@ -5209,6 +5389,10 @@ a:not([class]):active {
   border: 0;
   background: var(--ink);
   color: #fff;
+}
+
+.ob-next {
+  transition: opacity var(--dur) var(--ease-out);
 }
 
 .ob-next:disabled {
@@ -5477,7 +5661,6 @@ a:not([class]):active {
   display: flex;
   flex-direction: column;
   padding: 28px 32px 32px;
-  animation: fade-in 0.4s ease-out;
 }
 
 .wl-body {
@@ -6238,10 +6421,6 @@ a:not([class]):active {
   cursor: pointer;
 }
 
-.ob-sch-del:hover {
-  background: var(--bg);
-  color: var(--ink);
-}
 
 .ob-sch-empty {
   box-sizing: border-box;

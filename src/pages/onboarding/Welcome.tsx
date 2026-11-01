@@ -1,5 +1,5 @@
 import { ArrowRight, Check } from 'lucide-react'
-import { useEffect } from 'react'
+import { useEffect, type CSSProperties } from 'react'
 import { useAuth } from '../../auth/context'
 import { ConfirmHost } from '../../components/Confirm'
 import { Logo } from '../../components/Logo'
@@ -60,7 +60,7 @@ export function Welcome({ resumeAt, onStart, onRestart }: Props) {
           <section className="ob-block wl-steps" aria-label="Кроки налаштування">
             <ul>
               {STEPS.map((s, i) => (
-                <li key={s.id}>
+                <li key={s.id} style={{ '--i': i } as CSSProperties}>
                   <span className="wl-chip" style={{ background: ABOUT[s.id].color }}>
                     {resume && i < resumeAt ? <Check size={16} strokeWidth={2.4} aria-label="Готово" /> : i + 1}
                   </span>
