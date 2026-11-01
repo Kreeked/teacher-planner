@@ -1,6 +1,7 @@
 import { ArrowRight, Check } from 'lucide-react'
 import { useEffect } from 'react'
 import { useAuth } from '../../auth/context'
+import { ConfirmHost } from '../../components/Confirm'
 import { Logo } from '../../components/Logo'
 import { STEPS, type StepId } from '../../data/onboarding'
 import { hideSplash } from '../../lib/splash'
@@ -88,6 +89,7 @@ export function Welcome({ resumeAt, onStart, onRestart }: Props) {
           {user?.email && <p className="wl-who">Ти увійшов як {user.email}</p>}
         </main>
       </div>
+      <ConfirmHost />
     </div>
   )
 }
