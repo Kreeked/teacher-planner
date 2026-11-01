@@ -25,7 +25,12 @@ type Props = {
   collapsible?: boolean
   // Якщо задано — у шапці з'являється кнопка «Сьогодні».
   onToday?: () => void
+  // Назва місяця стає кнопкою: вона відкриває швидкий вибір місяця й року.
+  pickMonth?: boolean
 }
+
+const MONTHS = ['Січ', 'Лют', 'Бер', 'Кві', 'Тра', 'Чер', 'Лип', 'Сер', 'Вер', 'Жов', 'Лис', 'Гру']
+const YEARS = 12
 
 function monthOf(d: ISODate) {
   return d.slice(0, 7)
@@ -66,10 +71,15 @@ function buildPane(anchor: ISODate, weekMode: boolean): Pane {
   return { key: weekMode ? monday : month, month, days, row }
 }
 
-export function MonthCalendar({ today, selected, onSelect, marked, min, max, collapsible, onToday }: Props) {
+export function MonthCalendar({ today, selected, onSelect, marked, min, max, collapsible, onToday, pickMonth }: Props) {
   // День, чий місяць (або тиждень) зараз показано.
   const [anchor, setAnchor] = useState<ISODate>(selected || today)
   const [open, setOpen] = useState(false)
+  // Швидкий вибір: сітка місяців року `pickYear` чи сітка років, що починається з `pickYear`.
+  const [picking, setPicking] = useState<'' | 'months' | 'years'>('')
+  const [pickYear, setPickYear] = useState(0)
+  const [bodyH, setBodyH] = useState(0)
+  const body = useRef<HTMLDivElement>(null)
   const narrow = useNarrow()
   const toggle = !!collapsible && narrow
   const weekMode = toggle && !open
@@ -95,7 +105,9 @@ export function MonthCalendar({ today, selected, onSelect, marked, min, max, col
     .format(weekMode ? asDate(addDays(mondayOf(neighbour(leaving)), 3)) : new Date(y, m - 1, 1))
     .replace(' р.', '')
   title = title[0].toUpperCase() + title.slice(1)
-  const unit = weekMode ? 'тиждень' : 'місяць'
+  const unit = picking === 'years' ? 'період років' : picking ? 'рік' : weekMode ? 'тиждень' : 'місяць'
+  if (picking === 'months') title = String(pickYear)
+  if (picking === 'years') title = `${pickYear}–${pickYear + YEARS - 1}`
 
   function shiftBy(n: number) {
     setAnchor(neighbour(n))
@@ -165,8 +177,35 @@ export function MonthCalendar({ today, selected, onSelect, marked, min, max, col
   }
 
   function go(n: -1 | 1) {
+    if (picking) return setPickYear(pickYear + n * (picking === 'years' ? YEARS : 1))
     if (busy.current) return
     settle(n)
+  }
+
+  function startPicking() {
+    if (picking) return setPicking('')
+    if (busy.current) return
+    // Сітка місяців займає стільки ж місця, що й дні: календар не стрибає.
+    setBodyH(body.current?.offsetHeight ?? 0)
+    setPickYear(Number(monthOf(anchor).slice(0, 4)))
+    setPicking('months')
+  }
+
+  function pickYearStart() {
+    setPicking('years')
+    setPickYear(pickYear - (pickYear % YEARS))
+  }
+
+  function chooseMonth(month: number) {
+    setAnchor(`${pickYear}-${String(month + 1).padStart(2, '0')}-01`)
+    setPicking('')
+  }
+
+  /** Місяць `month` року `year` повністю поза межами вибору. */
+  function monthOff(year: number, month: number) {
+    const first = `${year}-${String(month + 1).padStart(2, '0')}-01`
+    const last = toISO(new Date(year, month + 1, 0))
+    return !!((min && last < min) || (max && first > max))
   }
 
   // Горизонтальне перетягування сітки гортає тиждень або місяць за пальцем.
@@ -313,9 +352,17 @@ export function MonthCalendar({ today, selected, onSelect, marked, min, max, col
     <div className={`${toggle ? 'cal big' : 'cal'}${expanded ? ' open' : ''}${morph ? ' morph' : ''}`}>
       <div className="cal-head">
         <h3 key={title} className="cal-title">
-          {title}
+          {pickMonth ? (
+            <button type="button" className="cal-title-btn" aria-expanded={!!picking} aria-label={`${title}: обрати місяць і рік`} onClick={picking === 'months' ? pickYearStart : startPicking}>
+              {title}
+              <ChevronDown size={14} strokeWidth={2.4} aria-hidden />
+            </button>
+          ) : (
+            title
+          )}
         </h3>
         {onToday &&
+          !picking &&
           !(
             selected === today &&
             (weekMode ? current.days.slice(current.row * 7, current.row * 7 + 7) : current.days).some(
@@ -333,6 +380,37 @@ export function MonthCalendar({ today, selected, onSelect, marked, min, max, col
           <ChevronRight size={16} />
         </button>
       </div>
+      {picking ? (
+        <div className="cal-pick" style={{ height: bodyH || undefined }}>
+          {picking === 'months'
+            ? MONTHS.map((name, i) => (
+                <button
+                  key={name}
+                  type="button"
+                  className={`cal-cell${monthOf(anchor) === `${pickYear}-${String(i + 1).padStart(2, '0')}` ? ' sel' : ''}`}
+                  disabled={monthOff(pickYear, i)}
+                  onClick={() => chooseMonth(i)}
+                >
+                  {name}
+                </button>
+              ))
+            : Array.from({ length: YEARS }, (_, i) => pickYear + i).map((y) => (
+                <button
+                  key={y}
+                  type="button"
+                  className={`cal-cell${Number(monthOf(anchor).slice(0, 4)) === y ? ' sel' : ''}`}
+                  disabled={!!((min && `${y}-12-31` < min) || (max && `${y}-01-01` > max))}
+                  onClick={() => {
+                    setPickYear(y)
+                    setPicking('months')
+                  }}
+                >
+                  {y}
+                </button>
+              ))}
+        </div>
+      ) : null}
+      <div ref={body} hidden={!!picking}>
       <div className="grid7 dow-row">
         {DOW.map((d) => (
           <span key={d} className="dow">
@@ -380,6 +458,7 @@ export function MonthCalendar({ today, selected, onSelect, marked, min, max, col
             </div>
           ))}
         </div>
+      </div>
       </div>
       {toggle && (
         <button type="button" className="fold-toggle" aria-expanded={open} onClick={toggleOpen}>

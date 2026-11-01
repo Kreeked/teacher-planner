@@ -25,7 +25,6 @@ type Props = {
   numeric?: boolean
   // Значок календаря після дати (разом із `numeric`).
   trailingIcon?: boolean
-  clearable?: boolean
   placeholder?: string
   className?: string
   disabled?: boolean
@@ -35,7 +34,7 @@ const POP_W = 272
 const POP_H = 330
 
 /** Поле дати з календарем у стилі застосунку замість системного вікна браузера. */
-export function DatePicker({ value, onChange, label, min, max, compact, numeric, trailingIcon, clearable, placeholder, className, disabled }: Props) {
+export function DatePicker({ value, onChange, label, min, max, compact, numeric, trailingIcon, placeholder, className, disabled }: Props) {
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState<CSSProperties>({})
   const button = useRef<HTMLButtonElement>(null)
@@ -112,7 +111,7 @@ export function DatePicker({ value, onChange, label, min, max, compact, numeric,
       {open &&
         createPortal(
           <div ref={pop} className="date-pop" role="dialog" aria-label={label} style={pos}>
-            <MonthCalendar today={today} selected={value ?? ''} onSelect={pick} min={min} max={max} />
+            <MonthCalendar today={today} selected={value ?? ''} onSelect={pick} min={min} max={max} pickMonth />
             <div className="date-pop-foot">
               {todayAllowed && (
                 <button type="button" className="link-btn" onClick={() => pick(today)}>
@@ -120,7 +119,7 @@ export function DatePicker({ value, onChange, label, min, max, compact, numeric,
                 </button>
               )}
               <span className="grow" />
-              {clearable && value && (
+              {value && (
                 <button type="button" className="link-btn" onClick={() => pick(null)}>
                   Очистити
                 </button>

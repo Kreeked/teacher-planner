@@ -4385,6 +4385,57 @@ a:not([class]):active {
   gap: 0;
 }
 
+/* Швидкий вибір місяця й року замість сітки днів (`pickMonth`). */
+.cal-title-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: -3px -8px;
+  padding: 3px 8px;
+  border: 0;
+  border-radius: var(--r-sm, 8px);
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.cal-title-btn:hover {
+  background: rgba(31, 31, 36, 0.06);
+}
+
+.cal-pick {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(4, 1fr);
+  gap: 6px;
+  min-height: 150px;
+}
+
+.cal-cell {
+  border: 0;
+  border-radius: var(--r-md, 12px);
+  background: none;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cal-cell:hover:not(:disabled):not(.sel) {
+  background: rgba(31, 31, 36, 0.06);
+}
+
+.cal-cell.sel {
+  background: var(--ink);
+  color: #fff;
+}
+
+.cal-cell:disabled {
+  color: #d4d4da;
+  cursor: default;
+}
+
 .cal-title {
   animation: fade-in var(--dur-slow) var(--ease-out);
 }
