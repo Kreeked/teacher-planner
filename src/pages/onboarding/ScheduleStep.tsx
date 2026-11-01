@@ -1,5 +1,6 @@
-import { Plus, Trash2, TriangleAlert, X } from 'lucide-react'
+import { Plus, Trash2, X } from 'lucide-react'
 import { useState } from 'react'
+import { Alert } from '../../components/Alert'
 import { Menu } from '../../components/Menu'
 import { commit, createDoc, newBatch, ref, removeDoc, updateFields } from '../../data/db'
 import { WORKDAYS as DAYS } from '../../data/schedule'
@@ -81,8 +82,8 @@ export function ScheduleStep({ year, periods, bells, timetables, entries, course
 
   async function removeTimetable() {
     if (!tt) return
-    const text = `Видалити розклад для ${genitive(sem.title)}? Усі його клітинки (${own.length}) зникнуть.`
-    if (own.length && !(await ask(text, { title: 'Видалити розклад семестру', ok: 'Видалити' }))) return
+    const text = `Усі клітинки розкладу (${own.length}) буде видалено.`
+    if (own.length && !(await ask(text, { title: `Видалити розклад ${genitive(sem.title)}?` }))) return
     const batch = newBatch()
     for (const e of own) batch.delete(ref('timetable_entries', e.id))
     batch.delete(ref('timetables', tt.id))
@@ -145,7 +146,7 @@ export function ScheduleStep({ year, periods, bells, timetables, entries, course
       ) : (
         <>
           {rows.length === 0 ? (
-            <p className="ob-bell-empty">Додай уроки в «Дзвінках» цієї зміни: тоді їх можна буде поставити в розклад.</p>
+            <Alert kind="hint">Додай уроки в «Дзвінках» цієї зміни: тоді їх можна буде поставити в розклад.</Alert>
           ) : (
             <div className="ob-sch-grid">
               <span />
@@ -206,10 +207,9 @@ export function ScheduleStep({ year, periods, bells, timetables, entries, course
           )}
 
           {unplaced.length > 0 && (
-            <p className="ob-sub-warn">
-              <TriangleAlert size={16} strokeWidth={2} aria-hidden />
+            <Alert kind="warn">
               Не розставлено {classesWord(unplaced.length)}: {unplaced.map((c) => c.display_name).join(', ')}
-            </p>
+            </Alert>
           )}
         </>
       )}

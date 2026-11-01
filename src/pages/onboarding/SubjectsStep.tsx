@@ -1,6 +1,7 @@
-import { ChevronDown, Plus, Trash2, TriangleAlert } from 'lucide-react'
+import { ChevronDown, Plus, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { createDoc, deleteRefs, ref, refsWhereCached, removeDoc, updateFields } from '../../data/db'
+import { Alert } from '../../components/Alert'
 import { hoursMismatch, parseHours, semesterWeeks, subjectIssue, type SubjectDraft } from '../../data/subjects'
 import type { AcademicYear, ClassGroup, Course, CourseClass, DayOff, Period } from '../../data/types'
 import { gradeColor } from '../../data/year'
@@ -116,7 +117,7 @@ export function SubjectsStep({ year, courses, classes, links, periods, daysOff, 
       // Разом із предметом зникають його КТП, дати уроків і клітинки розкладу.
       const names = ['topics', 'lessons', 'lesson_schedules', 'lesson_materials', 'timetable_entries'] as const
       const rest = (await Promise.all(names.map((n) => refsWhereCached(n, 'course_id', card.courseId!)))).flat()
-      if (rest.length && !(await ask(`Видалити предмет «${card.subject}» разом з його КТП і клітинками розкладу?`))) return
+      if (rest.length && !(await ask('Разом із предметом буде видалено його КТП і клітинки розкладу.', { title: `Видалити предмет «${card.subject}»?` }))) return
       const own = await refsWhereCached('course_classes', 'course_id', card.courseId)
       deleteRefs([ref('courses', card.courseId), ...own, ...rest])
     }
@@ -129,7 +130,6 @@ export function SubjectsStep({ year, courses, classes, links, periods, daysOff, 
     <>
       {cards.map((card) => {
         const others = cards.filter((o) => o !== card)
-        const issue = subjectIssue(card)
         const mismatch = hoursMismatch(card, weeks)
         const picked = card.classIds
           .map((id) => classes.find((c) => c.id === id))
@@ -227,13 +227,7 @@ export function SubjectsStep({ year, courses, classes, links, periods, daysOff, 
               {hours('year', 'Годин за рік', 3)}
             </div>
 
-            {issue === 'zero' && <p className="field-error ob-sub-err">Вкажи, скільки годин за рік</p>}
-            {mismatch && (
-              <p className="ob-sub-warn">
-                <TriangleAlert size={16} strokeWidth={2} aria-hidden />
-                {mismatch}
-              </p>
-            )}
+            {mismatch && <Alert kind="warn">{mismatch}</Alert>}
           </div>
         )
       })}

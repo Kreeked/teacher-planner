@@ -56,6 +56,12 @@ export function classesWord(n: number): string {
   return `${n} ${last === 1 && !teen ? 'клас' : last >= 2 && last <= 4 && !teen ? 'класи' : 'класів'}`
 }
 
+/** Родовий відмінок для «без …»: «1 класа», «2 класів», «21 класа». */
+export function classesGenitive(n: number): string {
+  const teen = n % 100 >= 11 && n % 100 <= 14
+  return `${n} ${n % 10 === 1 && !teen ? 'класа' : 'класів'}`
+}
+
 /** Чи можна з цього кроку йти далі. */
 export function canProceed(id: StepId, c: Counts): boolean {
   switch (id) {

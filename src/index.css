@@ -6,7 +6,7 @@
   --ink: #1f1f24;
   --ink-2: #6b6b76;
   --line: #e6e6e1;
-  --danger: #f26b5b;
+  --danger: #c62d1f;
 
   /* Колір картки = паралель. */
   --mint: #d3e6e0;
@@ -5603,28 +5603,48 @@ a:not([class]):active {
   margin-right: 46px;
 }
 
-.ob-sub-err {
-  margin: 0;
-}
-
-/* Попередження, не помилка: темний бурштин на світлому тлі, контраст понад 7:1. */
-.ob-sub-warn {
+/* Повідомлення про екран чи блок (`components/Alert.tsx`): темний текст на світлому тлі, контраст понад 7:1. */
+.alert {
   margin: 0;
   padding: 10px 12px;
   display: flex;
   align-items: flex-start;
   gap: 8px;
   border-radius: 10px;
-  background: #fff4e0;
-  color: #7a4600;
   font-size: 13px;
   line-height: 1.4;
 }
 
-.ob-sub-warn svg {
+.alert svg {
   flex: none;
   margin-top: 1px;
+}
+
+.alert.crit {
+  background: #fdecea;
+  color: #7a1a10;
+}
+
+.alert.crit svg {
+  color: #c62d1f;
+}
+
+.alert.warn {
+  background: #fff4e0;
+  color: #7a4600;
+}
+
+.alert.warn svg {
   color: #a35a00;
+}
+
+.alert.hint {
+  background: #e8f0fe;
+  color: #1b3a73;
+}
+
+.alert.hint svg {
+  color: #2f5fb3;
 }
 
 .ob-sub-add {
@@ -5807,10 +5827,6 @@ a:not([class]):active {
 .ob-bell-break button:disabled {
   opacity: 0.4;
   cursor: default;
-}
-
-.ob-bell-err {
-  margin: -4px 0 0;
 }
 
 .ob-bell-hr {

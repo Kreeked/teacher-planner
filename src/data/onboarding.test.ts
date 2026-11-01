@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { canProceed, classesWord, countsOf, type Counts } from './onboarding'
+import { canProceed, classesGenitive, classesWord, countsOf, type Counts } from './onboarding'
 
 const empty: Counts = { year: false, semesters: 0, classes: 0, courses: 0, slots: 0 }
 
@@ -38,5 +38,11 @@ describe('countsOf', () => {
       bells: { slots: [slot], second_shift: [slot, slot] },
     })
     expect(c).toEqual({ year: true, semesters: 1, classes: 1, courses: 0, slots: 3 })
+  })
+})
+
+describe('classesGenitive', () => {
+  it('родовий відмінок для «без …»', () => {
+    expect([1, 2, 5, 11, 21, 22].map(classesGenitive)).toEqual(['1 класа', '2 класів', '5 класів', '11 класів', '21 класа', '22 класів'])
   })
 })

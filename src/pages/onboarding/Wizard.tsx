@@ -6,7 +6,7 @@ import { SavedToast } from '../../components/Saved'
 import { useRangeDraft } from '../../components/useRangeDraft'
 import { commit, flushDraft, newBatch, updateFields, useCollection } from '../../data/db'
 import { discardDraft, hasDraft, stopDraft } from '../../data/draft'
-import { STEPS, canProceed, countsOf } from '../../data/onboarding'
+import { STEPS, canProceed, classesGenitive, countsOf } from '../../data/onboarding'
 import { toISO } from '../../data/schedule'
 import { scheduleComplete } from '../../data/semesterSchedule'
 import { unassignedClasses } from '../../data/subjects'
@@ -62,7 +62,6 @@ function ExistingYear({ year, periods, daysOff, others }: { year: AcademicYear; 
       title={r.draft.title}
       start={r.draft.start_date}
       end={r.draft.end_date}
-      error={r.error}
       onTitle={r.setTitle}
       onTitleBlur={r.saveTitle}
       onStart={(d) => r.setStart(d)}
@@ -85,8 +84,6 @@ export function Wizard({ onExit, onDone }: Props) {
   // Нова чернетка року порожня: усе вказує користувач.
   const [draft, setDraft] = useState({ title: '', start: '', end: '' })
   const draftError = draft.title.trim() ? validateYear({ start_date: draft.start, end_date: draft.end }, [], years) : yearTitleError
-  // Порожні поля помилкою не позначаємо: «Далі» неактивна, доки їх не заповнено.
-  const dateError = draft.start && draft.end ? validateYear({ start_date: draft.start, end_date: draft.end }, [], years) : null
   // Картки предметів можуть бути недописані: тоді «Далі» неактивна.
   const [subjectsValid, setSubjectsValid] = useState(true)
   const [bellShift, setBellShift] = useState<Shift>(1)
@@ -115,10 +112,9 @@ export function Wizard({ onExit, onDone }: Props) {
       const list = names.length > 8 ? `${names.slice(0, 8).join(', ')} та ще ${names.length - 8}` : names.join(', ')
       if (
         free.length &&
-        !(await ask(`Не всі класи розподілено між предметами: ${list}. Для них не буде створено КТП. Продовжити без них чи повернутися й розподілити?`, {
-          title: 'Не всі класи розподілено',
+        !(await ask(`${free.length === 1 ? 'Клас' : 'Класи'} ${list} не розподілено між предметами, для ${free.length === 1 ? 'нього' : 'них'} не буде створено КТП.`, {
+          title: `Продовжити без ${classesGenitive(free.length)}?`,
           ok: 'Продовжити',
-          cancel: 'Повернутися',
           danger: false,
         }))
       )
@@ -185,7 +181,6 @@ export function Wizard({ onExit, onDone }: Props) {
                     title={draft.title}
                     start={draft.start}
                     end={draft.end}
-                    error={dateError}
                     onTitle={(title) => setDraft({ ...draft, title })}
                     onStart={(d) => setDraft({ ...draft, start: d ?? '' })}
                     onEnd={(d) => setDraft({ ...draft, end: d ?? '' })}

@@ -6,7 +6,6 @@ type Props = {
   title: string
   start: string
   end: string
-  error: string | null
   onTitle: (v: string) => void
   onTitleBlur?: () => void
   onStart: (d: string | null) => void
@@ -14,7 +13,7 @@ type Props = {
 }
 
 /** Назва й межі навчального року: однакові і при створенні, і при правці вже створеного року. */
-export function YearFields({ title, start, end, error, onTitle, onTitleBlur, onStart, onEnd }: Props) {
+export function YearFields({ title, start, end, onTitle, onTitleBlur, onStart, onEnd }: Props) {
   return (
     <div className="ob-year-fields">
       <label className="ob-field">
@@ -31,11 +30,6 @@ export function YearFields({ title, start, end, error, onTitle, onTitleBlur, onS
           <DatePicker numeric trailingIcon label="Кінець року" value={end || null} min={start || undefined} onChange={onEnd} />
         </div>
       </div>
-      {error && (
-        <p className="field-error" role="alert">
-          {error}
-        </p>
-      )}
     </div>
   )
 }

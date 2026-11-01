@@ -10,5 +10,5 @@ import { resetText } from '../year/vacations'
 export async function confirmReset(step: 'year' | 'semesters', periods: Period[], daysOff: DayOff[]): Promise<boolean> {
   const entered = enteredAfter(step, periods, daysOff)
   if (!entered.semesters && !entered.vacations) return true
-  return ask(resetText(step, entered), { title: 'Дати на наступних кроках буде видалено', ok: 'Змінити', cancel: 'Скасувати', danger: false })
+  return ask(resetText(entered), { title: step === 'year' ? 'Змінити дати року?' : 'Змінити дати семестру?', ok: 'Змінити' })
 }

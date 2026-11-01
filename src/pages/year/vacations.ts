@@ -32,11 +32,10 @@ export function resetEntered<P extends Pick<Period, 'id' | 'parent_id' | 'positi
   return { periods: nextPeriods, daysOff: nextDaysOff }
 }
 
-/** Текст вікна: що буде видалено на наступних кроках і що перерахується саме. */
-export function resetText(step: 'year' | 'semesters', entered: { semesters: boolean; vacations: boolean }): string {
-  const lost = [entered.semesters && 'на кроці «Семестри»', entered.vacations && 'на кроці «Канікули»'].filter(Boolean).join(' і ')
-  const auto = step === 'year' ? 'Початок першого й кінець останнього семестру, а також зимові канікули перерахуються автоматично.' : 'Зимові канікули перерахуються автоматично.'
-  return `Дати ${lost}, які ти вже вказав, буде видалено, і їх треба буде вказати знову. ${auto}`
+/** Текст вікна: дати яких кроків буде видалено. */
+export function resetText(entered: { semesters: boolean; vacations: boolean }): string {
+  const steps = [entered.semesters && '«Семестри»', entered.vacations && '«Канікули»'].filter(Boolean)
+  return `Дати на ${steps.length > 1 ? 'кроках' : 'кроці'} ${steps.join(' і ')} буде видалено, їх треба буде вказати знову.`
 }
 
 const KINDS: VacationKind[] = ['autumn', 'winter', 'spring']
