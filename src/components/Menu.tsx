@@ -1,7 +1,7 @@
 import { Check, MoreHorizontal, type LucideIcon } from 'lucide-react'
 import { Fragment, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { placeBelowOrAbove } from '../lib/popPlace'
+import { placeBelowOrAbove, placeX } from '../lib/popPlace'
 
 export type MenuItem = {
   label: string
@@ -43,12 +43,7 @@ export function Menu({ label, groups, trigger, triggerClass = 'icon-btn menu-btn
     const r = button.current.getBoundingClientRect()
     const h = pop.current.offsetHeight
     const w = pop.current.offsetWidth
-    const { top, maxHeight } = placeBelowOrAbove(r, h)
-    setPos({
-      top,
-      ...(maxHeight !== undefined && { maxHeight }),
-      left: Math.max(8, Math.min(align === 'start' ? r.left : r.right - w, window.innerWidth - w - 8)),
-    })
+    setPos({ ...placeBelowOrAbove(r, h), left: placeX(r, w, align) })
     pop.current.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus()
   }, [open, align])
 

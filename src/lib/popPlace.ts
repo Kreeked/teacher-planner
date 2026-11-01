@@ -15,16 +15,34 @@ function freeEdges() {
   return { top, bottom }
 }
 
+export type PopY = { top?: number; bottom?: number; maxHeight?: number }
+
 /**
  * Список під полем, а якщо внизу мало місця — над ним. Якщо не вміщується ні там, ні там, він стає з боку, де місця більше,
  * і скорочується (maxHeight), але ніколи не накриває саме поле.
+ * Над полем список прив'язано нижнім краєм (bottom), а не верхнім: тоді зазор до поля завжди 4 px, хоч яка реальна висота.
  */
-export function placeBelowOrAbove(r: DOMRect, height: number): { top: number; maxHeight?: number } {
+export function placeBelowOrAbove(r: DOMRect, height: number): PopY {
   const edge = freeEdges()
   const below = edge.bottom - 8 - (r.bottom + 4)
   const above = r.top - 4 - (edge.top + 8)
   if (height <= below) return { top: r.bottom + 4 }
-  if (height <= above) return { top: r.top - 4 - height }
+  if (height <= above) return { bottom: window.innerHeight - r.top + 4 }
   if (below >= above) return { top: r.bottom + 4, maxHeight: Math.max(0, below) }
   return { top: edge.top + 8, maxHeight: Math.max(0, above) }
+}
+
+/**
+ * Лівий край списку шириною `width`: збігається з лівим (start) або правим (end) краєм поля.
+ * Якщо з того боку не вміщується в екран — дзеркально від протилежного краю поля; лише коли не влазить ніяк — притискається до краю екрана.
+ */
+export function placeX(r: DOMRect, width: number, align: 'start' | 'end' = 'start'): number {
+  const max = window.innerWidth - width - 8
+  const fromStart = r.left
+  const fromEnd = r.right - width
+  const [first, second] = align === 'start' ? [fromStart, fromEnd] : [fromEnd, fromStart]
+  const fits = (x: number) => x >= 8 && x <= max
+  if (fits(first)) return first
+  if (fits(second)) return second
+  return Math.max(8, Math.min(first, max))
 }

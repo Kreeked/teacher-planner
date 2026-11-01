@@ -1,7 +1,7 @@
 import { Clock } from 'lucide-react'
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
-import { placeBelowOrAbove } from '../lib/popPlace'
+import { placeBelowOrAbove, placeX } from '../lib/popPlace'
 
 type Props = {
   // «08:30»
@@ -42,11 +42,11 @@ export function TimePicker({ value, label, onChange, min, max, className = 'date
   useLayoutEffect(() => {
     if (!open || !button.current) return
     const r = button.current.getBoundingClientRect()
-    const { top, maxHeight } = placeBelowOrAbove(r, POP_H)
+    const { maxHeight, ...y } = placeBelowOrAbove(r, POP_H)
     setPos({
-      top,
+      ...y,
       ...(maxHeight !== undefined && { height: maxHeight }),
-      left: Math.max(8, Math.min(r.left, window.innerWidth - POP_W - 8)),
+      left: placeX(r, POP_W),
     })
     // Вибрані година й хвилина одразу видно.
     pop.current?.querySelectorAll('.time-opt.sel').forEach((el) => el.scrollIntoView({ block: 'center' }))
