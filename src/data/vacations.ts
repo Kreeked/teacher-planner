@@ -132,3 +132,32 @@ export function vacationsComplete(periods: Dated[], daysOff: Named[]): boolean {
   if (periods.filter((p) => !p.parent_id).length < 2) return true
   return (['autumn', 'spring'] as const).every((k) => daysOff.some((d) => d.title === VACATIONS[k].title && d.start_date && d.end_date))
 }
+
+type Patch = { id: string; start_date: ISODate; end_date: ISODate }
+
+/**
+ * Дати семестрів, які користувач вказує сам: початок першого й кінець останнього семестру беруться з року,
+ * тож їх при зміні дат не чіпаємо (їх виставляє `fitPeriods`).
+ */
+export function clearedSemesterDates(periods: Pick<Period, 'id' | 'parent_id' | 'position' | 'start_date' | 'end_date'>[]): Patch[] {
+  const sems = sortPeriods(periods.filter((p) => !p.parent_id) as Period[])
+  return sems.map((s, i) => ({
+    id: s.id,
+    start_date: i === 0 ? s.start_date : '',
+    end_date: i === sems.length - 1 ? s.end_date : '',
+  }))
+}
+
+/** Які кроки мають уже вказані користувачем дати, що залежать від попереднього кроку. */
+export function enteredAfter(
+  step: 'year' | 'semesters',
+  periods: Pick<Period, 'id' | 'parent_id' | 'position' | 'start_date' | 'end_date'>[],
+  daysOff: Pick<DayOffLike, 'title' | 'start_date' | 'end_date'>[],
+): { semesters: boolean; vacations: boolean } {
+  const sems = sortPeriods(periods.filter((p) => !p.parent_id) as Period[])
+  const manual = sems.some((s, i) => (i > 0 && !!s.start_date) || (i < sems.length - 1 && !!s.end_date))
+  const vacations = daysOff.some((d) => (d.title === VACATIONS.autumn.title || d.title === VACATIONS.spring.title) && (d.start_date || d.end_date))
+  return { semesters: step === 'year' && manual, vacations: !!vacations }
+}
+
+type DayOffLike = { title: string; start_date: ISODate; end_date: ISODate }

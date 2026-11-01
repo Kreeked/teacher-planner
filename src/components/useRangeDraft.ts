@@ -9,13 +9,15 @@ export type Options = {
   onSave: (v: RangeValue) => void
   /** Очищену дату теж зберігаємо (замість мовчки лишати стару): поле порожнє, а помилку показує `validate`. */
   allowEmpty?: boolean
+  /** Перед збереженням змінених дат: `false` скасовує зміну (користувач відмовився у вікні підтвердження). */
+  confirm?: (v: RangeValue) => Promise<boolean>
 }
 
 /**
  * Чернетка «назва + початок + кінець». Зберігає лише коректні значення:
  * поки є помилка, показує її і не записує (жорсткі правила з розділу 4).
  */
-export function useRangeDraft({ value, validate, onSave, allowEmpty }: Options) {
+export function useRangeDraft({ value, validate, onSave, allowEmpty, confirm }: Options) {
   const [draft, setDraft] = useState(value)
   const [seen, setSeen] = useState(value)
   const [touched, setTouched] = useState(false)
@@ -25,12 +27,15 @@ export function useRangeDraft({ value, validate, onSave, allowEmpty }: Options) 
     setDraft(value)
   }
 
-  function change(patch: Partial<RangeValue>, save: boolean) {
+  async function change(patch: Partial<RangeValue>, save: boolean) {
     const next = { ...draft, ...patch }
     setDraft(next)
     if (Object.keys(patch).length) setTouched(true)
     const cleared = !!allowEmpty && (!next.start_date || !next.end_date || !next.title.trim())
-    if (save && (cleared || (!validate(next) && next.title.trim()))) onSave({ ...next, title: next.title.trim() })
+    if (!save || !(cleared || (!validate(next) && next.title.trim()))) return
+    const moved = next.start_date !== value.start_date || next.end_date !== value.end_date
+    if (moved && confirm && !(await confirm(next))) return setDraft(value)
+    onSave({ ...next, title: next.title.trim() })
   }
 
   return {

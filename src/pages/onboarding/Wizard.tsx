@@ -19,7 +19,8 @@ import { clearOnboarding, getOnboardingStep, setOnboardingStep } from '../../lib
 import { hideSplash } from '../../lib/splash'
 import { createYear } from '../year/createYear'
 import { useYearData } from '../year/useYearData'
-import { syncVacations } from '../year/vacations'
+import { syncVacations, resetEntered } from '../year/vacations'
+import { confirmReset } from './confirmReset'
 import { semestersComplete, vacationsComplete } from '../../data/vacations'
 import { BellsStep } from './BellsStep'
 import { ClassesStep } from './ClassesStep'
@@ -41,13 +42,17 @@ function ExistingYear({ year, periods, daysOff, others }: { year: AcademicYear; 
     // Семестри перевіряються на своєму кроці й залежать від дат року, тож тут їх не чіпаємо, а підганяємо.
     validate: (v) => (v.title.trim() ? validateYear(v, [], others) : yearTitleError),
     allowEmpty: true,
+    confirm: () => confirmReset('year', periods, daysOff),
     onSave: (v) => {
       const batch = newBatch()
       updateFields('academic_years', year.id, v, batch)
-      const fitted = fitPeriods(periods, v)
+      // Змінились дати року: введені далі дати скидаються, а ті, що з року, перераховуються.
+      const moved = v.start_date !== year.start_date || v.end_date !== year.end_date
+      const base = moved ? resetEntered('year', periods, daysOff, batch) : { periods, daysOff }
+      const fitted = fitPeriods(base.periods, v)
       for (const { id, ...patch } of fitted) updateFields('periods', id, patch, batch)
       // Канікули йдуть за семестрами: осінні й весняні не лишаються поза ними, зимові перераховуються.
-      syncVacations(year.id, periods.map((p) => ({ ...p, ...fitted.find((f) => f.id === p.id) })), daysOff, batch, false)
+      syncVacations(year.id, base.periods.map((p) => ({ ...p, ...fitted.find((f) => f.id === p.id) })), base.daysOff, batch, false)
       commit(batch)
       notifySaved()
     },
