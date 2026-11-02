@@ -222,9 +222,9 @@ export function SubjectsStep({ year, courses, classes, links, periods, daysOff, 
             </div>
 
             <div className="ob-sub-hours">
-              {hours('h1', <>І семестр<span className="ob-comma">,</span><br className="ob-br" /> год/тиж</>, 2)}
-              {hours('h2', <>ІІ семестр<span className="ob-comma">,</span><br className="ob-br" /> год/тиж</>, 2)}
-              {hours('year', <>Годин<br className="ob-br" /> за рік</>, 3)}
+              {hours('h1', <span>І семестр<span className="ob-comma">,</span><br className="ob-br" /> год/тиж</span>, 2)}
+              {hours('h2', <span>ІІ семестр<span className="ob-comma">,</span><br className="ob-br" /> год/тиж</span>, 2)}
+              {hours('year', <span>Годин<br className="ob-br" /> за рік</span>, 3)}
             </div>
 
             {mismatch && <Alert kind="warn">{mismatch}</Alert>}
