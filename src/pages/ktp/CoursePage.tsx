@@ -12,9 +12,9 @@ import {
 } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import {
-  CalendarPlus,
   Check,
   ChevronDown,
+  FileUp,
   GripVertical,
   Pencil,
   Plus,
@@ -26,7 +26,7 @@ import { useContext, useLayoutEffect, useRef, useState, type ReactNode } from 'r
 import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom'
 import { DatePicker } from '../../components/DatePicker'
 import { toISO } from '../../data/schedule'
-import { classWeekdays, courseIssues, planFixes, type ScheduleData } from '../../data/mismatch'
+import { classWeekdays, courseIssues, type ScheduleData } from '../../data/mismatch'
 import { InlineText } from '../../components/InlineText'
 import { Menu, type MenuItem } from '../../components/Menu'
 import { useDragSensors, useSortableItem, type HandleProps } from '../../lib/drag'
@@ -69,7 +69,7 @@ import type {
 } from '../../data/types'
 import { gradeColor, shortDate } from '../../data/year'
 import { DateHintsBanner, IssuePill } from './dateHints'
-import { FillDatesDialog } from './FillDatesDialog'
+import { ImportDialog } from './ImportDialog'
 import { DateHintsContext, issueText } from './dateHintsContext'
 import { LessonShelves, MaterialsDialog } from './Materials'
 import { useClassifyLegacy } from '../../lib/useClassifyLegacy'
@@ -116,7 +116,6 @@ export function CoursePage() {
   const { items: timetables } = useCollection('timetables', yearFilter)
   const { items: allEntries } = useCollection('timetable_entries')
   const { items: daysOff } = useCollection('days_off', yearFilter)
-  const { items: periods } = useCollection('periods', yearFilter)
   const { items: materials } = useCollection('lesson_materials', byCourse)
   // Старі файли уроків без типу розкладаємо по поличках (один раз).
   useClassifyLegacy(materials)
@@ -150,7 +149,8 @@ export function CoursePage() {
     reveal(el)
   }, [topics.length])
   const [editing, setEditing] = useState(false)
-  const [filling, setFilling] = useState(false)
+  const [importFile, setImportFile] = useState<File | null>(null)
+  const fileInput = useRef<HTMLInputElement>(null)
   const [materialsFor, setMaterialsFor] = useState<string | null>(null)
   // Щойно доданий урок отримує фокус на полі теми.
   const [newLessonId, setNewLessonId] = useState<string | null>(null)
@@ -188,13 +188,8 @@ export function CoursePage() {
     daysOff,
   }
   const issues = courseIssues(schedules, course.id, sched, today)
-  const fixes = planFixes(issues, schedules, course.id, sched, {
-    start: year && year.start_date > today ? year.start_date : today,
-    end: year?.end_date ?? '9999-12-31',
-  })
   const hints = {
     issues: new Map(issues.map((i) => [i.id, i])),
-    fixes,
     weekdays: (classId: string, date: string) => classWeekdays(sched, classId, course.id, date),
   }
   function addTopic() {
@@ -363,11 +358,19 @@ export function CoursePage() {
                   <Plus size={16} /> Нова тема
                 </button>
               )}
-              {classes.length > 0 && lessons.length > 0 && (
-              <button className="btn ghost" onClick={() => setFilling(true)} aria-haspopup="dialog">
-                <CalendarPlus size={16} /> Розставити дати
+              <button className="btn ghost" onClick={() => fileInput.current?.click()}>
+                <FileUp size={16} /> Імпорт з Word
               </button>
-            )}
+              <input
+                ref={fileInput}
+                type="file"
+                accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                hidden
+                onChange={(e) => {
+                  setImportFile(e.target.files?.[0] ?? null)
+                  e.target.value = ''
+                }}
+              />
             <Link to="/ktp/year" className="btn ghost" title="Предмет, години й класи змінюються в налаштуваннях року">
                 <Settings2 size={16} /> Параметри
               </Link>
@@ -400,7 +403,7 @@ export function CoursePage() {
             ))}
           </div>
 
-          <DateHintsBanner issues={issues} fixes={fixes} />
+          <DateHintsBanner issues={issues} />
 
           {!editing ? (
             <div className="ktp view">
@@ -487,19 +490,14 @@ export function CoursePage() {
             </>
           )}
 
-          {filling && year && (
-          <FillDatesDialog
-            course={course}
-            year={year}
-            classes={classes}
-            lessons={saved.flatMap((b) => b.lessons)}
-            schedules={schedules}
-            periods={periods}
-            sched={sched}
-            today={today}
-            onClose={() => setFilling(false)}
-          />
-        )}
+          {importFile && year && (
+            <ImportDialog
+              file={importFile}
+              year={year}
+              course={course}
+              onClose={() => setImportFile(null)}
+            />
+          )}
 
         {materialsFor && lessons.some((l) => l.id === materialsFor) && (
             <MaterialsDialog

@@ -1,23 +1,19 @@
-import { ArrowUpRight, FileUp } from 'lucide-react'
-import { useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { ArrowUpRight } from 'lucide-react'
+import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useCollection } from '../../data/db'
 import { toISO } from '../../data/schedule'
 import { courseTitle } from '../../data/ktp'
 import type { ClassGroup, Course } from '../../data/types'
 import { formatDate, gradeColor, pickCurrentYear } from '../../data/year'
-import { ImportDialog } from './ImportDialog'
 
 export function KtpPage() {
-  const navigate = useNavigate()
   const { items: years, loading } = useCollection('academic_years')
   const [today] = useState(() => toISO(new Date()))
   const year = pickCurrentYear(years, today)
   const filter = year ? { field: 'academic_year_id', value: year.id } : null
   const { items: classes } = useCollection('class_groups', filter)
   const { items: courses } = useCollection('courses', filter)
-  const [importFile, setImportFile] = useState<File | null>(null)
-  const fileInput = useRef<HTMLInputElement>(null)
 
   const sorted = [...courses].sort((a, b) => a.grade - b.grade || a.subject.localeCompare(b.subject, 'uk'))
 
@@ -34,24 +30,6 @@ export function KtpPage() {
             >
               {year.title} <ArrowUpRight size={14} />
             </Link>
-          )}
-          <span className="grow" />
-          {year && (
-            <div className="actions">
-              <button className="btn ghost" onClick={() => fileInput.current?.click()}>
-                <FileUp size={16} /> Імпорт з Word
-              </button>
-              <input
-                ref={fileInput}
-                type="file"
-                accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                hidden
-                onChange={(e) => {
-                  setImportFile(e.target.files?.[0] ?? null)
-                  e.target.value = ''
-                }}
-              />
-            </div>
           )}
         </div>
 
@@ -71,26 +49,12 @@ export function KtpPage() {
               <section className="empty" style={{ background: 'var(--butter)' }}>
                 <div>
                   <h2>Ще немає жодного КТП</h2>
-                  <p>КТП з’являється, коли в налаштуваннях року додано предмет для паралелі, наприклад «Інформатика, 9 клас». Тоді в ньому можна додавати теми й уроки або імпортувати їх з Word.</p>
+                  <p>КТП з’являється, коли в налаштуваннях року додано предмет для паралелі, наприклад «Інформатика, 9 клас». Тоді в ньому можна додавати теми й уроки або імпортувати їх з Word на сторінці КТП.</p>
                 </div>
                 <Link to="/ktp/year" className="btn">
                   Додати предмет
                 </Link>
               </section>
-            )}
-
-            {importFile && (
-              <ImportDialog
-                file={importFile}
-                year={year}
-                courses={courses}
-                classes={classes}
-                onClose={() => setImportFile(null)}
-                onDone={(id) => {
-                  setImportFile(null)
-                  navigate(`/ktp/${id}`)
-                }}
-              />
             )}
 
             <div className="course-grid">

@@ -3544,37 +3544,6 @@ h2.topic-title {
   margin-top: 2px;
 }
 
-.import-conflict {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  background: var(--bg);
-  border-radius: 12px;
-  padding: 10px 12px;
-}
-
-.import-conflict-head {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.import-conflict-head select {
-  margin-left: auto;
-  width: auto;
-}
-
-.import-pick span {
-  display: flex;
-  flex-direction: column;
-}
-
-.import-pick small {
-  color: var(--ink-2);
-  font-size: 12px;
-}
-
 .warn-box {
   background: #fdf1df;
   border-radius: 12px;

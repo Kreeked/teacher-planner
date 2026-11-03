@@ -1,9 +1,9 @@
 import { dateProblem, type DateProblem, type ScheduleData } from '../data/mismatch'
-import type { AcademicYear, ClassGroup, Course, CourseClass, Lesson, LessonSchedule, Period, Topic } from '../data/types'
-import { classDisplayName, validatePeriod } from '../data/year'
+import type { ClassGroup, Course, CourseClass, Lesson, LessonSchedule, Period, Topic } from '../data/types'
+import { classDisplayName } from '../data/year'
 import { sameTitle, type ParsedKtp, type ParsedTopic } from './ktpParser'
 
-/** Що вже є в системі: від цього залежить, що імпорт має створити, а що пропустити чи запитати. */
+/** Що вже є в системі: імпорт нічого не створює в налаштуваннях року, а лише зіставляє файл із ними. */
 export type ImportContext = ScheduleData & {
   classes: ClassGroup[] // класи року
   periods: Period[]
@@ -39,96 +39,45 @@ export const scheduleId = (lessonId: string, classId: string) => `${lessonId}_${
 export type ClassPlan = {
   index: number // колонка класу у файлі
   display: string
-  grade: number
-  letter: string
-  classId: string | null // null — класу ще немає в році
-  linked: boolean // клас уже прив'язаний до цільового КТП
+  classId: string | null // null — такого класу немає в році
+  // Клас прив'язаний до цього КТП: лише його колонка дат імпортується. Решта — тільки звіт, склад класів міняється на сторінці року.
+  linked: boolean
 }
 
-export type SemesterPlan = { number: number; exists: boolean; error: string | null }
-
-export type Conflict = {
-  key: string // id дати: `${урок}_${клас}`
-  classIndex: number
-  label: string
-  current: string
-  incoming: string
-}
+export type SemesterPlan = { number: number; exists: boolean; differs: boolean }
 
 export type Mismatch = { classIndex: number; total: number; bad: number; problems: Partial<Record<DateProblem, number>> }
 
 export type ImportPlan = {
   classes: ClassPlan[]
   semesters: SemesterPlan[]
-  conflicts: Conflict[]
   mismatches: Mismatch[]
+  error: string | null // файл не можна імпортувати в цей КТП
 }
 
-export type Mode = 'keep' | 'replace' | 'each'
-
-/** Рішення користувача на екрані перевірки. */
-export type Decisions = {
-  addClasses: Set<number> // колонки файлу, класи яких додати до року
-  addSemesters: Set<number>
-  mode: Record<number, Mode> // що робити з датами, що розходяться, у кожного класу
-  picks: Set<string> // у режимі «по одній»: дати, які замінити
-}
-
-export function planImport(k: ParsedKtp, year: AcademicYear, target: Course | null, ctx: ImportContext): ImportPlan {
+export function planImport(k: ParsedKtp, target: Course, ctx: ImportContext): ImportPlan {
   const classes = k.classNames.map((name, index): ClassPlan => {
     const { grade, letter } = splitClassName(name)
     const display = classDisplayName(grade, letter)
     const found = ctx.classes.find((c) => c.display_name === display)
-    return {
-      index,
-      display,
-      grade,
-      letter,
-      classId: found?.id ?? null,
-      linked: !!found && ctx.links.some((l) => l.class_group_id === found.id),
-    }
+    return { index, display, classId: found?.id ?? null, linked: !!found && ctx.links.some((l) => l.class_group_id === found.id) }
   })
 
   const semesters = k.semesters.map((s): SemesterPlan => {
-    const exists = ctx.periods.some((p) => !p.parent_id && semesterOf(p) === s.number)
-    const error = exists ? null : validatePeriod({ parent_id: null, start_date: s.start, end_date: s.end }, year, ctx.periods)
-    return { number: s.number, exists, error }
+    const found = ctx.periods.find((p) => !p.parent_id && semesterOf(p) === s.number)
+    return { number: s.number, exists: !!found, differs: !!found && (found.start_date !== s.start || found.end_date !== s.end) }
   })
 
-  // Дати уроків, що вже є в КТП, відрізняються від дат у файлі.
-  const conflicts: Conflict[] = []
-  for (const pt of k.topics) {
-    const topic = findTopic(ctx.topics, pt)
-    if (!topic) continue
-    for (const pl of pt.lessons) {
-      const lesson = ctx.lessons.find((l) => l.topic_id === topic.id && sameTitle(l.title, pl.title))
-      if (!lesson) continue
-      pl.dates.forEach((incoming, i) => {
-        const c = classes[i]
-        if (!incoming || !c?.classId) return
-        const key = scheduleId(lesson.id, c.classId)
-        const current = ctx.schedules.find((s) => s.id === key)?.planned_date
-        if (current && current !== incoming)
-          conflicts.push({
-            key,
-            classIndex: i,
-            label: `${lesson.number ? `№${lesson.number} ` : ''}${lesson.title}`,
-            current,
-            incoming,
-          })
-      })
-    }
-  }
-
-  // Дати з файлу проти розкладу. Нового КТП ще немає в розкладі, тож усі його дати «без розкладу».
+  // Дати з файлу проти розкладу: лише попередження, імпорт їх не змінює.
   const mismatches = classes.map((c): Mismatch => {
     const m: Mismatch = { classIndex: c.index, total: 0, bad: 0, problems: {} }
+    if (!c.classId || !c.linked) return m
     for (const pt of k.topics)
       for (const pl of pt.lessons) {
         const date = pl.dates[c.index]
         if (!date) continue
         m.total++
-        const problem = c.classId ? dateProblem(date, c.classId, target?.id ?? null, ctx) : 'no-schedule'
+        const problem = dateProblem(date, c.classId, target.id, ctx)
         if (!problem) continue
         m.bad++
         m.problems[problem] = (m.problems[problem] ?? 0) + 1
@@ -136,25 +85,6 @@ export function planImport(k: ParsedKtp, year: AcademicYear, target: Course | nu
     return m
   })
 
-  return { classes, semesters, conflicts, mismatches }
-}
-
-/** За замовчуванням додаємо все, чого бракує, а дати, що розходяться, лишаємо як у системі. */
-export function defaultDecisions(plan: ImportPlan): Decisions {
-  return {
-    addClasses: new Set(plan.classes.filter((c) => !c.classId).map((c) => c.index)),
-    addSemesters: new Set(plan.semesters.filter((s) => !s.exists && !s.error).map((s) => s.number)),
-    mode: {},
-    picks: new Set(),
-  }
-}
-
-export function modeOf(d: Decisions, classIndex: number): Mode {
-  return d.mode[classIndex] ?? 'keep'
-}
-
-/** Чи замінити дату з системи датою з файлу. */
-export function isReplaced(c: Conflict, d: Decisions) {
-  const mode = modeOf(d, c.classIndex)
-  return mode === 'replace' || (mode === 'each' && d.picks.has(c.key))
+  const error = k.grade !== target.grade ? `Файл для ${k.grade} класу, а це КТП для ${target.grade} класу.` : null
+  return { classes, semesters, mismatches, error }
 }
