@@ -20,6 +20,8 @@ type Props = {
   label: string
   min?: ISODate
   max?: ISODate
+  // Лише ці дні можна вибрати; решта неактивні.
+  allowDay?: (d: ISODate) => boolean
   // Коротко «дд.мм» — для клітинок таблиці.
   compact?: boolean
   // Числами «01.09.2026» і без значка календаря — для полів, що стоять поруч із текстовими.
@@ -35,7 +37,7 @@ const POP_W = 272
 const POP_H = 330
 
 /** Поле дати з календарем у стилі застосунку замість системного вікна браузера. */
-export function DatePicker({ value, onChange, label, min, max, compact, numeric, trailingIcon, placeholder, className, disabled }: Props) {
+export function DatePicker({ value, onChange, label, min, max, allowDay, compact, numeric, trailingIcon, placeholder, className, disabled }: Props) {
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState<CSSProperties>({})
   const button = useRef<HTMLButtonElement>(null)
@@ -92,7 +94,7 @@ export function DatePicker({ value, onChange, label, min, max, compact, numeric,
         ? formatDate(value)
         : formatLong(value)
     : (placeholder ?? (compact ? '—' : 'Обрати дату'))
-  const todayAllowed = (!min || today >= min) && (!max || today <= max)
+  const todayAllowed = (!min || today >= min) && (!max || today <= max) && (!allowDay || allowDay(today))
 
   return (
     <>
@@ -113,7 +115,7 @@ export function DatePicker({ value, onChange, label, min, max, compact, numeric,
       {open &&
         createPortal(
           <div ref={pop} className="date-pop" role="dialog" aria-label={label} style={pos}>
-            <MonthCalendar today={today} selected={value ?? ''} onSelect={pick} min={min} max={max} pickMonth />
+            <MonthCalendar today={today} selected={value ?? ''} onSelect={pick} min={min} max={max} allowDay={allowDay} pickMonth />
             <div className="date-pop-foot">
               {todayAllowed && (
                 <button type="button" className="link-btn" onClick={() => pick(today)}>

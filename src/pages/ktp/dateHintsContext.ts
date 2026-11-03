@@ -6,11 +6,13 @@ import type { ISODate } from '../../data/types'
 export type DateHints = {
   issues: Map<string, DateIssue> // за id дати уроку
   weekdays: (classId: string, date: ISODate) => number[] // дні розкладу класу
+  allowed: (classId: string, date: ISODate) => boolean // чи є цього дня урок за розкладом (і це не день без уроків)
 }
 
 export const DateHintsContext = createContext<DateHints>({
   issues: new Map(),
   weekdays: () => [],
+  allowed: () => true,
 })
 
 /** Чому дата не збігається з розкладом — одним реченням. */
