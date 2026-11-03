@@ -28,6 +28,17 @@ describe('dateProblem', () => {
   })
 })
 
+describe('dateProblem with semesters', () => {
+  const ranges = [{ start: '2025-09-01', end: '2025-12-19' }]
+  it('flags a date outside every semester before anything else', () => {
+    expect(dateProblem('2025-12-23', 'A', 'C', { ...data, ranges })).toBe('out-of-range') // вівторок після семестру
+    expect(dateProblem('2025-12-16', 'A', 'C', { ...data, ranges })).toBeNull()
+  })
+  it('does not check bounds when none are given', () => {
+    expect(dateProblem('2025-12-23', 'A', 'C', data)).toBeNull()
+  })
+})
+
 describe('classWeekdays', () => {
   it('lists the days of the class, sorted', () => {
     expect(classWeekdays(data, 'A', 'C', '2025-09-02')).toEqual([2, 5])

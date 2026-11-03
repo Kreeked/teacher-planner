@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import { useCollection } from '../../data/db'
 import { useTimetables } from '../../data/useTimetables'
 import { lessonsWord } from '../../data/ktp'
-import { classWeekdays, type DateProblem } from '../../data/mismatch'
+import { classWeekdays, scheduleRanges, type DateProblem } from '../../data/mismatch'
 import { WEEKDAYS } from '../../data/schedule'
 import type { AcademicYear, Course } from '../../data/types'
 import { formatDate } from '../../data/year'
@@ -76,10 +76,11 @@ function Preview({ ktp, file, year, course, onClose }: Props & { ktp: ParsedKtp 
       lessons: lessonDocs,
       schedules,
       daysOff,
+      ranges: scheduleRanges(periods, year),
       timetables,
       entries: allEntries.filter((e) => timetables.some((t) => t.id === e.timetable_id)),
     }),
-    [yearClasses, periods, links, topics, lessonDocs, schedules, daysOff, timetables, allEntries],
+    [yearClasses, periods, year, links, topics, lessonDocs, schedules, daysOff, timetables, allEntries],
   )
   const plan = useMemo(() => planImport(ktp, course, ctx), [ktp, course, ctx])
 
@@ -282,6 +283,7 @@ function problemText(problems: Partial<Record<DateProblem, number>>, days: numbe
         : 'не той день тижня',
     )
   if (problems['day-off']) parts.push('припадають на дні без уроків')
+  if (problems['out-of-range']) parts.push('поза семестрами року')
   return parts.join('; ')
 }
 

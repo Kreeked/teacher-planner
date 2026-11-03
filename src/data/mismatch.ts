@@ -1,12 +1,21 @@
 import { weekday } from './schedule'
 import { timetableOn } from './timetable'
-import type { DayOff, ISODate, LessonSchedule, Timetable, TimetableEntry } from './types'
+import type { AcademicYear, DayOff, ISODate, LessonSchedule, Period, Timetable, TimetableEntry } from './types'
 
-export type ScheduleData = { timetables: Timetable[]; entries: TimetableEntry[]; daysOff: DayOff[] }
+export type DateRange = { start: ISODate; end: ISODate }
+
+// ranges — семестри (або рік, якщо семестрів немає): уроків поза ними бути не може. Не задано — межі не перевіряються.
+export type ScheduleData = { timetables: Timetable[]; entries: TimetableEntry[]; daysOff: DayOff[]; ranges?: DateRange[] }
+
+/** Межі, в яких можливі уроки: семестри з обома датами, а без них — увесь рік. */
+export function scheduleRanges(periods: Pick<Period, 'parent_id' | 'start_date' | 'end_date'>[], year: Pick<AcademicYear, 'start_date' | 'end_date'>): DateRange[] {
+  const sems = periods.filter((p) => !p.parent_id && p.start_date && p.end_date).map((p) => ({ start: p.start_date, end: p.end_date }))
+  return sems.length ? sems : [{ start: year.start_date, end: year.end_date }]
+}
 
 // no-schedule — у розкладі немає цього класу з цим КТП; weekday — у цей день тижня уроку немає; day-off — день без уроків;
-// overbooked — на цю дату в КТП більше уроків класу, ніж клітинок у розкладі.
-export type DateProblem = 'no-schedule' | 'weekday' | 'day-off' | 'overbooked'
+// overbooked — на цю дату в КТП більше уроків класу, ніж клітинок у розкладі; out-of-range — дата поза семестрами.
+export type DateProblem = 'no-schedule' | 'weekday' | 'day-off' | 'overbooked' | 'out-of-range'
 
 function cells(d: ScheduleData, classId: string, courseId: string | null, date: ISODate) {
   const tt = timetableOn(d.timetables, date)
@@ -21,6 +30,7 @@ export function cellsOn(d: ScheduleData, classId: string, courseId: string, date
 
 /** Чим дата уроку класу не збігається з розкладом; null — усе гаразд. */
 export function dateProblem(date: ISODate, classId: string, courseId: string | null, d: ScheduleData): DateProblem | null {
+  if (d.ranges?.length && !d.ranges.some((r) => r.start <= date && date <= r.end)) return 'out-of-range'
   if (d.daysOff.some((x) => x.start_date <= date && date <= x.end_date)) return 'day-off'
   const own = cells(d, classId, courseId, date)
   if (own.length === 0) return 'no-schedule'
@@ -37,6 +47,7 @@ export const PROBLEM_TEXT: Record<DateProblem, string> = {
   weekday: 'У цей день тижня за розкладом уроку немає',
   'day-off': 'День без уроків',
   overbooked: 'На цей день уроків у КТП більше, ніж у розкладі',
+  'out-of-range': 'Дата поза семестром',
 }
 
 export type DateIssue = { id: string; lessonId: string; classId: string; date: ISODate; problem: DateProblem }

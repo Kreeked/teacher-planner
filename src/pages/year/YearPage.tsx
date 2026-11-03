@@ -13,6 +13,7 @@ import { NewYearForm } from './NewYearForm'
 import { PeriodsSection } from './PeriodsSection'
 import { ScheduleSection } from './ScheduleSection'
 import { SubjectsSection } from './SubjectsSection'
+import { useImpact } from './useImpact'
 import { useYearData } from './useYearData'
 import { YearSection } from './YearSection'
 
@@ -36,6 +37,8 @@ export function YearPage() {
   const current = pickCurrentYear(years, today)
   const year = years.find((y) => y.id === selectedId) ?? current
   const { periods, classes, daysOff, bells, timetables, courses, links: yearLinks, entries } = useYearData(year)
+
+  const impact = useImpact(year)
 
   // Старі розклади без семестру, дати яких збігаються з семестром, прив'язуються до нього: далі вони йдуть за його датами.
   useEffect(() => {
@@ -139,12 +142,12 @@ export function YearPage() {
 
             <section className="panel yp-block" aria-labelledby="yp-per">
               <h2 id="yp-per">Семестри й чверті</h2>
-              <PeriodsSection year={year} periods={periods} timetables={timetables} entries={entries} />
+              <PeriodsSection year={year} periods={periods} timetables={timetables} entries={entries} impact={impact} />
             </section>
 
             <section className="panel yp-block" aria-labelledby="yp-off">
               <h2 id="yp-off">Дні без уроків</h2>
-              <DaysOffSection year={year} daysOff={daysOff} />
+              <DaysOffSection year={year} daysOff={daysOff} impact={impact} />
             </section>
 
             <section className="panel yp-block" aria-labelledby="yp-cls">
