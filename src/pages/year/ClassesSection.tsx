@@ -4,6 +4,7 @@ import { createDoc, deleteRefs, ref, refsWhere } from '../../data/db'
 import type { AcademicYear, ClassGroup } from '../../data/types'
 import { classDisplayName, gradeColor, parseLetters } from '../../data/year'
 import { ask } from '../../lib/confirm'
+import { CELLS, COURSES, DATES, lostList, part } from './removal'
 
 const GRADES = Array.from({ length: 11 }, (_, i) => i + 1)
 
@@ -28,14 +29,14 @@ export function ClassesSection({ year, classes }: { year: AcademicYear; classes:
   }
 
   async function remove(c: ClassGroup) {
-    if (!(await ask(`Видалити клас ${c.display_name}?`))) return
     // Разом із класом зникають його прив'язки до КТП, дати уроків і клітинки розкладу.
-    deleteRefs([
-      ref('class_groups', c.id),
-      ...(await refsWhere('course_classes', 'class_group_id', c.id)),
-      ...(await refsWhere('lesson_schedules', 'class_group_id', c.id)),
-      ...(await refsWhere('timetable_entries', 'class_group_id', c.id)),
-    ])
+    const links = await refsWhere('course_classes', 'class_group_id', c.id)
+    const dates = await refsWhere('lesson_schedules', 'class_group_id', c.id)
+    const cells = await refsWhere('timetable_entries', 'class_group_id', c.id)
+    const lost = lostList([part(links.length, COURSES), part(dates.length, DATES), part(cells.length, CELLS)])
+    const text = lost ? `Разом із класом зникне: ${lost}.` : ''
+    if (!(await ask(text || `Видалити клас ${c.display_name}?`, text ? { title: `Видалити клас ${c.display_name}?` } : undefined))) return
+    deleteRefs([ref('class_groups', c.id), ...links, ...dates, ...cells])
   }
 
   const byGrade = new Map<number, ClassGroup[]>()

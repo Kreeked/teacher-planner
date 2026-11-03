@@ -157,7 +157,7 @@ export function YearPage() {
 
             <section className="panel yp-block" aria-labelledby="yp-sub">
               <h2 id="yp-sub">Предмети й КТП</h2>
-              <SubjectsSection year={year} courses={courses} classes={classes} links={yearLinks} />
+              <SubjectsSection year={year} courses={courses} classes={classes} links={yearLinks} entries={entries} />
             </section>
 
             <BellsSection year={year} bells={bells[0]} entries={entries} shift={bellShift} onShift={setBellShift} />

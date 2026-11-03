@@ -4,18 +4,13 @@ import { datesAtRisk, type SetupChange } from '../../data/impact'
 import { toISO } from '../../data/schedule'
 import type { AcademicYear } from '../../data/types'
 import { ask } from '../../lib/confirm'
+import { count } from '../../lib/plural'
 import { useYearData } from './useYearData'
-
-const datesWord = (n: number) => {
-  const d = n % 10
-  const h = n % 100
-  return d === 1 && h !== 11 ? 'дата' : d >= 2 && d <= 4 && (h < 12 || h > 14) ? 'дати' : 'дат'
-}
 
 /** Текст про наслідки зміни для дат КТП; порожній, якщо дати не постраждають. */
 export function impactText(n: number) {
   return n
-    ? `${n} ${datesWord(n)} уроків у КТП перестануть збігатися з розкладом: опиняться поза семестром, у день без уроків чи без розкладу. Самі дати не зміняться, їх можна буде виправити в КТП.`
+    ? `${count(n, 'дата', 'дати', 'дат')} уроків у КТП перестануть збігатися з розкладом: опиняться поза семестром, у день без уроків чи без розкладу. Самі дати не зміняться, їх можна буде виправити в КТП.`
     : ''
 }
 
