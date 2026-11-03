@@ -6,9 +6,15 @@ export function semesters(periods: Period[]) {
   return sortPeriods(periods.filter((p) => !p.parent_id))
 }
 
-/** Розклад семестру: шаблон, дати якого збігаються з датами семестру. */
-export function semesterTimetable(timetables: Timetable[], sem: Pick<Period, 'start_date' | 'end_date'>) {
-  return timetables.find((t) => t.valid_from === sem.start_date && t.valid_to === sem.end_date)
+/**
+ * Розклад семестру: той, що прив'язаний до нього за id. Старі розклади без семестру
+ * належать першому семестру, в який потрапляють їхні дати.
+ */
+export function semesterTimetable(timetables: Timetable[], sem: Pick<Period, 'id' | 'start_date' | 'end_date'>) {
+  return (
+    timetables.find((t) => t.period_id === sem.id) ??
+    timetables.find((t) => !t.period_id && t.valid_from <= sem.start_date && sem.end_date <= t.valid_to)
+  )
 }
 
 /** Годин на тиждень у семестрі: у першому — `hours_per_week`, у всіх наступних — `hours_per_week_2` (немає — як у першому). */

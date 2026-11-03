@@ -26,6 +26,7 @@ import { useContext, useLayoutEffect, useRef, useState, type ReactNode } from 'r
 import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom'
 import { DatePicker } from '../../components/DatePicker'
 import { toISO } from '../../data/schedule'
+import { useTimetables } from '../../data/useTimetables'
 import { classWeekdays, courseIssues, dateProblem, type ScheduleData } from '../../data/mismatch'
 import { InlineText } from '../../components/InlineText'
 import { Menu, type MenuItem } from '../../components/Menu'
@@ -113,7 +114,7 @@ export function CoursePage() {
     course ? { field: 'academic_year_id', value: course.academic_year_id } : null,
   )
   const yearFilter = course ? { field: 'academic_year_id', value: course.academic_year_id } : null
-  const { items: timetables } = useCollection('timetables', yearFilter)
+  const { items: timetables } = useTimetables(yearFilter)
   const { items: allEntries } = useCollection('timetable_entries')
   const { items: daysOff } = useCollection('days_off', yearFilter)
   const { items: materials } = useCollection('lesson_materials', byCourse)

@@ -119,6 +119,8 @@ export type BellSchedule = Meta & {
 export type Timetable = Meta & {
   academic_year_id: string
   title: string
+  // Семестр, якому належить розклад: дати діють за ним, а не за valid_from/valid_to (у старих записів поля немає).
+  period_id?: string | null
   valid_from: ISODate
   valid_to: ISODate
 }

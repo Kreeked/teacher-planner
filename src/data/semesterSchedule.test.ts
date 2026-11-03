@@ -21,6 +21,17 @@ describe('semesters', () => {
     expect(semesterTimetable([tt('a', s1), tt('b', s2)], s2)?.id).toBe('b')
     expect(semesterTimetable([tt('a', s1)], s2)).toBeUndefined()
   })
+
+  it('розклад із семестром іде за id, навіть коли дати розійшлися', () => {
+    const moved = { ...tt('a', s1), period_id: 's1', valid_to: '2026-11-01' }
+    expect(semesterTimetable([moved], s1)?.id).toBe('a')
+    expect(semesterTimetable([moved], s2)).toBeUndefined()
+  })
+
+  it('старий розклад на весь рік належить семестру, що в нього потрапляє', () => {
+    const whole = { id: 'w', valid_from: '2026-09-01', valid_to: '2027-06-30' } as Timetable
+    expect(semesterTimetable([whole], s2)?.id).toBe('w')
+  })
 })
 
 describe('semesterHours', () => {

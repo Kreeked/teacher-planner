@@ -1,6 +1,6 @@
 import { Check, Plus, Trash2 } from 'lucide-react'
-import { useState } from 'react'
-import { deleteRefs, ref, refsWhere, useCollection } from '../../data/db'
+import { useEffect, useState } from 'react'
+import { deleteRefs, ref, refsWhere, updateFields, useCollection } from '../../data/db'
 import { toISO } from '../../data/schedule'
 import type { Shift } from '../../data/timetable'
 import type { AcademicYear } from '../../data/types'
@@ -36,6 +36,15 @@ export function YearPage() {
   const current = pickCurrentYear(years, today)
   const year = years.find((y) => y.id === selectedId) ?? current
   const { periods, classes, daysOff, bells, timetables, courses, links: yearLinks, entries } = useYearData(year)
+
+  // Старі розклади без семестру, дати яких збігаються з семестром, прив'язуються до нього: далі вони йдуть за його датами.
+  useEffect(() => {
+    for (const t of timetables)
+      if (!t.period_id) {
+        const sem = periods.find((p) => !p.parent_id && p.start_date === t.valid_from && p.end_date === t.valid_to)
+        if (sem) updateFields('timetables', t.id, { period_id: sem.id })
+      }
+  }, [timetables, periods])
 
   async function removeYear(y: AcademicYear) {
     if (
@@ -130,7 +139,7 @@ export function YearPage() {
 
             <section className="panel yp-block" aria-labelledby="yp-per">
               <h2 id="yp-per">Семестри й чверті</h2>
-              <PeriodsSection year={year} periods={periods} />
+              <PeriodsSection year={year} periods={periods} timetables={timetables} entries={entries} />
             </section>
 
             <section className="panel yp-block" aria-labelledby="yp-off">
@@ -152,6 +161,7 @@ export function YearPage() {
 
             <ScheduleSection
               year={year}
+              periods={periods}
               bells={bells[0]}
               timetables={timetables}
               entries={entries}

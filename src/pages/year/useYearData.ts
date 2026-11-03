@@ -1,4 +1,5 @@
 import { useCollection } from '../../data/db'
+import { useTimetables } from '../../data/useTimetables'
 import type { AcademicYear } from '../../data/types'
 
 /** Усе, що належить навчальному року: семестри, класи, предмети, дзвінки й розклад. */
@@ -8,7 +9,7 @@ export function useYearData(year: AcademicYear | undefined) {
   const { items: classes } = useCollection('class_groups', filter)
   const { items: daysOff } = useCollection('days_off', filter)
   const { items: bells } = useCollection('bell_schedules', filter)
-  const { items: timetables } = useCollection('timetables', filter)
+  const { items: timetables } = useTimetables(filter)
   const { items: courses } = useCollection('courses', filter)
   const { items: allEntries } = useCollection('timetable_entries')
   const { items: allLinks } = useCollection('course_classes')
