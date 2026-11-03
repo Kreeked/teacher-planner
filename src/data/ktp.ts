@@ -21,6 +21,18 @@ export function groupLessons(topics: Topic[], lessons: Lesson[]): TopicBlock[] {
   }))
 }
 
+/**
+ * Семестр нового уроку, що додається в кінець теми: той самий, що в найближчого попереднього уроку із семестром,
+ * а якщо таких немає — найближчого наступного. Без сусідів — без семестру.
+ */
+export function inheritedPeriod(blocks: TopicBlock[], topicId: string): string | null {
+  const at = blocks.findIndex((b) => b.topic.id === topicId) + 1
+  const before = blocks.slice(0, at).flatMap((b) => b.lessons)
+  const after = blocks.slice(at).flatMap((b) => b.lessons)
+  const near = [...before].reverse().find((l) => l.period_id) ?? after.find((l) => l.period_id)
+  return near?.period_id ?? null
+}
+
 export type LessonPatch = { id: string; topic_id: string; position: number; number: number }
 
 /**

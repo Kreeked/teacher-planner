@@ -49,6 +49,7 @@ import {
   courseTitle,
   groupLessons,
   hourWarnings,
+  inheritedPeriod,
   lessonsWord,
   placeLesson,
   placeTopic,
@@ -212,7 +213,7 @@ export function CoursePage() {
     const draft: Omit<Lesson, 'id' | 'owner_id'> = {
       course_id: courseId,
       topic_id: topic.id,
-      period_id: null,
+      period_id: inheritedPeriod(saved, topic.id),
       position: block.lessons.length,
       number: 0,
       title: '',
