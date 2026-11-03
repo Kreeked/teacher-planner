@@ -1,4 +1,4 @@
-import { addDays, weekday } from './schedule'
+import { weekday } from './schedule'
 import { timetableOn } from './timetable'
 import type { DayOff, ISODate, LessonSchedule, Timetable, TimetableEntry } from './types'
 
@@ -62,47 +62,4 @@ export function courseIssues(schedules: LessonSchedule[], courseId: string, d: S
     if (problem) issues.push({ id: s.id, lessonId: s.lesson_id, classId: s.class_group_id, date, problem })
   }
   return issues
-}
-
-/** Найближчий день за розкладом класу в межах bounds, де ще є вільна клітинка; null — такого немає поруч. */
-export function nearestDay(
-  date: ISODate,
-  classId: string,
-  courseId: string,
-  d: ScheduleData,
-  bounds: { start: ISODate; end: ISODate },
-  used: (day: ISODate) => number,
-): ISODate | null {
-  for (let i = 1; i <= 21; i++)
-    for (const sign of [1, -1]) {
-      const day = addDays(date, sign * i)
-      if (day < bounds.start || day > bounds.end) continue
-      if (dateProblem(day, classId, courseId, d)) continue
-      if (used(day) >= cellsOn(d, classId, courseId, day).length) continue
-      return day
-    }
-  return null
-}
-
-/** Куди перенести кожну дату з issues; null — немає куди. Зайняті клітинки враховуються, тож дві дати не лягають в одну. */
-export function planFixes(
-  issues: DateIssue[],
-  schedules: LessonSchedule[],
-  courseId: string,
-  d: ScheduleData,
-  bounds: { start: ISODate; end: ISODate },
-): Map<string, ISODate | null> {
-  const used = new Map<string, number>()
-  const key = (classId: string, day: ISODate) => `${classId}|${day}`
-  const moving = new Set(issues.map((i) => i.id))
-  for (const s of schedules)
-    if (s.course_id === courseId && s.planned_date && !moving.has(s.id))
-      used.set(key(s.class_group_id, s.planned_date), (used.get(key(s.class_group_id, s.planned_date)) ?? 0) + 1)
-  const fixes = new Map<string, ISODate | null>()
-  for (const i of [...issues].sort((a, b) => a.date.localeCompare(b.date))) {
-    const day = nearestDay(i.date, i.classId, courseId, d, bounds, (x) => used.get(key(i.classId, x)) ?? 0)
-    fixes.set(i.id, day)
-    if (day) used.set(key(i.classId, day), (used.get(key(i.classId, day)) ?? 0) + 1)
-  }
-  return fixes
 }

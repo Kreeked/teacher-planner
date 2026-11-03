@@ -1,21 +1,18 @@
-import { CalendarCheck, TriangleAlert } from 'lucide-react'
+import { TriangleAlert } from 'lucide-react'
 import { useContext, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Menu } from '../../components/Menu'
-import { commit, newBatch, updateFields } from '../../data/db'
 import type { DateIssue, DateProblem } from '../../data/mismatch'
 import type { ISODate } from '../../data/types'
 import { shortDate } from '../../data/year'
-import { ask } from '../../lib/confirm'
 import { reveal } from '../../lib/reveal'
-import { DateHintsContext, dayLabel, issueText } from './dateHintsContext'
+import { DateHintsContext, issueText } from './dateHintsContext'
 
-/** Пігулка дати, що не збігається з розкладом: у меню причина й перенесення на найближчий день. */
+/** Пігулка дати, що не збігається з розкладом: у меню причина. Дату не змінює: це рішення вчителя. */
 export function IssuePill({ id, className, date }: { id: string; className: string; date: ISODate }) {
   const hints = useContext(DateHintsContext)
   const issue = hints.issues.get(id)
   if (!issue) return null
-  const fix = hints.fixes.get(id)
   const reason = issueText(issue, hints.weekdays(issue.classId, issue.date))
   return (
     <Menu
@@ -28,18 +25,7 @@ export function IssuePill({ id, className, date }: { id: string; className: stri
           <span>{className}</span> <b className="num">{shortDate(date)}</b>
         </>
       }
-      groups={[
-        [{ label: reason, icon: TriangleAlert, onSelect: () => {} }],
-        fix
-          ? [
-              {
-                label: `Перенести на ${dayLabel(fix)} ${shortDate(fix)}`,
-                icon: CalendarCheck,
-                onSelect: () => updateFields('lesson_schedules', id, { planned_date: fix }),
-              },
-            ]
-          : [],
-      ]}
+      groups={[[{ label: reason, icon: TriangleAlert, onSelect: () => {} }]]}
     />
   )
 }
@@ -51,11 +37,10 @@ const KINDS: [DateProblem, string][] = [
   ['no-schedule', 'класу з цим КТП немає в розкладі'],
 ]
 
-/** Підсумок угорі КТП: скільки дат не збігається з розкладом, показати їх по черзі й перенести всі. */
-export function DateHintsBanner({ issues, fixes }: { issues: DateIssue[]; fixes: Map<string, ISODate | null> }) {
+/** Підсумок угорі КТП: скільки дат не збігається з розкладом і показати їх по черзі. */
+export function DateHintsBanner({ issues }: { issues: DateIssue[] }) {
   const [shown, setShown] = useState(0)
   if (issues.length === 0) return null
-  const movable = issues.filter((i) => fixes.get(i.id))
   const parts = KINDS.map(([k, text]) => [issues.filter((i) => i.problem === k).length, text] as const).filter(([n]) => n > 0)
 
   function show() {
@@ -63,14 +48,6 @@ export function DateHintsBanner({ issues, fixes }: { issues: DateIssue[]; fixes:
     const el = document.getElementById(`lesson-${issues[i].lessonId}`)
     if (el) reveal(el)
     setShown(i + 1)
-  }
-
-  async function moveAll() {
-    if (!(await ask(`Перенести ${movable.length} ${movable.length === 1 ? 'дату' : 'дат'} на найближчі дні за розкладом? Минулі дати не змінюються.`)))
-      return
-    const batch = newBatch()
-    for (const i of movable) updateFields('lesson_schedules', i.id, { planned_date: fixes.get(i.id) as ISODate }, batch)
-    commit(batch)
   }
 
   return (
@@ -85,11 +62,6 @@ export function DateHintsBanner({ issues, fixes }: { issues: DateIssue[]; fixes:
         <button type="button" className="btn ghost small" onClick={show}>
           Показати
         </button>
-        {movable.length > 0 && (
-          <button type="button" className="btn ghost small" onClick={moveAll}>
-            Перенести {movable.length} на найближчі дні
-          </button>
-        )}
         <Link to="/ktp/year" className="btn ghost small">
           Розклад
         </Link>

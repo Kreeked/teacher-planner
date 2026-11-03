@@ -2,31 +2,21 @@ import { FileUp, TriangleAlert } from 'lucide-react'
 import { Dialog } from '../../components/Dialog'
 import { useMemo, useState } from 'react'
 import { useCollection } from '../../data/db'
-import { courseTitle, lessonsWord } from '../../data/ktp'
+import { lessonsWord } from '../../data/ktp'
 import { classWeekdays, type DateProblem } from '../../data/mismatch'
 import { WEEKDAYS } from '../../data/schedule'
-import type { AcademicYear, ClassGroup, Course } from '../../data/types'
-import { formatDate, shortDate } from '../../data/year'
+import type { AcademicYear, Course } from '../../data/types'
+import { formatDate } from '../../data/year'
 import { applyImport, type ImportSummary } from '../../import/applyImport'
 import { readDocx } from '../../import/docx'
 import { KtpParseError, parseKtp, type ParsedKtp } from '../../import/ktpParser'
-import {
-  defaultDecisions,
-  isReplaced,
-  modeOf,
-  planImport,
-  type Decisions,
-  type ImportContext,
-  type Mode,
-} from '../../import/plan'
+import { planImport, semesterOf, type ImportContext } from '../../import/plan'
 
 type Props = {
   file: File
   year: AcademicYear
-  courses: Course[]
-  classes: ClassGroup[]
+  course: Course // КТП, у яке імпортуємо: інше вибрати не можна
   onClose: () => void
-  onDone: (courseId: string) => void
 }
 
 type State = { status: 'reading' } | { status: 'error'; message: string } | { status: 'ready'; ktp: ParsedKtp }
@@ -57,19 +47,15 @@ export function ImportDialog(props: Props) {
   )
 }
 
-function Preview({ ktp, file, year, courses, classes, onClose, onDone }: Props & { ktp: ParsedKtp }) {
-  const candidates = courses.filter((c) => c.grade === ktp.grade)
-  const [targetId, setTargetId] = useState(
-    candidates.find((c) => c.subject.toLowerCase() === ktp.subject.toLowerCase())?.id ?? '',
-  )
+function Preview({ ktp, file, year, course, onClose }: Props & { ktp: ParsedKtp }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [result, setResult] = useState<ImportSummary | null>(null)
-  const target = courses.find((c) => c.id === targetId) ?? null
 
-  // Усе, з чим імпорт має звіритися: наявне КТП (теми, уроки, дати), семестри, розклад і дні без уроків.
+  // Усе, з чим імпорт має звіритися: КТП (теми, уроки, дати), семестри, розклад і дні без уроків.
   const byYear = { field: 'academic_year_id', value: year.id }
-  const byCourse = target ? { field: 'course_id', value: target.id } : null
+  const byCourse = { field: 'course_id', value: course.id }
+  const { items: yearClasses, loading: l0 } = useCollection('class_groups', byYear)
   const { items: periods, loading: l1 } = useCollection('periods', byYear)
   const { items: daysOff, loading: l2 } = useCollection('days_off', byYear)
   const { items: timetables, loading: l3 } = useCollection('timetables', byYear)
@@ -78,11 +64,11 @@ function Preview({ ktp, file, year, courses, classes, onClose, onDone }: Props &
   const { items: topics, loading: l6 } = useCollection('topics', byCourse)
   const { items: lessonDocs, loading: l7 } = useCollection('lessons', byCourse)
   const { items: schedules, loading: l8 } = useCollection('lesson_schedules', byCourse)
-  const loading = l1 || l2 || l3 || l4 || l5 || l6 || l7 || l8
+  const loading = l0 || l1 || l2 || l3 || l4 || l5 || l6 || l7 || l8
 
   const ctx = useMemo<ImportContext>(
     () => ({
-      classes,
+      classes: yearClasses,
       periods,
       links,
       topics,
@@ -92,44 +78,26 @@ function Preview({ ktp, file, year, courses, classes, onClose, onDone }: Props &
       timetables,
       entries: allEntries.filter((e) => timetables.some((t) => t.id === e.timetable_id)),
     }),
-    [classes, periods, links, topics, lessonDocs, schedules, daysOff, timetables, allEntries],
+    [yearClasses, periods, links, topics, lessonDocs, schedules, daysOff, timetables, allEntries],
   )
-  const plan = useMemo(() => planImport(ktp, year, target, ctx), [ktp, year, target, ctx])
-
-  // Рішення з поточним планом: що додавати, мають значення за замовчуванням, поки користувач їх не змінив.
-  const [edits, setEdits] = useState<Partial<Decisions> & { forTarget?: string }>({})
-  const base = useMemo(() => defaultDecisions(plan), [plan])
-  const fresh = edits.forTarget === targetId
-  const decisions: Decisions = {
-    addClasses: (fresh && edits.addClasses) || base.addClasses,
-    addSemesters: (fresh && edits.addSemesters) || base.addSemesters,
-    mode: (fresh && edits.mode) || base.mode,
-    picks: (fresh && edits.picks) || base.picks,
-  }
-  const edit = (patch: Partial<Decisions>) => setEdits({ ...decisions, ...patch, forTarget: targetId })
-  const toggle = (set: Set<number>, n: number) => {
-    const next = new Set(set)
-    if (!next.delete(n)) next.add(n)
-    return next
-  }
+  const plan = useMemo(() => planImport(ktp, course, ctx), [ktp, course, ctx])
 
   const lessons = ktp.topics.flatMap((t) => t.lessons)
   const extra = lessons.filter((l) => l.number === null).length
-  const dates = lessons.reduce((n, l) => n + l.dates.filter(Boolean).length, 0)
   const topicsWithLessons = ktp.topics.filter((t) => t.lessons.length)
   const emptyTopics = ktp.topics.length - topicsWithLessons.length
-  const newClasses = plan.classes.filter((c) => !c.classId)
+  const used = plan.classes.filter((c) => c.classId && c.linked)
+  const skipped = plan.classes.filter((c) => !c.linked)
+  const dates = lessons.reduce((n, l) => n + l.dates.filter((d, i) => d && plan.classes[i]?.linked && plan.classes[i].classId).length, 0)
   const missingSemesters = plan.semesters.filter((s) => !s.exists)
-  const unlinked = target ? plan.classes.filter((c) => c.classId && !c.linked) : []
-  const included = (i: number) => !!plan.classes[i].classId || decisions.addClasses.has(i)
-  const conflictClasses = [...new Set(plan.conflicts.map((c) => c.classIndex))].filter(included)
-  const mismatches = plan.mismatches.filter((m) => m.bad > 0 && included(m.classIndex))
+  const differing = plan.semesters.filter((s) => s.differs)
+  const mismatches = plan.mismatches.filter((m) => m.bad > 0)
 
   async function run() {
     setBusy(true)
     setError('')
     try {
-      setResult(await applyImport(ktp, year, target, ctx, plan, decisions))
+      setResult(await applyImport(ktp, course, ctx, plan))
     } catch (e) {
       console.error(e)
       setError('Не вдалося зберегти. Спробуй ще раз.')
@@ -142,22 +110,20 @@ function Preview({ ktp, file, year, courses, classes, onClose, onDone }: Props &
       <Dialog
         title="Імпорт завершено"
         subtitle={file.name}
-        onClose={() => onDone(result.courseId)}
+        onClose={onClose}
         footer={
-          <button className="btn" onClick={() => onDone(result.courseId)}>
-            Відкрити КТП
+          <button className="btn" onClick={onClose}>
+            Закрити
           </button>
         }
       >
         <div className="import-notes">
           <span>
-            Додано {result.lessons} {lessonsWord(result.lessons)}, {result.topics} {topicsWord(result.topics)},{' '}
-            {result.dates} {datesWord(result.dates)}.
+            Додано {result.lessons} {lessonsWord(result.lessons)}, {result.topics} {topicsWord(result.topics)}.
           </span>
-          {result.skipped > 0 && <span>Пропущено {result.skipped}: вони вже були в КТП.</span>}
-          {result.classes > 0 && <span>Додано до року класів: {result.classes}.</span>}
-          {result.replaced > 0 && <span>Замінено дат датами з файлу: {result.replaced}.</span>}
-          {result.kept > 0 && <span>Дат, що розходилися з файлом і лишилися як були: {result.kept}.</span>}
+          {result.updated > 0 && <span>Оновлено з файлу {result.updated} {lessonsWord(result.updated)}, що вже були в КТП.</span>}
+          <span>Записано {result.dates} {datesWord(result.dates)}.</span>
+          {skipped.length > 0 && <span>Колонки без КТП пропущено: {skipped.map((c) => c.display).join(', ')}.</span>}
           {mismatches.length > 0 && (
             <span>Дат, що не збігаються з розкладом: {mismatches.reduce((n, m) => n + m.bad, 0)}.</span>
           )}
@@ -175,7 +141,7 @@ function Preview({ ktp, file, year, courses, classes, onClose, onDone }: Props &
           <button className="btn ghost" onClick={onClose}>
             Скасувати
           </button>
-          <button className="btn" onClick={run} disabled={busy || loading}>
+          <button className="btn" onClick={run} disabled={busy || loading || !!plan.error}>
             <FileUp size={16} /> {busy ? 'Імпортую…' : `Імпортувати ${lessons.length} ${lessonsWord(lessons.length)}`}
           </button>
         </>
@@ -220,8 +186,18 @@ function Preview({ ktp, file, year, courses, classes, onClose, onDone }: Props &
         {emptyTopics > 0 && <span>Ще {emptyTopics} тем з таблиці годин поки без уроків</span>}
       </div>
 
-      {ktp.warnings.length > 0 && (
+      {(ktp.warnings.length > 0 || plan.error || ktp.subject.toLowerCase() !== course.subject.toLowerCase()) && (
         <div className="warn-box">
+          {plan.error && (
+            <p className="warn">
+              <TriangleAlert size={14} /> {plan.error}
+            </p>
+          )}
+          {!plan.error && ktp.subject.toLowerCase() !== course.subject.toLowerCase() && (
+            <p className="warn">
+              <TriangleAlert size={14} /> У файлі предмет «{ktp.subject}», а це КТП «{course.subject}».
+            </p>
+          )}
           {ktp.warnings.map((w) => (
             <p key={w} className="warn">
               <TriangleAlert size={14} /> {w}
@@ -230,109 +206,40 @@ function Preview({ ktp, file, year, courses, classes, onClose, onDone }: Props &
         </div>
       )}
 
-      <label className="form-label">
-        Куди імпортувати
-        <select className="field" value={targetId} onChange={(e) => setTargetId(e.target.value)}>
-          <option value="">Створити нове КТП ({courseTitle({ subject: ktp.subject, grade: ktp.grade })})</option>
-          {candidates.map((c) => (
-            <option key={c.id} value={c.id}>
-              Дописати в «{courseTitle(c)}»
-            </option>
-          ))}
-        </select>
-      </label>
-      {targetId ? (
-        <p className="muted small-text">
-          Теми з такими самими назвами об'єднаються, а уроки, що вже є в темі, не дублюються: їм лише додаються порожні дати.
-          Так можна імпортувати ІІ семестр у те саме КТП.
-        </p>
-      ) : (
-        <p className="muted small-text">
-          Предмета «{ktp.subject}» для {ktp.grade} класу ще немає в налаштуваннях року: його буде додано разом із КТП.
-        </p>
-      )}
+      <p className="muted small-text">
+        Імпорт нічого не змінює в налаштуваннях року. Теми й уроки, що вже є в КТП (за назвою), переписуються даними з файлу:
+        тип, ДЗ, семестр і дати. Порожня дата з файлу наявну не стирає, уроки, яких немає у файлі, лишаються.
+      </p>
 
-      {(newClasses.length > 0 || missingSemesters.length > 0 || unlinked.length > 0) && (
+      {(skipped.length > 0 || missingSemesters.length > 0 || differing.length > 0) && (
         <section className="import-sec">
-          <h3 className="sec-label">Чого бракує в налаштуваннях року</h3>
-          {newClasses.map((c) => (
-            <label key={c.index} className="check">
-              <input
-                type="checkbox"
-                checked={decisions.addClasses.has(c.index)}
-                onChange={() => edit({ addClasses: toggle(decisions.addClasses, c.index) })}
-              />
-              Додати клас {c.display} до року й до цього КТП
-            </label>
+          <h3 className="sec-label">Що не збігається з налаштуваннями року</h3>
+          {skipped.map((c) => (
+            <p key={c.index} className="warn">
+              <TriangleAlert size={14} />
+              <span>
+                {c.display}: {c.classId ? 'клас не прив’язано до цього КТП' : 'такого класу немає в році'}, дати цієї колонки не
+                імпортуються. Це змінюється в налаштуваннях року.
+              </span>
+            </p>
           ))}
-          {newClasses.some((c) => !decisions.addClasses.has(c.index)) && (
-            <p className="muted small-text">Дати класів без галочки з файлу не імпортуються.</p>
-          )}
-          {missingSemesters.map((s) =>
-            s.error ? (
-              <p key={s.number} className="warn">
-                <TriangleAlert size={14} /> {s.number === 1 ? 'І' : 'ІІ'} семестр не додасться: {s.error.toLowerCase()}
-              </p>
-            ) : (
-              <label key={s.number} className="check">
-                <input
-                  type="checkbox"
-                  checked={decisions.addSemesters.has(s.number)}
-                  onChange={() => edit({ addSemesters: toggle(decisions.addSemesters, s.number) })}
-                />
-                Додати {s.number === 1 ? 'І' : 'ІІ'} семестр ({shortRange(ktp, s.number)})
-              </label>
-            ),
-          )}
-          {unlinked.length > 0 && (
-            <p className="muted small-text">До цього КТП буде прив'язано: {unlinked.map((c) => c.display).join(', ')}.</p>
-          )}
-        </section>
-      )}
-
-      {conflictClasses.length > 0 && (
-        <section className="import-sec">
-          <h3 className="sec-label">Дати, що розходяться з тими, що вже є в системі</h3>
-          {conflictClasses.map((i) => {
-            const own = plan.conflicts.filter((c) => c.classIndex === i)
-            const mode = modeOf(decisions, i)
+          {missingSemesters.map((s) => (
+            <p key={s.number} className="warn">
+              <TriangleAlert size={14} />
+              <span>{s.number === 1 ? 'І' : 'ІІ'} семестру немає в році: його уроки імпортуються без семестру.</span>
+            </p>
+          ))}
+          {differing.map((s) => {
+            const f = ktp.semesters.find((x) => x.number === s.number)
+            const y = periods.find((p) => !p.parent_id && semesterOf(p) === s.number)
             return (
-              <div key={i} className="import-conflict">
-                <div className="import-conflict-head">
-                  <b>{plan.classes[i].display}</b>
-                  <span className="muted small-text">{own.length} {datesWord(own.length)}</span>
-                  <select
-                    className="field"
-                    aria-label={`Дати ${plan.classes[i].display}`}
-                    value={mode}
-                    onChange={(e) => edit({ mode: { ...decisions.mode, [i]: e.target.value as Mode } })}
-                  >
-                    <option value="keep">Залишити як у системі</option>
-                    <option value="replace">Замінити датами з файлу</option>
-                    <option value="each">Вирішити по одній</option>
-                  </select>
-                </div>
-                {mode === 'each' &&
-                  own.map((c) => (
-                    <label key={c.key} className="check import-pick">
-                      <input
-                        type="checkbox"
-                        checked={isReplaced(c, decisions)}
-                        onChange={() => {
-                          const picks = new Set(decisions.picks)
-                          if (!picks.delete(c.key)) picks.add(c.key)
-                          edit({ picks })
-                        }}
-                      />
-                      <span>
-                        {c.label}
-                        <small>
-                          у системі {shortDate(c.current)}, у файлі {shortDate(c.incoming)} — взяти з файлу
-                        </small>
-                      </span>
-                    </label>
-                  ))}
-              </div>
+              <p key={s.number} className="warn">
+                <TriangleAlert size={14} />
+                <span>
+                  {s.number === 1 ? 'І' : 'ІІ'} семестр: у файлі {f && `${formatDate(f.start)} — ${formatDate(f.end)}`}, у році{' '}
+                  {y && `${formatDate(y.start_date)} — ${formatDate(y.end_date)}`}.
+                </span>
+              </p>
             )
           })}
         </section>
@@ -343,8 +250,8 @@ function Preview({ ktp, file, year, courses, classes, onClose, onDone }: Props &
           <h3 className="sec-label">Дати з файлу й розклад</h3>
           {mismatches.map((m) => {
             const c = plan.classes[m.classIndex]
-            const first = ktp.topics.flatMap((t) => t.lessons).map((l) => l.dates[m.classIndex]).find(Boolean)
-            const days = c.classId && target && first ? classWeekdays(ctx, c.classId, target.id, first) : []
+            const first = lessons.map((l) => l.dates[m.classIndex]).find(Boolean)
+            const days = c.classId && first ? classWeekdays(ctx, c.classId, course.id, first) : []
             return (
               <p key={m.classIndex} className="warn">
                 <TriangleAlert size={14} />
@@ -354,18 +261,14 @@ function Preview({ ktp, file, year, courses, classes, onClose, onDone }: Props &
               </p>
             )
           })}
-          <p className="muted small-text">Імпорт дат не змінює. Розбіжності лишаться підказкою, а розклад можна виправити на сторінці року.</p>
+          <p className="muted small-text">Дати імпортуються як у файлі й лишаються підсвіченими в КТП. Розклад міняється на сторінці року.</p>
         </section>
       )}
 
+      {used.length === 0 && <p className="muted small-text">Жоден клас файлу не прив’язано до цього КТП: дат не буде.</p>}
       {error && <p className="field-error">{error}</p>}
     </Dialog>
   )
-}
-
-function shortRange(k: ParsedKtp, number: number) {
-  const s = k.semesters.find((x) => x.number === number)
-  return s ? `${formatDate(s.start)} — ${formatDate(s.end)}` : ''
 }
 
 function problemText(problems: Partial<Record<DateProblem, number>>, days: number[]) {
