@@ -21,6 +21,8 @@ type Props = {
   // Межі вибору (наприклад, навчальний рік); дні поза ними неактивні.
   min?: ISODate
   max?: ISODate
+  // Додатково дозволяє лише деякі дні (наприклад, за розкладом); решта неактивні.
+  allowDay?: (d: ISODate) => boolean
   // На телефоні показує лише тиждень вибраного дня, а місяць розгортається кнопкою.
   collapsible?: boolean
   // Якщо задано — у шапці з'являється кнопка «Сьогодні».
@@ -71,7 +73,7 @@ function buildPane(anchor: ISODate, weekMode: boolean): Pane {
   return { key: weekMode ? monday : month, month, days, row }
 }
 
-export function MonthCalendar({ today, selected, onSelect, marked, min, max, collapsible, onToday, pickMonth }: Props) {
+export function MonthCalendar({ today, selected, onSelect, marked, min, max, allowDay, collapsible, onToday, pickMonth }: Props) {
   // День, чий місяць (або тиждень) зараз показано.
   const [anchor, setAnchor] = useState<ISODate>(selected || today)
   const [open, setOpen] = useState(false)
@@ -439,7 +441,7 @@ export function MonthCalendar({ today, selected, onSelect, marked, min, max, col
                   if (d === today) cls.push('today')
                   if (d === selected) cls.push('sel')
                   if (marked?.has(d)) cls.push('has')
-                  const off = (min && d < min) || (max && d > max)
+                  const off = (min && d < min) || (max && d > max) || (allowDay && !allowDay(d))
                   return (
                     <button
                       key={d}

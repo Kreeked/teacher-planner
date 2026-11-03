@@ -26,7 +26,7 @@ import { useContext, useLayoutEffect, useRef, useState, type ReactNode } from 'r
 import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom'
 import { DatePicker } from '../../components/DatePicker'
 import { toISO } from '../../data/schedule'
-import { classWeekdays, courseIssues, type ScheduleData } from '../../data/mismatch'
+import { classWeekdays, courseIssues, dateProblem, type ScheduleData } from '../../data/mismatch'
 import { InlineText } from '../../components/InlineText'
 import { Menu, type MenuItem } from '../../components/Menu'
 import { useDragSensors, useSortableItem, type HandleProps } from '../../lib/drag'
@@ -191,6 +191,7 @@ export function CoursePage() {
   const hints = {
     issues: new Map(issues.map((i) => [i.id, i])),
     weekdays: (classId: string, date: string) => classWeekdays(sched, classId, course.id, date),
+    allowed: (classId: string, date: string) => dateProblem(date, classId, course.id, sched) === null,
   }
   function addTopic() {
     const id = createDoc('topics', {
@@ -802,6 +803,7 @@ function DateCell({ lesson, cls, year, schedule }: DateCellProps) {
         value={stored}
         min={year?.start_date}
         max={year?.end_date}
+        allowDay={(d) => hints.allowed(cls.id, d)}
         onChange={save}
       />
     </span>
