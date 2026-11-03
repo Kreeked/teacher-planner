@@ -27,7 +27,7 @@ import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom'
 import { DatePicker } from '../../components/DatePicker'
 import { toISO } from '../../data/schedule'
 import { useTimetables } from '../../data/useTimetables'
-import { classWeekdays, courseIssues, dateProblem, type ScheduleData } from '../../data/mismatch'
+import { classWeekdays, courseIssues, dateProblem, scheduleRanges, type ScheduleData } from '../../data/mismatch'
 import { InlineText } from '../../components/InlineText'
 import { Menu, type MenuItem } from '../../components/Menu'
 import { useDragSensors, useSortableItem, type HandleProps } from '../../lib/drag'
@@ -114,6 +114,7 @@ export function CoursePage() {
     course ? { field: 'academic_year_id', value: course.academic_year_id } : null,
   )
   const yearFilter = course ? { field: 'academic_year_id', value: course.academic_year_id } : null
+  const { items: periods } = useCollection('periods', yearFilter)
   const { items: timetables } = useTimetables(yearFilter)
   const { items: allEntries } = useCollection('timetable_entries')
   const { items: daysOff } = useCollection('days_off', yearFilter)
@@ -187,6 +188,7 @@ export function CoursePage() {
     timetables,
     entries: allEntries.filter((e) => timetables.some((t) => t.id === e.timetable_id)),
     daysOff,
+    ranges: year && scheduleRanges(periods, year),
   }
   const issues = courseIssues(schedules, course.id, sched, today)
   const hints = {

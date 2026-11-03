@@ -33,6 +33,7 @@ export function IssuePill({ id, className, date }: { id: string; className: stri
 const KINDS: [DateProblem, string][] = [
   ['weekday', 'не той день тижня'],
   ['day-off', 'день без уроків'],
+  ['out-of-range', 'поза семестром'],
   ['overbooked', 'більше уроків, ніж у розкладі'],
   ['no-schedule', 'класу з цим КТП немає в розкладі'],
 ]

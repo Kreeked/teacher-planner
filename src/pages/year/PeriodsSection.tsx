@@ -4,6 +4,7 @@ import { commit, createDoc, newBatch, ref, refsWhere, updateFields } from '../..
 import type { AcademicYear, Period, Timetable, TimetableEntry } from '../../data/types'
 import { ROMAN, sortPeriods, validatePeriod } from '../../data/year'
 import { ask } from '../../lib/confirm'
+import { impactText, type useImpact } from './useImpact'
 import { notifySaved } from '../../lib/saved'
 
 /**
@@ -15,11 +16,13 @@ export function PeriodsSection({
   periods,
   timetables,
   entries,
+  impact,
 }: {
   year: AcademicYear
   periods: Period[]
   timetables: Timetable[]
   entries: TimetableEntry[]
+  impact: ReturnType<typeof useImpact>
 }) {
   const semesters = sortPeriods(periods.filter((p) => !p.parent_id))
   const quarterCount = periods.filter((p) => p.kind === 'quarter').length
@@ -58,12 +61,18 @@ export function PeriodsSection({
     const own = timetables.filter((t) => t.period_id === p.id)
     const cells = entries.filter((e) => own.some((t) => t.id === e.timetable_id))
     const lessons = (await Promise.all([p, ...children].map((x) => refsWhere('lessons', 'period_id', x.id)))).flat()
+    const gone = new Set([p, ...children].map((x) => x.id))
+    const risk = impact.count({
+      periods: periods.filter((x) => !gone.has(x.id)),
+      timetables: timetables.filter((t) => !own.includes(t)),
+      entries: entries.filter((e) => !cells.includes(e)),
+    })
     const effects = [
       own.length && `розклад семестру (клітинок: ${cells.length})`,
       lessons.length && `семестр у ${lessons.length} уроках КТП (вони лишаться без семестру, дати не зміняться)`,
     ].filter(Boolean)
-    const text = effects.length ? `Разом із цим зникне: ${effects.join('; ')}.` : undefined
-    if (!(await ask(text ?? `Видалити ${what}?`, text ? { title: `Видалити ${what}?` } : undefined))) return
+    const text = [effects.length && `Разом із цим зникне: ${effects.join('; ')}.`, impactText(risk)].filter(Boolean).join(' ')
+    if (!(await ask(text || `Видалити ${what}?`, text ? { title: `Видалити ${what}?` } : undefined))) return
     const batch = newBatch()
     for (const x of [p, ...children]) batch.delete(ref('periods', x.id))
     for (const e of cells) batch.delete(ref('timetable_entries', e.id))
@@ -84,6 +93,12 @@ export function PeriodsSection({
           start_date: p.start_date,
           end_date: p.end_date,
         }}
+        confirm={(v) =>
+          impact.confirm(
+            { periods: periods.map((x) => (x.id === p.id ? { ...x, start_date: v.start_date, end_date: v.end_date } : x)) },
+            nested ? 'Змінити дати чверті?' : 'Змінити дати семестру?',
+          )
+        }
         validate={(v) =>
           validatePeriod(
             {

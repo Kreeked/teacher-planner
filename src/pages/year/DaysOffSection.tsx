@@ -5,9 +5,10 @@ import type { AcademicYear, DayOff } from '../../data/types'
 import { validateDayOff } from '../../data/year'
 import { ask } from '../../lib/confirm'
 import { notifySaved } from '../../lib/saved'
+import type { useImpact } from './useImpact'
 
 /** Канікули й свята: у ці дні уроків немає, тож дати КТП на них не ставляться. */
-export function DaysOffSection({ year, daysOff }: { year: AcademicYear; daysOff: DayOff[] }) {
+export function DaysOffSection({ year, daysOff, impact }: { year: AcademicYear; daysOff: DayOff[]; impact: ReturnType<typeof useImpact> }) {
   const sorted = [...daysOff].sort((a, b) => a.start_date.localeCompare(b.start_date))
 
   function add() {
@@ -32,6 +33,7 @@ export function DaysOffSection({ year, daysOff }: { year: AcademicYear; daysOff:
             titleLabel="Назва"
             deleteLabel="Видалити"
             value={{ title: d.title, start_date: d.start_date, end_date: d.end_date }}
+            confirm={(v) => impact.confirm({ daysOff: daysOff.map((x) => (x.id === d.id ? { ...x, ...v } : x)) }, 'Змінити дні без уроків?')}
             validate={(v) => validateDayOff(v, year)}
             onSave={(v) => (updateFields('days_off', d.id, v), notifySaved())}
             onDelete={() => remove(d)}

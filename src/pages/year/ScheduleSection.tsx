@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useCollection } from '../../data/db'
 import { courseTitle } from '../../data/ktp'
-import { courseIssues } from '../../data/mismatch'
+import { courseIssues, scheduleRanges } from '../../data/mismatch'
 import { toISO } from '../../data/schedule'
 import type { Shift } from '../../data/timetable'
 import type { AcademicYear, BellSchedule, ClassGroup, Course, CourseClass, DayOff, Period, Timetable, TimetableEntry } from '../../data/types'
@@ -37,7 +37,7 @@ export function ScheduleSection({ year, periods, bells, timetables, entries, cou
       </div>
 
       {courses.map((c) => (
-        <CourseIssues key={c.id} course={c} data={{ timetables, entries, daysOff }} from={today} />
+        <CourseIssues key={c.id} course={c} data={{ timetables, entries, daysOff, ranges: scheduleRanges(periods, year) }} from={today} />
       ))}
 
       {!courses.length && (
