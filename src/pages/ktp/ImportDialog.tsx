@@ -2,6 +2,7 @@ import { FileUp, TriangleAlert } from 'lucide-react'
 import { Dialog } from '../../components/Dialog'
 import { useMemo, useState } from 'react'
 import { useCollection } from '../../data/db'
+import { useTimetables } from '../../data/useTimetables'
 import { lessonsWord } from '../../data/ktp'
 import { classWeekdays, type DateProblem } from '../../data/mismatch'
 import { WEEKDAYS } from '../../data/schedule'
@@ -58,7 +59,7 @@ function Preview({ ktp, file, year, course, onClose }: Props & { ktp: ParsedKtp 
   const { items: yearClasses, loading: l0 } = useCollection('class_groups', byYear)
   const { items: periods, loading: l1 } = useCollection('periods', byYear)
   const { items: daysOff, loading: l2 } = useCollection('days_off', byYear)
-  const { items: timetables, loading: l3 } = useCollection('timetables', byYear)
+  const { items: timetables, loading: l3 } = useTimetables(byYear)
   const { items: allEntries, loading: l4 } = useCollection('timetable_entries')
   const { items: links, loading: l5 } = useCollection('course_classes', byCourse)
   const { items: topics, loading: l6 } = useCollection('topics', byCourse)

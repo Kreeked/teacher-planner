@@ -24,7 +24,7 @@ import { confirmReset } from './confirmReset'
 import { semestersComplete, vacationsComplete } from '../../data/vacations'
 import { BellsStep } from './BellsStep'
 import { ClassesStep } from './ClassesStep'
-import { ScheduleStep } from './ScheduleStep'
+import { ScheduleEditor } from '../year/ScheduleEditor'
 import { SemestersStep, VacationsStep } from './SemestersStep'
 import { SubjectsStep } from './SubjectsStep'
 import { YearFields, yearTitleError } from './YearFields'
@@ -207,7 +207,7 @@ export function Wizard({ onExit, onDone }: Props) {
                 <BellsStep year={year} bells={data.bells[0]} entries={data.entries} shift={bellShift} onShift={setBellShift} />
               )}
               {year && current.id === 'schedule' && (
-                <ScheduleStep
+                <ScheduleEditor
                   year={year}
                   periods={data.periods}
                   bells={data.bells[0]}

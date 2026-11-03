@@ -1,13 +1,26 @@
 import { Plus } from 'lucide-react'
 import { RangeRow } from '../../components/RangeRow'
-import { commit, createDoc, newBatch, ref, updateFields } from '../../data/db'
-import type { AcademicYear, Period } from '../../data/types'
+import { commit, createDoc, newBatch, ref, refsWhere, updateFields } from '../../data/db'
+import type { AcademicYear, Period, Timetable, TimetableEntry } from '../../data/types'
 import { ROMAN, sortPeriods, validatePeriod } from '../../data/year'
 import { ask } from '../../lib/confirm'
 import { notifySaved } from '../../lib/saved'
 
-/** Семестри з чвертями всередині: усе редагується одразу, без окремого вікна. */
-export function PeriodsSection({ year, periods }: { year: AcademicYear; periods: Period[] }) {
+/**
+ * Семестри з чвертями всередині: усе редагується одразу, без окремого вікна. Розклад семестру йде за його датами,
+ * а з видаленням семестру зникає і його розклад.
+ */
+export function PeriodsSection({
+  year,
+  periods,
+  timetables,
+  entries,
+}: {
+  year: AcademicYear
+  periods: Period[]
+  timetables: Timetable[]
+  entries: TimetableEntry[]
+}) {
   const semesters = sortPeriods(periods.filter((p) => !p.parent_id))
   const quarterCount = periods.filter((p) => p.kind === 'quarter').length
 
@@ -42,9 +55,20 @@ export function PeriodsSection({ year, periods }: { year: AcademicYear; periods:
   async function remove(p: Period) {
     const children = periods.filter((x) => x.parent_id === p.id)
     const what = children.length ? `${p.title} разом із чвертями (${children.length})` : p.title
-    if (!(await ask(`Видалити ${what}?`))) return
+    const own = timetables.filter((t) => t.period_id === p.id)
+    const cells = entries.filter((e) => own.some((t) => t.id === e.timetable_id))
+    const lessons = (await Promise.all([p, ...children].map((x) => refsWhere('lessons', 'period_id', x.id)))).flat()
+    const effects = [
+      own.length && `розклад семестру (клітинок: ${cells.length})`,
+      lessons.length && `семестр у ${lessons.length} уроках КТП (вони лишаться без семестру, дати не зміняться)`,
+    ].filter(Boolean)
+    const text = effects.length ? `Разом із цим зникне: ${effects.join('; ')}.` : undefined
+    if (!(await ask(text ?? `Видалити ${what}?`, text ? { title: `Видалити ${what}?` } : undefined))) return
     const batch = newBatch()
     for (const x of [p, ...children]) batch.delete(ref('periods', x.id))
+    for (const e of cells) batch.delete(ref('timetable_entries', e.id))
+    for (const t of own) batch.delete(ref('timetables', t.id))
+    for (const l of lessons) updateFields('lessons', l.id, { period_id: null }, batch)
     commit(batch)
   }
 

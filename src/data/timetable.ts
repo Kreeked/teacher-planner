@@ -1,5 +1,5 @@
 import { weekday } from './schedule'
-import type { BellSchedule, BellSlot, ISODate, Timetable, TimetableEntry } from './types'
+import type { BellSchedule, BellSlot, ISODate, Period, Timetable, TimetableEntry } from './types'
 
 export type Shift = 1 | 2
 
@@ -204,4 +204,15 @@ export function slotsOn(entries: TimetableEntry[], timetable: Timetable | undefi
     )
   }
   return map
+}
+
+/**
+ * Розклад семестру діє в дати цього семестру: зміна дат семестру рухає і його розклад.
+ * Розклади без семестру (старі записи) чи з видаленим семестром лишаються зі своїми датами.
+ */
+export function followSemesters(timetables: Timetable[], periods: Pick<Period, 'id' | 'parent_id' | 'start_date' | 'end_date'>[]): Timetable[] {
+  return timetables.map((t) => {
+    const sem = t.period_id ? periods.find((p) => p.id === t.period_id && !p.parent_id) : undefined
+    return sem && sem.start_date && sem.end_date ? { ...t, valid_from: sem.start_date, valid_to: sem.end_date } : t
+  })
 }

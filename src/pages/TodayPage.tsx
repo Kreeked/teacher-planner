@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { bellsOfDay, currentAndNext, lessonsOfDay, type DayData, type DayLesson } from '../data/day'
 import { useCollection } from '../data/db'
+import { useTimetables } from '../data/useTimetables'
 import { LESSON_TYPES } from '../data/ktp'
 import { toISO } from '../data/schedule'
 import { materialsOf } from '../data/materials'
@@ -44,7 +45,7 @@ export function TodayPage() {
   const { items: courses } = useCollection('courses')
   const { items: classes } = useCollection('class_groups')
   const { items: topics } = useCollection('topics')
-  const { items: timetables } = useCollection('timetables')
+  const { items: timetables } = useTimetables()
   const { items: entries } = useCollection('timetable_entries')
   const { items: bells } = useCollection('bell_schedules')
   const { items: materials } = useCollection('lesson_materials')

@@ -46,7 +46,7 @@ function Pills<T extends string | number>({ label, items, value, onChange }: {
  * Тижневий розклад: день × номер уроку → клас і КТП. Розклад у кожного семестру свій: І є завжди, а наступні
  * додаються кнопкою й можуть бути видалені. Клас можна поставити стільки разів на тиждень, скільки в нього годин у цьому семестрі.
  */
-export function ScheduleStep({ year, periods, bells, timetables, entries, courses, classes, links, shift, onShift }: Props) {
+export function ScheduleEditor({ year, periods, bells, timetables, entries, courses, classes, links, shift, onShift }: Props) {
   const sems = semesters(periods)
   const [semIndex, setSemIndex] = useState(0)
   const sem = sems[Math.min(semIndex, sems.length - 1)]
@@ -77,7 +77,7 @@ export function ScheduleStep({ year, periods, bells, timetables, entries, course
   const genitive = (t: string) => (t.endsWith('семестр') ? `${t}у` : t)
 
   function addTimetable() {
-    createDoc('timetables', { academic_year_id: year.id, title: `Розклад, ${sem.title}`, valid_from: sem.start_date, valid_to: sem.end_date })
+    createDoc('timetables', { academic_year_id: year.id, period_id: sem.id, title: `Розклад, ${sem.title}`, valid_from: sem.start_date, valid_to: sem.end_date })
   }
 
   async function removeTimetable() {
@@ -104,7 +104,7 @@ export function ScheduleStep({ year, periods, bells, timetables, entries, course
       tt?.id ??
       createDoc(
         'timetables',
-        { academic_year_id: year.id, title: `Розклад, ${sem.title}`, valid_from: sem.start_date, valid_to: sem.end_date },
+        { academic_year_id: year.id, period_id: sem.id, title: `Розклад, ${sem.title}`, valid_from: sem.start_date, valid_to: sem.end_date },
         batch,
       )
     createDoc('timetable_entries', { timetable_id, weekday: day, slot_number: slot, shift, class_group_id, course_id }, batch)
