@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { groupLessons, hourWarnings, lessonsWord, placeLesson, placeTopic, renumber, typePatch, weeklyHours, yearHours } from './ktp'
+import { groupLessons, hourWarnings, inheritedPeriod, lessonsWord, placeLesson, placeTopic, renumber, typePatch, weeklyHours, yearHours } from './ktp'
 import type { Lesson, Topic } from './types'
 
 function topic(id: string, position: number, planned_hours = 0): Topic {
@@ -139,5 +139,25 @@ describe('yearHours', () => {
     expect(yearHours(1, 1)).toBe(35)
     expect(yearHours(2, 1)).toBe(52)
     expect(yearHours(0.5, 0.5)).toBe(18)
+  })
+})
+
+describe('inheritedPeriod', () => {
+  const withPeriod = (l: Lesson, period_id: string | null): Lesson => ({ ...l, period_id })
+  const block = (t: string, position: number, lessons: Lesson[]) => ({ topic: topic(t, position), lessons })
+
+  it('бере семестр найближчого попереднього уроку із семестром', () => {
+    const blocks = [
+      block('T1', 0, [withPeriod(lesson('a', 'T1', 0), 'S1'), withPeriod(lesson('b', 'T1', 1), null)]),
+      block('T2', 1, []),
+    ]
+    expect(inheritedPeriod(blocks, 'T1')).toBe('S1')
+    expect(inheritedPeriod(blocks, 'T2')).toBe('S1')
+  })
+
+  it('без попередніх бере найближчий наступний, а без сусідів — null', () => {
+    const blocks = [block('T1', 0, []), block('T2', 1, [withPeriod(lesson('a', 'T2', 0), 'S2')])]
+    expect(inheritedPeriod(blocks, 'T1')).toBe('S2')
+    expect(inheritedPeriod([block('T1', 0, [])], 'T1')).toBeNull()
   })
 })
