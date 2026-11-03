@@ -1,22 +1,23 @@
 import { Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
-import { commit, createDoc, deleteRefs, newBatch, ref, refsWhere, removeDoc, updateFields } from '../../data/db'
+import { commit, createDoc, deleteRefs, newBatch, ref, refsWhere, updateFields } from '../../data/db'
 import { courseTitle, yearHours } from '../../data/ktp'
-import type { ClassGroup, Course, CourseClass } from '../../data/types'
+import type { ClassGroup, Course, CourseClass, TimetableEntry } from '../../data/types'
 import type { AcademicYear } from '../../data/types'
 import { gradeColor } from '../../data/year'
 import { ask } from '../../lib/confirm'
 import { notifySaved } from '../../lib/saved'
+import { CELLS, DATES, FILES, LESSONS, THEMES, lostList, part } from './removal'
 
 const parse = (v: string) => Number(v.replace(',', '.'))
 
-type Props = { year: AcademicYear; courses: Course[]; classes: ClassGroup[]; links: CourseClass[] }
+type Props = { year: AcademicYear; courses: Course[]; classes: ClassGroup[]; links: CourseClass[]; entries: TimetableEntry[] }
 
 /**
  * Предмети року: що викладаю, в яких паралелях і класах, скільки годин. Кожен предмет — це КТП,
  * спершу порожнє: теми й уроки додаються на сторінці КТП (вручну чи імпортом з Word).
  */
-export function SubjectsSection({ year, courses, classes, links }: Props) {
+export function SubjectsSection({ year, courses, classes, links, entries }: Props) {
   const grades = [...new Set(classes.map((c) => c.grade))].sort((a, b) => a - b)
   const [subject, setSubject] = useState('Інформатика')
   const [grade, setGrade] = useState<number | null>(null)
@@ -64,7 +65,13 @@ export function SubjectsSection({ year, courses, classes, links }: Props) {
       )}
       <div className="yp-subjects">
         {sorted.map((c) => (
-          <SubjectRow key={c.id} course={c} classes={classes} links={links.filter((l) => l.course_id === c.id)} />
+          <SubjectRow
+            key={c.id}
+            course={c}
+            classes={classes}
+            links={links.filter((l) => l.course_id === c.id)}
+            entries={entries.filter((e) => e.course_id === c.id)}
+          />
         ))}
       </div>
       {classes.length > 0 && (
@@ -106,7 +113,7 @@ export function SubjectsSection({ year, courses, classes, links }: Props) {
   )
 }
 
-function SubjectRow({ course, classes, links }: { course: Course; classes: ClassGroup[]; links: CourseClass[] }) {
+function SubjectRow({ course, classes, links, entries }: { course: Course; classes: ClassGroup[]; links: CourseClass[]; entries: TimetableEntry[] }) {
   const gradeClasses = classes
     .filter((c) => c.grade === course.grade)
     .sort((a, b) => a.letter.localeCompare(b.letter, 'uk'))
@@ -128,23 +135,40 @@ function SubjectRow({ course, classes, links }: { course: Course; classes: Class
     save({ [field]: n, total_hours: yearHours(h1, h2) })
   }
 
-  function toggleClass(classId: string) {
+  async function toggleClass(classId: string) {
     const link = links.find((l) => l.class_group_id === classId)
-    if (link) removeDoc('course_classes', link.id)
-    else createDoc('course_classes', { course_id: course.id, class_group_id: classId, position: links.length })
+    if (link) {
+      // Клас, якого немає в КТП, не може лишатися в його розкладі й мати дати його уроків: усе це йде разом із прив'язкою.
+      const name = classes.find((c) => c.id === classId)?.display_name ?? 'клас'
+      const dates = (await refsWhere('lesson_schedules', 'course_id', course.id)).filter((r) => r.id.endsWith(`_${classId}`))
+      const cells = entries.filter((e) => e.class_group_id === classId)
+      const lost = lostList([part(dates.length, DATES), part(cells.length, CELLS)])
+      if (lost && !(await ask(`Разом із прив’язкою зникне: ${lost}.`, { title: `Прибрати ${name} з «${courseTitle(course)}»?` }))) return
+      const batch = newBatch()
+      batch.delete(ref('course_classes', link.id))
+      for (const r of dates) batch.delete(r)
+      for (const e of cells) batch.delete(ref('timetable_entries', e.id))
+      commit(batch)
+    } else createDoc('course_classes', { course_id: course.id, class_group_id: classId, position: links.length })
   }
 
   async function remove() {
-    if (
-      !(await ask(
-        `Видалити предмет «${courseTitle(course)}» разом із КТП: темами, уроками, датами, матеріалами і клітинками розкладу? Це незворотно.`,
-        { word: 'видалити' },
-      ))
-    )
-      return
     const refs = [ref('courses', course.id)]
-    for (const name of ['course_classes', 'topics', 'lessons', 'lesson_schedules', 'lesson_materials', 'timetable_entries'] as const)
-      refs.push(...(await refsWhere(name, 'course_id', course.id)))
+    const found: Record<string, number> = {}
+    for (const name of ['course_classes', 'topics', 'lessons', 'lesson_schedules', 'lesson_materials', 'timetable_entries'] as const) {
+      const r = await refsWhere(name, 'course_id', course.id)
+      found[name] = r.length
+      refs.push(...r)
+    }
+    const lost = lostList([
+      part(found.topics, THEMES),
+      part(found.lessons, LESSONS),
+      part(found.lesson_schedules, DATES),
+      part(found.lesson_materials, FILES),
+      part(found.timetable_entries, CELLS),
+    ])
+    const text = `Предмет «${courseTitle(course)}» разом із КТП.${lost ? ` Зникне: ${lost}.` : ''} Це незворотно.`
+    if (!(await ask(text, { title: 'Видалити предмет?', word: 'видалити' }))) return
     deleteRefs(refs)
   }
 
